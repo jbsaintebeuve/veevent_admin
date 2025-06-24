@@ -12,7 +12,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { CreateEventDialog } from "./create-event-dialog";
+import { CreateEventDialog } from "./create-dialogs/create-event-dialog";
 
 export function NavMain({
   items,

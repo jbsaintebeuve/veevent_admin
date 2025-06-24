@@ -47,7 +47,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CreateCategoryDialog } from "@/components/create-category-dialog";
+import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
 
 interface Category {
   name: string;

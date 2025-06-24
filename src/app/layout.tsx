@@ -56,7 +56,7 @@ export default function RootLayout({
         >
           <Providers>
             <ConditionalLayout>{children}</ConditionalLayout>
-          </Providers>
+          </Providers>{" "}
         </ThemeProvider>
       </body>
     </html>

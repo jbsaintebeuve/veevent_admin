@@ -48,7 +48,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CreateEventDialog } from "@/components/create-event-dialog";
+import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 
 // Interface mise à jour selon la nouvelle structure API
 interface Event {

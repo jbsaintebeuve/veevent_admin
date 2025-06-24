@@ -47,13 +47,23 @@ import {
   AlertCircle,
   Search,
 } from "lucide-react";
-import { CreatePlaceDialog } from "@/components/create-place-dialog";
+import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
+import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
 
+// ✅ Interface Place complète qui correspond à l'API
 interface Place {
   id: number;
   name: string;
+  description: string;
   address: string;
+  type: string;
+  latitude: number;
+  longitude: number;
   cityName: string;
+  cityId: number;
+  bannerUrl?: string;
+  imageUrl?: string;
+  content?: string;
   eventsCount: number;
   eventsPastCount: number;
 }
@@ -109,13 +119,15 @@ export default function PlacesPage() {
     deleteMutation.mutate(id);
   };
 
-  // ✅ Filtrage des lieux avec recherche
+  // ✅ Filtrage des lieux avec recherche (inclut maintenant type et description)
   const filteredPlaces = Array.isArray(places)
     ? places.filter(
         (place) =>
           place.name.toLowerCase().includes(search.toLowerCase()) ||
           place.address.toLowerCase().includes(search.toLowerCase()) ||
-          place.cityName.toLowerCase().includes(search.toLowerCase())
+          place.cityName.toLowerCase().includes(search.toLowerCase()) ||
+          place.type.toLowerCase().includes(search.toLowerCase()) ||
+          place.description.toLowerCase().includes(search.toLowerCase())
       )
     : [];
 
@@ -368,7 +380,7 @@ export default function PlacesPage() {
                 <CardHeader>
                   <CardTitle>Rechercher des lieux</CardTitle>
                   <CardDescription>
-                    Filtrez par nom, adresse ou ville
+                    Filtrez par nom, adresse, ville, type ou description
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -376,7 +388,7 @@ export default function PlacesPage() {
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="Rechercher par nom, adresse ou ville..."
+                      placeholder="Rechercher par nom, adresse, ville, type..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       className="pl-10"
@@ -386,7 +398,7 @@ export default function PlacesPage() {
               </Card>
             </div>
 
-            {/* ✅ Data Table */}
+            {/* ✅ Data Table avec colonnes mises à jour */}
             <div className="px-4 lg:px-6">
               <Card>
                 <CardHeader>
@@ -409,7 +421,8 @@ export default function PlacesPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-[200px]">Nom</TableHead>
-                            <TableHead className="w-[250px] hidden md:table-cell">
+                            <TableHead className="w-[120px]">Type</TableHead>
+                            <TableHead className="w-[200px] hidden md:table-cell">
                               Adresse
                             </TableHead>
                             <TableHead className="w-[120px]">Ville</TableHead>
@@ -439,9 +452,14 @@ export default function PlacesPage() {
                                   <span className="truncate">{place.name}</span>
                                 </div>
                               </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {place.type}
+                                </Badge>
+                              </TableCell>
                               <TableCell className="text-muted-foreground hidden md:table-cell">
                                 <span
-                                  className="truncate block max-w-[200px]"
+                                  className="truncate block max-w-[180px]"
                                   title={place.address}
                                 >
                                   {place.address}
@@ -473,13 +491,9 @@ export default function PlacesPage() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="outline" size="sm" asChild>
-                                    <Link href={`/places/${place.id}/edit`}>
-                                      <Edit className="h-4 w-4" />
-                                      <span className="sr-only">Modifier</span>
-                                    </Link>
-                                  </Button>
+                                <div className="flex items-center justify-end gap-2">
+                                  {/* ✅ Utilisation du ModifyPlaceDialog avec les bonnes données */}
+                                  <ModifyPlaceDialog place={place} />
 
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>

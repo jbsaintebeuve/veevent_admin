@@ -47,7 +47,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CreateCityDialog } from "@/components/create-city-dialog";
+import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 
 interface City {
   id: number;
