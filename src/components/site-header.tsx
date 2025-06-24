@@ -16,6 +16,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Sun, Moon, Github, User } from "lucide-react";
+import React from "react";
 
 // Mapping des paths vers les labels
 const pathConfig = {
@@ -100,7 +101,7 @@ export function SiteHeader() {
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbItems.map((item, index) => (
-              <>
+              <React.Fragment key={`breadcrumb-fragment-${index}`}>
                 <BreadcrumbItem
                   key={item.href}
                   className={
@@ -127,7 +128,7 @@ export function SiteHeader() {
                     }
                   />
                 )}
-              </>
+              </React.Fragment>
             ))}
           </BreadcrumbList>
         </Breadcrumb>
@@ -171,7 +172,7 @@ export function SiteHeader() {
       <Breadcrumb>
         <BreadcrumbList>
           {breadcrumbItems.map((item, index) => (
-            <>
+            <React.Fragment key={`breadcrumb-loading-${index}`}>
               <BreadcrumbItem
                 key={item.href}
                 className={
@@ -198,7 +199,7 @@ export function SiteHeader() {
                   }
                 />
               )}
-            </>
+            </React.Fragment>
           ))}
         </BreadcrumbList>
       </Breadcrumb>

@@ -46,35 +46,53 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateEventDialog } from "@/components/create-event-dialog";
 
+// Interface mise à jour selon la nouvelle structure API
 interface Event {
   id: number;
   name: string;
   description: string;
-  startDate: string;
-  endDate: string;
-  startTime: string;
-  endTime: string;
-  placeName: string;
+  date: string; // Date et heure combinées
+  address: string;
+  maxCustomers: number;
+  currentParticipants: number;
+  price: number;
+  status: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+  isTrending: boolean;
+  isFirstEdition: boolean;
+  imageUrl: string;
   cityName: string;
-  categoryName: string;
-  participantsCount: number;
-  maxParticipants: number;
-  status: "UPCOMING" | "ONGOING" | "COMPLETED" | "CANCELLED";
+  placeName: string;
+  categories: Array<{
+    name: string;
+    key: string;
+  }>;
+  organizer: {
+    pseudo: string;
+    lastName: string;
+    firstName: string;
+    imageUrl: string | null;
+    note: number | null;
+  };
 }
 
 interface ApiResponse {
   _embedded: {
-    eventResponses: Event[];
+    eventSummaryResponses: Event[]; // Nom correct de la propriété
   };
   _links: any;
-  page: any;
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
 }
 
 async function fetchEvents(): Promise<Event[]> {
   const res = await fetch("http://localhost:8090/events");
   if (!res.ok) throw new Error("Erreur lors du chargement des événements");
   const data: ApiResponse = await res.json();
-  return data._embedded?.eventResponses || [];
+  return data._embedded?.eventSummaryResponses || []; // Propriété corrigée
 }
 
 async function deleteEvent(id: number): Promise<void> {
@@ -114,7 +132,7 @@ export default function EventsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "UPCOMING":
+      case "NOT_STARTED":
         return <Badge variant="default">À venir</Badge>;
       case "ONGOING":
         return <Badge variant="secondary">En cours</Badge>;
@@ -127,11 +145,18 @@ export default function EventsPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("fr-FR");
+  const formatDateTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return {
+      date: date.toLocaleDateString("fr-FR"),
+      time: date.toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
   };
 
-  // Loading state
+  // Loading state (inchangé)
   if (isLoading) {
     return (
       <>
@@ -179,7 +204,7 @@ export default function EventsPage() {
     );
   }
 
-  // Error state
+  // Error state (inchangé)
   if (error) {
     return (
       <>
@@ -196,12 +221,13 @@ export default function EventsPage() {
     );
   }
 
+  // Calculs des statistiques mis à jour
   const upcomingEvents =
-    events?.filter((e) => e.status === "UPCOMING").length || 0;
+    events?.filter((e) => e.status === "NOT_STARTED").length || 0;
   const ongoingEvents =
     events?.filter((e) => e.status === "ONGOING").length || 0;
   const totalParticipants =
-    events?.reduce((sum, event) => sum + event.participantsCount, 0) || 0;
+    events?.reduce((sum, event) => sum + event.currentParticipants, 0) || 0; // currentParticipants au lieu de participantsCount
 
   return (
     <>
@@ -273,7 +299,7 @@ export default function EventsPage() {
           </Card>
         </div>
 
-        {/* Data Table */}
+        {/* Data Table - Mise à jour avec les nouveaux champs */}
         <Card>
           <CardHeader>
             <CardTitle>Liste des événements</CardTitle>
@@ -289,113 +315,141 @@ export default function EventsPage() {
                     <TableHead>Nom</TableHead>
                     <TableHead>Date/Heure</TableHead>
                     <TableHead>Lieu</TableHead>
-                    <TableHead>Catégorie</TableHead>
+                    <TableHead>Catégories</TableHead>
                     <TableHead className="text-center">Participants</TableHead>
+                    <TableHead className="text-center">Prix</TableHead>
                     <TableHead className="text-center">Statut</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {events.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell className="font-medium">
-                        {event.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        <div className="flex flex-col text-sm">
-                          <span>{formatDate(event.startDate)}</span>
-                          <span className="text-xs">
-                            {event.startTime} - {event.endTime}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                  {events.map((event) => {
+                    const { date, time } = formatDateTime(event.date);
+                    return (
+                      <TableRow key={event.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span>{event.name}</span>
+                            {event.isTrending && (
+                              <Badge
+                                variant="secondary"
+                                className="w-fit text-xs mt-1"
+                              >
+                                Tendance
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
                           <div className="flex flex-col text-sm">
-                            <span>{event.placeName}</span>
+                            <span>{date}</span>
+                            <span className="text-xs">{time}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex flex-col text-sm">
+                              <span>{event.placeName}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {event.cityName}
+                              </span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {event.categories.map((category, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {category.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex flex-col text-sm">
+                            <span className="font-medium">
+                              {event.currentParticipants}/{event.maxCustomers}
+                            </span>
                             <span className="text-xs text-muted-foreground">
-                              {event.cityName}
+                              {Math.round(
+                                (event.currentParticipants /
+                                  event.maxCustomers) *
+                                  100
+                              )}
+                              %
                             </span>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{event.categoryName}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex flex-col text-sm">
+                        </TableCell>
+                        <TableCell className="text-center">
                           <span className="font-medium">
-                            {event.participantsCount}/{event.maxParticipants}
+                            {event.price === 0 ? "Gratuit" : `${event.price}€`}
                           </span>
-                          <span className="text-xs text-muted-foreground">
-                            {Math.round(
-                              (event.participantsCount /
-                                event.maxParticipants) *
-                                100
-                            )}
-                            %
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {getStatusBadge(event.status)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/events/${event.id}/edit`}>
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Modifier</span>
-                            </Link>
-                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {getStatusBadge(event.status)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={`/events/${event.id}/edit`}>
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Modifier</span>
+                              </Link>
+                            </Button>
 
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                disabled={deleteMutation.isPending}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Supprimer</span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Supprimer l'événement
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Êtes-vous sûr de vouloir supprimer "
-                                  {event.name}" ? Cette action est irréversible.
-                                  {event.participantsCount > 0 && (
-                                    <span className="block mt-2 text-destructive font-medium">
-                                      ⚠️ Cet événement a{" "}
-                                      {event.participantsCount} participant(s)
-                                      inscrit(s).
-                                    </span>
-                                  )}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDelete(event.id, event.name)
-                                  }
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  disabled={deleteMutation.isPending}
                                 >
-                                  Supprimer
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Supprimer</span>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Supprimer l'événement
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Êtes-vous sûr de vouloir supprimer "
+                                    {event.name}" ? Cette action est
+                                    irréversible.
+                                    {event.currentParticipants > 0 && (
+                                      <span className="block mt-2 text-destructive font-medium">
+                                        ⚠️ Cet événement a{" "}
+                                        {event.currentParticipants}{" "}
+                                        participant(s) inscrit(s).
+                                      </span>
+                                    )}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDelete(event.id, event.name)
+                                    }
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Supprimer
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : (

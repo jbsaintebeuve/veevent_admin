@@ -26,19 +26,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import {
-  Plus,
-  Loader2,
-  AlertCircle,
-  Calendar,
-  MapPin,
-  Image,
-  FileText,
-  Clock,
-  Users,
-  Euro,
-  Tag,
-} from "lucide-react";
+import { Plus, Loader2, AlertCircle } from "lucide-react";
 
 // Types pour les entités liées
 interface City {
@@ -112,7 +100,11 @@ async function fetchUsers(): Promise<User[]> {
   return data._embedded?.userResponses || [];
 }
 
-export function CreateEventDialog() {
+export function CreateEventDialog({
+  children,
+}: {
+  children?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -249,10 +241,12 @@ export function CreateEventDialog() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <form onSubmit={handleSubmit}>
         <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Créer un événement
-          </Button>
+          {children || (
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground font-medium">
+              <Plus className="mr-2 h-4 w-4" />
+              Créer un événement
+            </Button>
+          )}
         </DialogTrigger>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>

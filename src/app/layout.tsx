@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VEvent Admin",
-  description: "Dashboard d'administration VEvent",
+  title: "Veevent Admin",
+  description: "Interface d'administration Veevent",
 };
 
 export default function RootLayout({
@@ -26,10 +26,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark')
+                  document.documentElement.style.colorScheme = 'dark'
+                } else {
+                  document.documentElement.classList.remove('dark')
+                  document.documentElement.style.colorScheme = 'light'
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        suppressHydrationWarning={true}
+        suppressHydrationWarning
       >
         <ThemeProvider
           attribute="class"
