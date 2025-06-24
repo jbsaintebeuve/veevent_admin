@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth"; // ✅ Utilisation du hook useAuth
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   User,
@@ -30,41 +33,132 @@ import {
   Save,
   AlertCircle,
   Loader2,
+  Phone,
+  Star,
+  Globe,
+  Plus,
+  X,
 } from "lucide-react";
 
+// Interface pour les données profil utilisateur spécifique
+interface UserProfileData {
+  description?: string;
+  phone?: string;
+  imageUrl?: string;
+  bannerUrl?: string;
+  note?: number;
+  socials?: string; // JSON string
+  categoryKeys?: string[];
+}
+
+// Interface pour les catégories
+interface Category {
+  key: string;
+  name: string;
+  description: string;
+  trending: boolean;
+}
+
+interface CategoriesApiResponse {
+  _embedded: {
+    categories: Category[];
+  };
+  _links: any;
+  page: any;
+}
+
+// Interface pour les réseaux sociaux
+interface Social {
+  name: string;
+  url: string;
+}
+
+async function fetchCategories(): Promise<Category[]> {
+  const res = await fetch("http://localhost:8090/categories");
+  if (!res.ok) throw new Error("Erreur lors du chargement des catégories");
+  const data: CategoriesApiResponse = await res.json();
+  return data._embedded?.categories || [];
+}
+
 export default function ProfilePage() {
+  // ✅ Utilisation du hook useAuth au lieu de fetch manuel
+  const { user, loading: authLoading, getToken } = useAuth();
+
   const [form, setForm] = useState({
+    // Données de base (non modifiables - viennent de useAuth)
     lastName: "",
     firstName: "",
     pseudo: "",
     email: "",
-    password: "",
-    imageUrl: "",
+    role: "",
+    // Données du profil (modifiables)
     description: "",
-    role: "Organizer",
+    phone: "",
+    imageUrl: "",
+    bannerUrl: "",
+    note: 0,
+    categoryKeys: [] as string[],
   });
+  const [socials, setSocials] = useState<Social[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
+  // Récupération des catégories
+  const { data: categories } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+  });
+
   useEffect(() => {
-    async function fetchMe() {
+    async function fetchUserProfileData() {
+      if (!user) return;
+
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:8090/users/me");
-        if (!res.ok) throw new Error("Erreur lors du chargement du profil");
-        const data = await res.json();
+        // ✅ Récupérer les données de profil depuis /users/{id}
+        const token = getToken();
+        const profileRes = await fetch(
+          `http://localhost:8090/users/${user.id}`,
+          {
+            headers: {
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+          }
+        );
+
+        let profileData: UserProfileData = {};
+        if (profileRes.ok) {
+          profileData = await profileRes.json();
+        }
+
+        // ✅ Combiner les données useAuth + profil
         setForm({
-          lastName: data.lastName || "",
-          firstName: data.firstName || "",
-          pseudo: data.pseudo || "",
-          email: data.email || "",
-          password: "",
-          imageUrl: data.imageUrl || "",
-          description: data.description || "",
-          role: data.role || "Organizer",
+          // Données de base depuis useAuth
+          lastName: user.lastName || "",
+          firstName: user.firstName || "",
+          pseudo: user.pseudo || "",
+          email: user.email || "",
+          role: user.role || "",
+          // Données du profil depuis l'API
+          description: profileData.description || "",
+          phone: profileData.phone || "",
+          imageUrl: profileData.imageUrl || user.imageUrl || "",
+          bannerUrl: profileData.bannerUrl || "",
+          note: profileData.note || 0,
+          categoryKeys: profileData.categoryKeys || [],
         });
+
+        // ✅ Parser les réseaux sociaux
+        if (profileData.socials) {
+          try {
+            const parsedSocials = JSON.parse(profileData.socials);
+            setSocials(Array.isArray(parsedSocials) ? parsedSocials : []);
+          } catch {
+            setSocials([]);
+          }
+        }
       } catch (err: any) {
         setError(err.message);
         toast.error("Erreur lors du chargement du profil");
@@ -72,40 +166,96 @@ export default function ProfilePage() {
         setLoading(false);
       }
     }
-    fetchMe();
-  }, []);
+
+    if (user && !authLoading) {
+      fetchUserProfileData();
+    }
+  }, [user, authLoading, getToken]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "note") {
+      setForm({ ...form, [name]: parseFloat(value) || 0 });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+
+  const handleCategoryChange = (categoryKey: string, checked: boolean) => {
+    if (checked) {
+      setForm({
+        ...form,
+        categoryKeys: [...form.categoryKeys, categoryKey],
+      });
+    } else {
+      setForm({
+        ...form,
+        categoryKeys: form.categoryKeys.filter((key) => key !== categoryKey),
+      });
+    }
+  };
+
+  const addSocial = () => {
+    setSocials([...socials, { name: "", url: "" }]);
+  };
+
+  const removeSocial = (index: number) => {
+    setSocials(socials.filter((_, i) => i !== index));
+  };
+
+  const updateSocial = (
+    index: number,
+    field: "name" | "url",
+    value: string
+  ) => {
+    const newSocials = [...socials];
+    newSocials[index][field] = value;
+    setSocials(newSocials);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
     setSaving(true);
     setError("");
 
     try {
-      const res = await fetch("http://localhost:8090/users/me", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lastName: form.lastName,
-          firstName: form.firstName,
-          pseudo: form.pseudo,
-          email: form.email,
-          password: form.password,
-          imageUrl: form.imageUrl,
-          description: form.description,
-        }),
+      // ✅ Préparer le payload selon le format API
+      const payload = {
+        description: form.description.trim() || null,
+        phone: form.phone.trim() || null,
+        imageUrl: form.imageUrl.trim() || null,
+        bannerUrl: form.bannerUrl.trim() || null,
+        note: form.note,
+        socials: socials.length > 0 ? JSON.stringify(socials) : null,
+        categoryKeys: form.categoryKeys,
+      };
+
+      console.log("Payload envoyé:", payload); // Debug
+
+      const token = getToken();
+
+      // ✅ Utiliser PATCH au lieu de PUT
+      const res = await fetch(`http://localhost:8090/users/${user.id}`, {
+        method: "PATCH", // ✅ PATCH au lieu de PUT
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Erreur lors de la modification du profil");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Erreur ${res.status}: ${errorText}`);
+      }
 
       toast.success("Profil mis à jour avec succès !");
-      router.refresh();
     } catch (err: any) {
+      console.error("Erreur:", err);
       setError(err.message);
       toast.error("Erreur lors de la sauvegarde");
     } finally {
@@ -113,8 +263,8 @@ export default function ProfilePage() {
     }
   };
 
-  // Loading state
-  if (loading) {
+  // ✅ Loading state avec authLoading
+  if (authLoading || loading) {
     return (
       <>
         <SiteHeader />
@@ -131,7 +281,7 @@ export default function ProfilePage() {
                   <Skeleton className="h-4 w-48" />
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {[...Array(6)].map((_, i) => (
+                  {[...Array(8)].map((_, i) => (
                     <div key={i} className="space-y-2">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-10 w-full" />
@@ -141,6 +291,23 @@ export default function ProfilePage() {
               </Card>
             </div>
           </div>
+        </div>
+      </>
+    );
+  }
+
+  // ✅ Si pas d'utilisateur connecté
+  if (!user) {
+    return (
+      <>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Vous devez être connecté pour accéder à votre profil.
+            </AlertDescription>
+          </Alert>
         </div>
       </>
     );
@@ -167,10 +334,8 @@ export default function ProfilePage() {
     <>
       <SiteHeader />
       <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        {" "}
-        {/* ← Même padding que dashboard */}
         <div className="mx-auto w-full max-w-2xl">
-          {/* Header Section - Style dashboard */}
+          {/* Header Section */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold tracking-tight">Mon Profil</h1>
             <p className="text-muted-foreground">
@@ -202,6 +367,12 @@ export default function ProfilePage() {
                   </div>
                   <p className="text-muted-foreground">@{form.pseudo}</p>
                   <p className="text-sm text-muted-foreground">{form.email}</p>
+                  {form.note > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm font-medium">{form.note}/5</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -210,108 +381,65 @@ export default function ProfilePage() {
           {/* Profile Form */}
           <Card>
             <CardHeader>
-              <CardTitle>Informations personnelles</CardTitle>
+              <CardTitle>Informations du profil</CardTitle>
               <CardDescription>
-                Modifiez vos informations personnelles et de compte
+                Modifiez vos informations de profil public et vos préférences
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Nom et Prénom */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="lastName">Nom *</Label>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      value={form.lastName}
-                      onChange={handleChange}
-                      required
-                      placeholder="Votre nom"
-                      disabled={saving}
-                    />
+                {/* Informations de base (lecture seule) */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    Informations de base (non modifiables)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label>Nom</Label>
+                      <Input
+                        value={form.lastName}
+                        readOnly
+                        className="bg-muted"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Prénom</Label>
+                      <Input
+                        value={form.firstName}
+                        readOnly
+                        className="bg-muted"
+                      />
+                    </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="firstName">Prénom *</Label>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      value={form.firstName}
-                      onChange={handleChange}
-                      required
-                      placeholder="Votre prénom"
-                      disabled={saving}
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label>Pseudo</Label>
+                      <Input
+                        value={form.pseudo}
+                        readOnly
+                        className="bg-muted"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Email</Label>
+                      <Input value={form.email} readOnly className="bg-muted" />
+                    </div>
                   </div>
                 </div>
 
                 <Separator />
 
-                {/* Identifiants */}
+                {/* Informations modifiables */}
                 <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="pseudo">Pseudo *</Label>
-                    <Input
-                      id="pseudo"
-                      name="pseudo"
-                      value={form.pseudo}
-                      onChange={handleChange}
-                      required
-                      placeholder="Votre pseudo"
-                      disabled={saving}
-                    />
-                  </div>
+                  <h4 className="text-sm font-medium">
+                    Informations du profil
+                  </h4>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      required
-                      placeholder="votre@email.com"
-                      disabled={saving}
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Mot de passe *</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={form.password}
-                      onChange={handleChange}
-                      required
-                      placeholder="Nouveau mot de passe"
-                      disabled={saving}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Laissez vide pour conserver le mot de passe actuel
-                    </p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Informations additionnelles */}
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="imageUrl">URL de l'avatar</Label>
-                    <Input
-                      id="imageUrl"
-                      name="imageUrl"
-                      value={form.imageUrl}
-                      onChange={handleChange}
-                      placeholder="https://exemple.com/avatar.jpg"
-                      disabled={saving}
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">
+                      <FileText className="inline mr-1 h-4 w-4" />
+                      Description
+                    </Label>
                     <Textarea
                       id="description"
                       name="description"
@@ -323,19 +451,160 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="role">Rôle</Label>
-                    <Input
-                      id="role"
-                      name="role"
-                      value={form.role}
-                      readOnly
-                      className="bg-muted cursor-not-allowed"
-                      disabled
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Le rôle ne peut pas être modifié
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="phone">
+                        <Phone className="inline mr-1 h-4 w-4" />
+                        Téléphone
+                      </Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        value={form.phone}
+                        onChange={handleChange}
+                        placeholder="+33612345678"
+                        disabled={saving}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="note">
+                        <Star className="inline mr-1 h-4 w-4" />
+                        Note (sur 5)
+                      </Label>
+                      <Input
+                        id="note"
+                        name="note"
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={form.note}
+                        onChange={handleChange}
+                        disabled={saving}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="imageUrl">
+                        <ImageIcon className="inline mr-1 h-4 w-4" />
+                        URL de l'avatar
+                      </Label>
+                      <Input
+                        id="imageUrl"
+                        name="imageUrl"
+                        value={form.imageUrl}
+                        onChange={handleChange}
+                        placeholder="https://exemple.com/avatar.jpg"
+                        disabled={saving}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="bannerUrl">
+                        <ImageIcon className="inline mr-1 h-4 w-4" />
+                        URL de la bannière
+                      </Label>
+                      <Input
+                        id="bannerUrl"
+                        name="bannerUrl"
+                        value={form.bannerUrl}
+                        onChange={handleChange}
+                        placeholder="https://exemple.com/banner.jpg"
+                        disabled={saving}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Réseaux sociaux */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">
+                      <Globe className="inline mr-1 h-4 w-4" />
+                      Réseaux sociaux
+                    </h4>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSocial}
+                      disabled={saving}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter
+                    </Button>
+                  </div>
+
+                  {socials.map((social, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder="Nom (ex: LinkedIn)"
+                        value={social.name}
+                        onChange={(e) =>
+                          updateSocial(index, "name", e.target.value)
+                        }
+                        disabled={saving}
+                      />
+                      <Input
+                        placeholder="URL complète"
+                        value={social.url}
+                        onChange={(e) =>
+                          updateSocial(index, "url", e.target.value)
+                        }
+                        disabled={saving}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removeSocial(index)}
+                        disabled={saving}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                {/* Catégories d'intérêt */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Catégories d'intérêt</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {categories?.map((category) => (
+                      <div
+                        key={category.key}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={category.key}
+                          checked={form.categoryKeys.includes(category.key)}
+                          onCheckedChange={(checked) =>
+                            handleCategoryChange(
+                              category.key,
+                              checked as boolean
+                            )
+                          }
+                          disabled={saving}
+                        />
+                        <Label
+                          htmlFor={category.key}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {category.name}
+                          {category.trending && (
+                            <Badge variant="secondary" className="ml-2 text-xs">
+                              Tendance
+                            </Badge>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
                 </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -26,9 +27,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Plus, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Loader2, AlertCircle, MapPin } from "lucide-react";
 
-// Types pour les entités liées
 interface City {
   id: number;
   name: string;
@@ -36,69 +36,126 @@ interface City {
 interface Place {
   id: number;
   name: string;
+  type?: string;
 }
 interface Category {
   key: string;
   name: string;
-}
-interface User {
-  id: number;
-  pseudo: string;
+  trending?: boolean;
 }
 
-// Interfaces pour les réponses API
-interface CitiesApiResponse {
-  _embedded: { cityResponses: City[] };
-  _links: any;
-  page: any;
-}
+const fetchApi = async <T,>(url: string, errorMsg: string): Promise<T[]> => {
+  try {
+    const res = await fetch(`http://localhost:8090${url}`);
+    if (!res.ok) throw new Error(errorMsg);
+    const data = await res.json();
+    return data._embedded?.[Object.keys(data._embedded)[0]] || [];
+  } catch (error) {
+    console.error(`Erreur ${url}:`, error);
+    return [];
+  }
+};
 
-interface PlacesApiResponse {
-  _embedded: { placeResponses: Place[] };
-  _links: any;
-  page: any;
-}
+const fetchCities = () =>
+  fetchApi<City>("/cities", "Erreur lors du chargement des villes");
+const fetchPlacesByCity = (cityId: string) =>
+  cityId
+    ? fetchApi<Place>(
+        `/cities/${cityId}/places`,
+        "Erreur lors du chargement des lieux"
+      )
+    : Promise.resolve([]);
+const fetchCategories = async () => {
+  const categories = await fetchApi<Category>(
+    "/categories",
+    "Erreur lors du chargement des catégories"
+  );
+  return categories.filter(
+    (cat, i, arr) => arr.findIndex((c) => c.key === cat.key) === i
+  );
+};
 
-interface CategoriesApiResponse {
-  _embedded: { categories: Category[] };
-  _links: any;
-  page: any;
-}
+const initialForm = {
+  name: "",
+  description: "",
+  date: "",
+  address: "",
+  price: "",
+  maxCustomers: "",
+  imageUrl: "",
+  contentHtml: "",
+  status: "NOT_STARTED",
+  isTrending: false,
+  cityId: "",
+  placeId: "",
+  categoryKeys: [] as string[],
+};
 
-interface UsersApiResponse {
-  _embedded: { userResponses: User[] };
-  _links: any;
-  page: any;
-}
+// ✅ Composant InputField séparé et mémorisé
+const InputField = memo(
+  ({
+    label,
+    name,
+    type = "text",
+    placeholder,
+    required = false,
+    value,
+    onChange,
+    disabled,
+    ...props
+  }: {
+    label: string;
+    name: string;
+    type?: string;
+    placeholder?: string;
+    required?: boolean;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    disabled: boolean;
+    [key: string]: any;
+  }) => (
+    <div className="grid gap-2">
+      <Label htmlFor={name}>
+        {label} {required && "*"}
+      </Label>
+      <Input
+        id={name}
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        {...props}
+      />
+    </div>
+  )
+);
 
-// Fonctions de fetch
-async function fetchCities(): Promise<City[]> {
-  const res = await fetch("http://localhost:8090/cities");
-  if (!res.ok) throw new Error("Erreur lors du chargement des villes");
-  const data: CitiesApiResponse = await res.json();
-  return data._embedded?.cityResponses || [];
-}
-
-async function fetchPlaces(): Promise<Place[]> {
-  const res = await fetch("http://localhost:8090/places");
-  if (!res.ok) throw new Error("Erreur lors du chargement des lieux");
-  const data: PlacesApiResponse = await res.json();
-  return data._embedded?.placeResponses || [];
-}
-
-async function fetchCategories(): Promise<Category[]> {
-  const res = await fetch("http://localhost:8090/categories");
-  if (!res.ok) throw new Error("Erreur lors du chargement des catégories");
-  const data: CategoriesApiResponse = await res.json();
-  return data._embedded?.categories || [];
-}
-
-async function fetchUsers(): Promise<User[]> {
-  const res = await fetch("http://localhost:8090/users");
-  if (!res.ok) throw new Error("Erreur lors du chargement des utilisateurs");
-  const data: UsersApiResponse = await res.json();
-  return data._embedded?.userResponses || [];
-}
+// ✅ Composant Select mémorisé
+const MemoizedSelect = memo(
+  ({
+    value,
+    onValueChange,
+    disabled,
+    placeholder,
+    children,
+  }: {
+    value: string;
+    onValueChange: (value: string) => void;
+    disabled: boolean;
+    placeholder: string;
+    children: React.ReactNode;
+  }) => (
+    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>{children}</SelectContent>
+    </Select>
+  )
+);
 
 export function CreateEventDialog({
   children,
@@ -106,395 +163,401 @@ export function CreateEventDialog({
   children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    date: "",
-    price: "",
-    maxCustomers: "",
-    imageUrl: "",
-    status: "NOT_STARTED",
-    isTrending: false,
-    isFirstEdition: false,
-    cityId: "",
-    placeId: "",
-    organizerId: "",
-    categories: [] as string[],
-  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [form, setForm] = useState(initialForm);
+
   const queryClient = useQueryClient();
 
-  // Récupération des données liées
-  const { data: cities } = useQuery<City[]>({
+  const { data: cities, isLoading: citiesLoading } = useQuery({
     queryKey: ["cities"],
     queryFn: fetchCities,
   });
-  const { data: places } = useQuery<Place[]>({
-    queryKey: ["places"],
-    queryFn: fetchPlaces,
+  const { data: places, isLoading: placesLoading } = useQuery({
+    queryKey: ["places", form.cityId],
+    queryFn: () => fetchPlacesByCity(form.cityId),
+    enabled: !!form.cityId,
   });
-  const { data: categories } = useQuery<Category[]>({
+  const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
   });
-  const { data: users } = useQuery<User[]>({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
-  });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    if (type === "checkbox") {
-      setForm({ ...form, [name]: (e.target as HTMLInputElement).checked });
-    } else {
-      setForm({ ...form, [name]: value });
-    }
-  };
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value, type, checked } = e.target as HTMLInputElement;
+      setForm((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    },
+    []
+  );
 
-  const handleSelectChange = (name: string, value: string) => {
-    setForm({ ...form, [name]: value });
-  };
+  const handleCityChange = useCallback((value: string) => {
+    setForm((prev) => ({ ...prev, cityId: value, placeId: "" }));
+  }, []);
 
-  const handleCategoryChange = (categoryKey: string, checked: boolean) => {
-    if (checked) {
-      setForm({ ...form, categories: [...form.categories, categoryKey] });
-    } else {
-      setForm({
-        ...form,
-        categories: form.categories.filter((cat) => cat !== categoryKey),
-      });
-    }
-  };
+  const handlePlaceChange = useCallback((value: string) => {
+    setForm((prev) => ({ ...prev, placeId: value }));
+  }, []);
 
-  const resetForm = () => {
-    setForm({
-      name: "",
-      description: "",
-      date: "",
-      price: "",
-      maxCustomers: "",
-      imageUrl: "",
-      status: "NOT_STARTED",
-      isTrending: false,
-      isFirstEdition: false,
-      cityId: "",
-      placeId: "",
-      organizerId: "",
-      categories: [],
-    });
+  const handleStatusChange = useCallback((value: string) => {
+    setForm((prev) => ({ ...prev, status: value }));
+  }, []);
+
+  const handleCategoryChange = useCallback((key: string, checked: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      categoryKeys: checked
+        ? [...prev.categoryKeys, key]
+        : prev.categoryKeys.filter((k) => k !== key),
+    }));
+  }, []);
+
+  const resetForm = useCallback(() => {
+    setForm(initialForm);
     setError("");
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  const validateForm = useCallback(() => {
+    const required = [
+      "name",
+      "description",
+      "date",
+      "address",
+      "price",
+      "maxCustomers",
+      "cityId",
+      "placeId",
+    ];
+    const missing = required.find((field) => !form[field as keyof typeof form]);
+    if (missing) throw new Error(`Le champ ${missing} est requis`);
+    if (!form.categoryKeys.length)
+      throw new Error("Au moins une catégorie est requise");
 
-    try {
-      const res = await fetch("http://localhost:8090/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
+    const price = parseFloat(form.price);
+    const maxCustomers = parseInt(form.maxCustomers);
+    if (isNaN(price) || price < 0) throw new Error("Prix invalide");
+    if (isNaN(maxCustomers) || maxCustomers <= 0)
+      throw new Error("Capacité invalide");
+    if (new Date(form.date) <= new Date()) throw new Error("Date invalide");
+  }, [form]);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+      setError("");
+
+      try {
+        validateForm();
+
+        const payload = {
+          date: new Date(form.date).toISOString().slice(0, 19),
           description: form.description,
-          date: form.date,
+          name: form.name,
+          address: form.address,
           price: parseFloat(form.price),
           maxCustomers: parseInt(form.maxCustomers, 10),
-          imageUrl: form.imageUrl || null,
-          status: form.status,
           isTrending: form.isTrending,
-          isFirstEdition: form.isFirstEdition,
-          cityId: form.cityId ? parseInt(form.cityId, 10) : undefined,
-          placeId: form.placeId ? parseInt(form.placeId, 10) : undefined,
-          organizerId: form.organizerId
-            ? parseInt(form.organizerId, 10)
-            : undefined,
-          categories: form.categories,
-        }),
-      });
+          status: form.status,
+          imageUrl: form.imageUrl || null,
+          contentHtml: form.contentHtml || null,
+          placeId: parseInt(form.placeId, 10),
+          cityId: parseInt(form.cityId, 10),
+          categoryKeys: form.categoryKeys,
+        };
 
-      if (!res.ok) throw new Error("Erreur lors de la création de l'événement");
+        const res = await fetch("http://localhost:8090/events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(document.cookie.includes("token=") && {
+              Authorization: `Bearer ${
+                document.cookie.split("token=")[1]?.split(";")[0]
+              }`,
+            }),
+          },
+          body: JSON.stringify(payload),
+        });
 
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Événement créé avec succès !");
-      setOpen(false);
-      resetForm();
-    } catch (err: any) {
-      setError(err.message);
-      toast.error("Erreur lors de la création");
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (!res.ok) {
+          const errorText = await res.text();
+          const statusErrors = {
+            401: "Token expiré. Reconnectez-vous.",
+            403: "Permissions insuffisantes.",
+            400: "Données invalides.",
+          };
+          throw new Error(
+            statusErrors[res.status as keyof typeof statusErrors] ||
+              `Erreur ${res.status}`
+          );
+        }
 
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen) {
-      resetForm();
-    }
-  };
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        toast.success("Événement créé avec succès !");
+        setOpen(false);
+        resetForm();
+      } catch (err: any) {
+        setError(err.message);
+        toast.error(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [form, validateForm, queryClient, resetForm]
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      ["NOT_STARTED", "À venir"],
+      ["IN_PROGRESS", "En cours"],
+      ["FINISHED", "Terminé"],
+      ["CANCELLED", "Annulé"],
+    ],
+    []
+  );
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <form onSubmit={handleSubmit}>
-        <DialogTrigger asChild>
-          {children || (
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground font-medium">
-              <Plus className="mr-2 h-4 w-4" />
-              Créer un événement
-            </Button>
-          )}
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
+        setOpen(newOpen);
+        !newOpen && resetForm();
+      }}
+    >
+      <DialogTrigger asChild>
+        {children || (
+          <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Plus className="mr-2 h-4 w-4" />
+            Créer un événement
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Créer un nouvel événement</DialogTitle>
             <DialogDescription>
-              Ajoutez un nouvel événement. Les champs marqués d'un * sont
-              obligatoires.
+              Les champs marqués * sont obligatoires.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4">
-            {/* Nom */}
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nom de l'événement *</Label>
-              <Input
-                id="name"
-                name="name"
-                value={form.name}
+          <div className="grid gap-4 py-4">
+            <InputField
+              label="Nom de l'événement"
+              name="name"
+              placeholder="Concert sous les étoiles"
+              value={form.name}
+              onChange={handleChange}
+              disabled={loading}
+              required
+            />
+            <InputField
+              label="Description"
+              name="description"
+              placeholder="Une soirée exceptionnelle..."
+              value={form.description}
+              onChange={handleChange}
+              disabled={loading}
+              required
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <InputField
+                label="Date et heure"
+                name="date"
+                type="datetime-local"
+                value={form.date}
                 onChange={handleChange}
-                placeholder="Concert, Conférence, Festival..."
+                disabled={loading}
                 required
-                disabled={loading}
               />
-            </div>
-
-            {/* Description */}
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={form.description}
+              <InputField
+                label="Prix (€)"
+                name="price"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="20.00"
+                value={form.price}
                 onChange={handleChange}
-                rows={3}
-                placeholder="Décrivez votre événement..."
+                disabled={loading}
+                required
+              />
+            </div>
+
+            <InputField
+              label="Adresse"
+              name="address"
+              placeholder="Parc Central, Avenue des Arts"
+              value={form.address}
+              onChange={handleChange}
+              disabled={loading}
+              required
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <InputField
+                label="Participants maximum"
+                name="maxCustomers"
+                type="number"
+                min="1"
+                placeholder="250"
+                value={form.maxCustomers}
+                onChange={handleChange}
+                disabled={loading}
+                required
+              />
+              <InputField
+                label="Image (URL)"
+                name="imageUrl"
+                placeholder="https://example.com/image.jpg"
+                value={form.imageUrl}
+                onChange={handleChange}
                 disabled={loading}
               />
             </div>
 
-            {/* Date/Heure et Prix */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="date">Date et heure *</Label>
-                <Input
-                  id="date"
-                  name="date"
-                  type="datetime-local"
-                  value={form.date}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="price">Prix (€) *</Label>
-                <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.price}
-                  onChange={handleChange}
-                  placeholder="25.50"
-                  required
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {/* Participants max et Image */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="maxCustomers">Participants maximum *</Label>
-                <Input
-                  id="maxCustomers"
-                  name="maxCustomers"
-                  type="number"
-                  min="1"
-                  value={form.maxCustomers}
-                  onChange={handleChange}
-                  placeholder="100, 500, 1000..."
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="imageUrl">Image (URL)</Label>
-                <Input
-                  id="imageUrl"
-                  name="imageUrl"
-                  value={form.imageUrl}
-                  onChange={handleChange}
-                  placeholder="https://exemple.com/image.jpg"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {/* Ville et Lieu */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="cityId">Ville *</Label>
-                <Select
+                <Label>Ville *</Label>
+                <MemoizedSelect
                   value={form.cityId}
-                  onValueChange={(value) => handleSelectChange("cityId", value)}
-                  disabled={loading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une ville" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cities?.map((city) => (
-                      <SelectItem key={city.id} value={city.id.toString()}>
-                        {city.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="placeId">Lieu *</Label>
-                <Select
-                  value={form.placeId}
-                  onValueChange={(value) =>
-                    handleSelectChange("placeId", value)
+                  onValueChange={handleCityChange}
+                  disabled={loading || citiesLoading}
+                  placeholder={
+                    citiesLoading ? "Chargement..." : "Sélectionner une ville"
                   }
-                  disabled={loading}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un lieu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {places?.map((place) => (
-                      <SelectItem key={place.id} value={place.id.toString()}>
-                        {place.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Organisateur */}
-            <div className="grid gap-2">
-              <Label htmlFor="organizerId">Organisateur *</Label>
-              <Select
-                value={form.organizerId}
-                onValueChange={(value) =>
-                  handleSelectChange("organizerId", value)
-                }
-                disabled={loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un organisateur" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users?.map((user) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.pseudo}
+                  {cities?.map((city) => (
+                    <SelectItem key={city.id} value={city.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        {city.name}
+                      </div>
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </MemoizedSelect>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Lieu *</Label>
+                <MemoizedSelect
+                  value={form.placeId}
+                  onValueChange={handlePlaceChange}
+                  disabled={loading || !form.cityId || placesLoading}
+                  placeholder={
+                    !form.cityId
+                      ? "Sélectionnez d'abord une ville"
+                      : placesLoading
+                      ? "Chargement..."
+                      : "Sélectionner un lieu"
+                  }
+                >
+                  {places?.map((place) => (
+                    <SelectItem key={place.id} value={place.id.toString()}>
+                      <div>
+                        <div className="font-medium">{place.name}</div>
+                        {place.type && (
+                          <div className="text-xs text-muted-foreground">
+                            {place.type}
+                          </div>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </MemoizedSelect>
+              </div>
             </div>
 
-            {/* Catégories */}
+            <div className="grid gap-2">
+              <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
+              <Textarea
+                id="contentHtml"
+                name="contentHtml"
+                value={form.contentHtml}
+                onChange={handleChange}
+                rows={3}
+                placeholder="<p>Rejoignez-nous...</p>"
+                disabled={loading}
+              />
+            </div>
+
             <div className="grid gap-2">
               <Label>Catégories *</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3">
-                {categories?.map((category) => (
-                  <div
-                    key={category.key}
-                    className="flex items-center space-x-2"
-                  >
-                    <Checkbox
-                      id={category.key}
-                      checked={form.categories.includes(category.key)}
-                      onCheckedChange={(checked) =>
-                        handleCategoryChange(category.key, checked as boolean)
-                      }
-                      disabled={loading}
-                    />
-                    <Label
-                      htmlFor={category.key}
-                      className="text-sm font-normal cursor-pointer"
+                {categoriesLoading ? (
+                  <p className="text-sm text-muted-foreground col-span-2">
+                    Chargement...
+                  </p>
+                ) : (
+                  categories?.map((cat, i) => (
+                    <div
+                      key={`${cat.key}-${i}`}
+                      className="flex items-center space-x-2"
                     >
-                      {category.name}
-                    </Label>
-                  </div>
-                ))}
+                      <Checkbox
+                        id={`${cat.key}-${i}`}
+                        checked={form.categoryKeys.includes(cat.key)}
+                        onCheckedChange={(checked) =>
+                          handleCategoryChange(cat.key, checked as boolean)
+                        }
+                        disabled={loading}
+                      />
+                      <Label
+                        htmlFor={`${cat.key}-${i}`}
+                        className="text-sm cursor-pointer flex items-center gap-2"
+                      >
+                        {cat.name}
+                        {cat.trending && (
+                          <Badge variant="secondary" className="text-xs">
+                            Tendance
+                          </Badge>
+                        )}
+                      </Label>
+                    </div>
+                  ))
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Sélectionnez au moins une catégorie
-              </p>
             </div>
 
-            {/* Options et Statut */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="isTrending"
                   checked={form.isTrending}
                   onCheckedChange={(checked) =>
-                    setForm({ ...form, isTrending: checked as boolean })
+                    setForm((prev) => ({
+                      ...prev,
+                      isTrending: checked as boolean,
+                    }))
                   }
                   disabled={loading}
                 />
-                <Label htmlFor="isTrending" className="text-sm font-normal">
-                  Tendance
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isFirstEdition"
-                  checked={form.isFirstEdition}
-                  onCheckedChange={(checked) =>
-                    setForm({ ...form, isFirstEdition: checked as boolean })
-                  }
-                  disabled={loading}
-                />
-                <Label htmlFor="isFirstEdition" className="text-sm font-normal">
-                  Première édition
+                <Label htmlFor="isTrending" className="text-sm">
+                  Événement tendance
                 </Label>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="status">Statut *</Label>
-                <Select
+                <Label>Statut</Label>
+                <MemoizedSelect
                   value={form.status}
-                  onValueChange={(value) => handleSelectChange("status", value)}
+                  onValueChange={handleStatusChange}
                   disabled={loading}
+                  placeholder="Sélectionner un statut"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NOT_STARTED">À venir</SelectItem>
-                    <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                    <SelectItem value="FINISHED">Terminé</SelectItem>
-                    <SelectItem value="CANCELLED">Annulé</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {statusOptions.map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </MemoizedSelect>
               </div>
             </div>
 
-            {/* Erreur */}
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -511,7 +574,12 @@ export function CreateEventDialog({
             </DialogClose>
             <Button
               type="submit"
-              disabled={loading || form.categories.length === 0}
+              disabled={
+                loading ||
+                !form.categoryKeys.length ||
+                !form.cityId ||
+                !form.placeId
+              }
             >
               {loading ? (
                 <>
@@ -526,8 +594,8 @@ export function CreateEventDialog({
               )}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

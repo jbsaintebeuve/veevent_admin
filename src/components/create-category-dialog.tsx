@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +52,15 @@ export function CreateCategoryDialog() {
     setForm({ ...form, trending: checked });
   };
 
+  // ✅ Validation des champs requis comme dans CreateEventDialog
+  const isFormValid = useMemo(() => {
+    return (
+      form.name.trim() !== "" &&
+      form.description.trim() !== "" &&
+      form.key.trim() !== ""
+    );
+  }, [form]);
+
   const resetForm = () => {
     setForm({
       name: "",
@@ -68,26 +77,41 @@ export function CreateCategoryDialog() {
     setError("");
 
     try {
+      const categoryData = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        key: form.key.trim(),
+        trending: form.trending,
+      };
+
       const res = await fetch("http://localhost:8090/categories", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          description: form.description,
-          key: form.key,
-          trending: form.trending,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(document.cookie.includes("token=") && {
+            Authorization: `Bearer ${
+              document.cookie.split("token=")[1]?.split(";")[0]
+            }`,
+          }),
+        },
+        body: JSON.stringify(categoryData),
       });
 
-      if (!res.ok)
-        throw new Error("Erreur lors de la création de la catégorie");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(
+          `Erreur ${res.status}: ${
+            errorText || "Erreur lors de la création de la catégorie"
+          }`
+        );
+      }
 
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie créée avec succès !");
       setOpen(false);
       resetForm();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Erreur lors de la création de la catégorie");
       toast.error("Erreur lors de la création");
     } finally {
       setLoading(false);
@@ -103,14 +127,14 @@ export function CreateCategoryDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <form onSubmit={handleSubmit}>
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Créer une catégorie
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Créer une catégorie
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Créer une nouvelle catégorie</DialogTitle>
             <DialogDescription>
@@ -122,38 +146,36 @@ export function CreateCategoryDialog() {
           <div className="grid gap-4 py-4">
             {/* Nom */}
             <div className="grid gap-2">
-              <Label htmlFor="name">Nom de la catégorie *</Label>
-              <div className="relative">
-                <Tag className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="name"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Sport, Musique, Conférence..."
-                  className="pl-10"
-                  required
-                  disabled={loading}
-                />
-              </div>
+              <Label htmlFor="name">
+                <Tag className="inline mr-1 h-4 w-4" />
+                Nom de la catégorie *
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Sport, Musique, Conférence..."
+                required
+                disabled={loading}
+              />
             </div>
 
             {/* Clé */}
             <div className="grid gap-2">
-              <Label htmlFor="key">Clé unique *</Label>
-              <div className="relative">
-                <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="key"
-                  name="key"
-                  value={form.key}
-                  onChange={handleChange}
-                  placeholder="sport, musique, conference..."
-                  className="pl-10"
-                  required
-                  disabled={loading}
-                />
-              </div>
+              <Label htmlFor="key">
+                <Hash className="inline mr-1 h-4 w-4" />
+                Clé unique *
+              </Label>
+              <Input
+                id="key"
+                name="key"
+                value={form.key}
+                onChange={handleChange}
+                placeholder="sport, musique, conference..."
+                required
+                disabled={loading}
+              />
               <p className="text-xs text-muted-foreground">
                 Identifiant unique en minuscules, sans espaces ni caractères
                 spéciaux
@@ -162,20 +184,20 @@ export function CreateCategoryDialog() {
 
             {/* Description */}
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  placeholder="Décrivez cette catégorie d'événements..."
-                  className="pl-10 resize-none"
-                  rows={3}
-                  disabled={loading}
-                />
-              </div>
+              <Label htmlFor="description">
+                <FileText className="inline mr-1 h-4 w-4" />
+                Description *
+              </Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Décrivez cette catégorie d'événements..."
+                rows={3}
+                required
+                disabled={loading}
+              />
             </div>
 
             {/* Tendance */}
@@ -216,7 +238,7 @@ export function CreateCategoryDialog() {
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !isFormValid}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -230,8 +252,8 @@ export function CreateCategoryDialog() {
               )}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

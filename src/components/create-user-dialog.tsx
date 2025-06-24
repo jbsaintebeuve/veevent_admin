@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,6 +68,18 @@ export function CreateUserDialog() {
     setError("");
   };
 
+  // ✅ Validation des champs obligatoires
+  const isFormValid = useMemo(() => {
+    return (
+      form.lastName.trim() !== "" &&
+      form.firstName.trim() !== "" &&
+      form.pseudo.trim() !== "" &&
+      form.email.trim() !== "" &&
+      form.password.trim() !== "" &&
+      form.role !== ""
+    );
+  }, [form]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -78,17 +90,21 @@ export function CreateUserDialog() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lastName: form.lastName,
-          firstName: form.firstName,
-          pseudo: form.pseudo,
-          email: form.email,
-          password: form.password,
+          lastName: form.lastName.trim(),
+          firstName: form.firstName.trim(),
+          pseudo: form.pseudo.trim(),
+          email: form.email.trim(),
+          password: form.password.trim(),
           role: form.role,
         }),
       });
 
-      if (!res.ok)
-        throw new Error("Erreur lors de la création de l'utilisateur");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(
+          errorText || "Erreur lors de la création de l'utilisateur"
+        );
+      }
 
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("Utilisateur créé avec succès !");
@@ -252,7 +268,7 @@ export function CreateUserDialog() {
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !isFormValid}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

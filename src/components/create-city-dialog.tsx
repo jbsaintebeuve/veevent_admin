@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,23 +24,20 @@ import {
   AlertCircle,
   MapPin,
   Globe,
-  Image,
   FileText,
 } from "lucide-react";
 
+const initialForm = {
+  name: "",
+  region: "",
+  postalCode: "",
+  country: "France",
+  description: "",
+};
+
 export function CreateCityDialog() {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    region: "",
-    postalCode: "",
-    country: "France", // Valeur par défaut comme dans la page
-    latitude: "",
-    longitude: "",
-    imageUrl: "",
-    bannerUrl: "",
-    content: "",
-  });
+  const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
@@ -51,18 +48,19 @@ export function CreateCityDialog() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // ✅ Validation des champs requis
+  const isFormValid = useMemo(() => {
+    return (
+      form.name.trim() !== "" &&
+      form.region.trim() !== "" &&
+      form.postalCode.trim() !== "" &&
+      form.country.trim() !== "" &&
+      form.description.trim() !== ""
+    );
+  }, [form]);
+
   const resetForm = () => {
-    setForm({
-      name: "",
-      region: "",
-      postalCode: "",
-      country: "France",
-      latitude: "",
-      longitude: "",
-      imageUrl: "",
-      bannerUrl: "",
-      content: "",
-    });
+    setForm(initialForm);
     setError("");
   };
 
@@ -72,32 +70,40 @@ export function CreateCityDialog() {
     setError("");
 
     try {
+      const cityData = {
+        name: form.name.trim(),
+        postalCode: form.postalCode.trim(),
+        region: form.region.trim(),
+        country: form.country.trim(),
+        description: form.description.trim(),
+      };
+
+      const token = document.cookie.split("token=")[1]?.split(";")[0];
+
       const res = await fetch("http://localhost:8090/cities", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          region: form.region,
-          postalCode: form.postalCode,
-          country: form.country,
-          location: {
-            latitude: parseFloat(form.latitude),
-            longitude: parseFloat(form.longitude),
-          },
-          imageUrl: form.imageUrl,
-          bannerUrl: form.bannerUrl,
-          content: form.content,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(cityData),
       });
 
-      if (!res.ok) throw new Error("Erreur lors de la création de la ville");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(
+          `Erreur ${res.status}: ${
+            errorText || "Erreur lors de la création de la ville"
+          }`
+        );
+      }
 
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville créée avec succès !");
       setOpen(false);
       resetForm();
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Erreur lors de la création de la ville");
       toast.error("Erreur lors de la création");
     } finally {
       setLoading(false);
@@ -106,21 +112,19 @@ export function CreateCityDialog() {
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    if (!newOpen) {
-      resetForm();
-    }
+    if (!newOpen) resetForm();
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <form onSubmit={handleSubmit}>
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Créer une ville
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Créer une ville
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Créer une nouvelle ville</DialogTitle>
             <DialogDescription>
@@ -129,37 +133,41 @@ export function CreateCityDialog() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4">
-            {/* Nom et Région */}
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Nom de la ville *</Label>
+                <Label htmlFor="name">
+                  <MapPin className="inline mr-1 h-4 w-4" />
+                  Nom de la ville *
+                </Label>
                 <Input
                   id="name"
                   name="name"
                   value={form.name}
                   onChange={handleChange}
-                  placeholder="Paris, Lyon, Marseille..."
+                  placeholder="Menton, Nice, Cannes..."
                   required
                   disabled={loading}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="region">Région *</Label>
+                <Label htmlFor="region">
+                  <Globe className="inline mr-1 h-4 w-4" />
+                  Région *
+                </Label>
                 <Input
                   id="region"
                   name="region"
                   value={form.region}
                   onChange={handleChange}
-                  placeholder="Île-de-France, PACA..."
+                  placeholder="Provence Alpes Côte d'azur"
                   required
                   disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Pays et Code postal */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="country">Pays *</Label>
                 <Input
@@ -167,7 +175,7 @@ export function CreateCityDialog() {
                   name="country"
                   value={form.country}
                   onChange={handleChange}
-                  placeholder="France, Belgique, Suisse..."
+                  placeholder="France"
                   required
                   disabled={loading}
                 />
@@ -179,90 +187,30 @@ export function CreateCityDialog() {
                   name="postalCode"
                   value={form.postalCode}
                   onChange={handleChange}
-                  placeholder="75001, 69000..."
+                  placeholder="06500"
                   required
                   disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Coordonnées GPS */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="latitude">Latitude *</Label>
-                <Input
-                  id="latitude"
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  value={form.latitude}
-                  onChange={handleChange}
-                  placeholder="48.8566"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="longitude">Longitude *</Label>
-                <Input
-                  id="longitude"
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  value={form.longitude}
-                  onChange={handleChange}
-                  placeholder="2.3522"
-                  required
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Obtenez les coordonnées GPS sur Google Maps (clic droit →
-              coordonnées).
-            </p>
-
-            {/* Images */}
             <div className="grid gap-2">
-              <Label htmlFor="imageUrl">Image (URL)</Label>
-              <Input
-                id="imageUrl"
-                name="imageUrl"
-                value={form.imageUrl}
-                onChange={handleChange}
-                placeholder="https://exemple.com/image.jpg"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="bannerUrl">Bannière (URL)</Label>
-              <Input
-                id="bannerUrl"
-                name="bannerUrl"
-                value={form.bannerUrl}
-                onChange={handleChange}
-                placeholder="https://exemple.com/banner.jpg"
-                disabled={loading}
-              />
-            </div>
-
-            {/* Description */}
-            <div className="grid gap-2">
-              <Label htmlFor="content">Description</Label>
+              <Label htmlFor="description">
+                <FileText className="inline mr-1 h-4 w-4" />
+                Description *
+              </Label>
               <Textarea
-                id="content"
-                name="content"
-                value={form.content}
+                id="description"
+                name="description"
+                value={form.description}
                 onChange={handleChange}
                 rows={3}
-                placeholder="Décrivez la ville..."
+                placeholder="Petite ville du sud de la france"
+                required
                 disabled={loading}
               />
             </div>
 
-            {/* Erreur */}
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -277,7 +225,7 @@ export function CreateCityDialog() {
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !isFormValid}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -291,8 +239,8 @@ export function CreateCityDialog() {
               )}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }
