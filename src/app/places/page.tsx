@@ -1,7 +1,8 @@
 "use client";
 
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,19 +21,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "sonner";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  MapPin,
-  Calendar,
-  CalendarX,
-  AlertCircle,
-  Building2,
-} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +34,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Building2,
+  MapPin,
+  Calendar,
+  CalendarX,
+  Edit,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
 import { CreatePlaceDialog } from "@/components/create-place-dialog";
 
 interface Place {
@@ -111,8 +110,6 @@ export default function PlacesPage() {
       <>
         <SiteHeader />
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-          {" "}
-          {/* ← Correction cohérence */}
           <div className="flex items-center justify-between">
             <div>
               <Skeleton className="h-8 w-32 mb-2" />
@@ -120,6 +117,7 @@ export default function PlacesPage() {
             </div>
             <Skeleton className="h-10 w-32" />
           </div>
+
           {/* Stats Cards Skeleton */}
           <div className="grid gap-4 md:grid-cols-3">
             {[...Array(3)].map((_, i) => (
@@ -134,6 +132,7 @@ export default function PlacesPage() {
               </Card>
             ))}
           </div>
+
           <Card>
             <CardContent className="p-6">
               <div className="space-y-3">
@@ -159,8 +158,6 @@ export default function PlacesPage() {
       <>
         <SiteHeader />
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-          {" "}
-          {/* ← Correction cohérence */}
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -181,8 +178,6 @@ export default function PlacesPage() {
     <>
       <SiteHeader />
       <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        {" "}
-        {/* ← Correction principale */}
         {/* Header Section */}
         <div className="flex items-center justify-between">
           <div>
@@ -193,6 +188,7 @@ export default function PlacesPage() {
           </div>
           <CreatePlaceDialog />
         </div>
+
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
@@ -240,6 +236,7 @@ export default function PlacesPage() {
             </CardContent>
           </Card>
         </div>
+
         {/* Data Table */}
         <Card>
           <CardHeader>
@@ -250,102 +247,128 @@ export default function PlacesPage() {
           </CardHeader>
           <CardContent>
             {places && places.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Adresse</TableHead>
-                    <TableHead>Ville</TableHead>
-                    <TableHead className="text-center">Événements</TableHead>
-                    <TableHead className="text-center">
-                      Événements passés
-                    </TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {places.map((place) => (
-                    <TableRow key={place.id}>
-                      <TableCell className="font-medium">
-                        {place.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          {place.address}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{place.cityName}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={
-                            place.eventsCount > 0 ? "default" : "outline"
-                          }
-                        >
-                          {place.eventsCount}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline">{place.eventsPastCount}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/places/${place.id}/edit`}>
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Modifier</span>
-                            </Link>
-                          </Button>
-
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                disabled={deleteMutation.isPending}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Supprimer</span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Supprimer le lieu
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Êtes-vous sûr de vouloir supprimer "
-                                  {place.name}" ? Cette action est irréversible.
-                                  {place.eventsCount > 0 && (
-                                    <span className="block mt-2 text-destructive font-medium">
-                                      ⚠️ Ce lieu a {place.eventsCount}{" "}
-                                      événement(s) actif(s).
-                                    </span>
-                                  )}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDelete(place.id, place.name)
-                                  }
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Supprimer
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Nom</TableHead>
+                      <TableHead className="w-[250px] hidden md:table-cell">
+                        Adresse
+                      </TableHead>
+                      <TableHead className="w-[120px]">Ville</TableHead>
+                      <TableHead className="text-center w-[100px]">
+                        <span className="hidden sm:inline">Événements</span>
+                        <span className="sm:hidden">Actifs</span>
+                      </TableHead>
+                      <TableHead className="text-center w-[100px] hidden lg:table-cell">
+                        <span className="hidden xl:inline">
+                          Événements passés
+                        </span>
+                        <span className="xl:hidden">Passés</span>
+                      </TableHead>
+                      <TableHead className="text-right w-[120px]">
+                        Actions
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {places.map((place) => (
+                      <TableRow key={place.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate">{place.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground hidden md:table-cell">
+                          <span
+                            className="truncate block max-w-[200px]"
+                            title={place.address}
+                          >
+                            {place.address}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs">
+                            {place.cityName}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              place.eventsCount > 0 ? "default" : "outline"
+                            }
+                            className="text-xs min-w-[2rem] justify-center"
+                          >
+                            {place.eventsCount}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center hidden lg:table-cell">
+                          <Badge
+                            variant="outline"
+                            className="text-xs min-w-[2rem] justify-center"
+                          >
+                            {place.eventsPastCount}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={`/places/${place.id}/edit`}>
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Modifier</span>
+                              </Link>
+                            </Button>
+
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Supprimer</span>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Supprimer le lieu
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Êtes-vous sûr de vouloir supprimer "
+                                    {place.name}" ? Cette action est
+                                    irréversible.
+                                    {place.eventsCount > 0 && (
+                                      <span className="block mt-2 text-destructive font-medium">
+                                        ⚠️ Ce lieu a {place.eventsCount}{" "}
+                                        événement(s) actif(s).
+                                      </span>
+                                    )}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDelete(place.id, place.name)
+                                    }
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Supprimer
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="text-center py-8">
                 <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />

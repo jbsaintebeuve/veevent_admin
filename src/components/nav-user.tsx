@@ -28,35 +28,26 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/use-auth";
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
-}) {
+export function NavUser() {
   const { isMobile } = useSidebar();
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const { user, logout, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  if (!isAuthenticated || !user) {
+    console.log("❌ NavUser: No authenticated user");
+    return null;
+  }
 
   const handleLogout = async () => {
     try {
-      // Supprimer le cookie token
-      document.cookie =
-        "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-
-      // Nettoyer le stockage local
-      localStorage.clear();
-      sessionStorage.clear();
-
+      console.log("🚪 Déconnexion demandée");
       toast.success("Déconnexion réussie");
-
-      // Rediriger vers la page de login
-      router.push("/login");
+      logout(); // Utilise la fonction logout du hook useAuth
     } catch (error) {
+      console.error("❌ Erreur lors de la déconnexion:", error);
       toast.error("Erreur lors de la déconnexion");
     }
   };
@@ -64,6 +55,14 @@ export function NavUser({
   const toggleTheme = () => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName?.charAt(0) || ""}${
+      lastName?.charAt(0) || ""
+    }`.toUpperCase();
+  };
+
+  const displayName = `${user.firstName} ${user.lastName}`;
 
   return (
     <SidebarMenu>
@@ -75,18 +74,15 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={user.imageUrl || ""} alt={displayName} />
                 <AvatarFallback className="rounded-lg">
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                  {getInitials(user.firstName, user.lastName)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {user.email}
+                  @{user.pseudo}
                 </span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
@@ -101,16 +97,13 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={user.imageUrl || ""} alt={displayName} />
                   <AvatarFallback className="rounded-lg">
-                    {user.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                    {getInitials(user.firstName, user.lastName)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{displayName}</span>
                   <span className="text-muted-foreground truncate text-xs">
                     {user.email}
                   </span>

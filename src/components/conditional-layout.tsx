@@ -3,28 +3,33 @@
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { ProtectedRoute } from "@/components/protected-route";
 
-const routesWithoutSidebar = ["/login", "/register", "/forgot-password"];
+const publicRoutes = ["/login"];
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const shouldShowSidebar = !routesWithoutSidebar.includes(pathname);
+  const isPublicRoute = publicRoutes.includes(pathname);
 
-  if (!shouldShowSidebar) {
+  // Si c'est une route publique (login), pas de protection
+  if (isPublicRoute) {
     return <>{children}</>;
   }
 
+  // Sinon, route protégée avec sidebar
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>{children}</SidebarInset>
-    </SidebarProvider>
+    <ProtectedRoute>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset>{children}</SidebarInset>
+      </SidebarProvider>
+    </ProtectedRoute>
   );
 }
