@@ -36,8 +36,8 @@ async function fetchCities(): Promise<City[]> {
     if (!res.ok) throw new Error("Erreur lors du chargement des villes");
     const data: CitiesApiResponse = await res.json();
 
-    if (data._embedded?.cityResponses) {
-      return data._embedded.cityResponses;
+    if (data._embedded?.cities) {
+      return data._embedded.cities;
     }
     if (Array.isArray(data)) {
       return data as City[];

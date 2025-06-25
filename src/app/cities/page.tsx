@@ -31,8 +31,6 @@ import {
   Edit,
   Trash2,
   MapPin,
-  Calendar,
-  Globe,
   AlertCircle,
   Building,
 } from "lucide-react";
@@ -49,18 +47,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 
-// ✅ Import des interfaces centralisées
 import { City, CitiesApiResponse } from "@/types/city";
-
-// ❌ Suppression des interfaces locales
-// interface City { ... }
-// interface ApiResponse { ... }
 
 async function fetchCities(): Promise<City[]> {
   const res = await fetch("http://localhost:8090/cities");
   if (!res.ok) throw new Error("Erreur lors du chargement des villes");
   const data: CitiesApiResponse = await res.json();
-  return data._embedded?.cityResponses || [];
+  return data._embedded?.cities || [];
 }
 
 async function deleteCity(id: number): Promise<void> {
