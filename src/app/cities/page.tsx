@@ -49,27 +49,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 
-interface City {
-  id: number;
-  name: string;
-  region: string;
-  country: string;
-  postalCode: string;
-  eventsCount: number;
-}
+// ✅ Import des interfaces centralisées
+import { City, CitiesApiResponse } from "@/types/city";
 
-interface ApiResponse {
-  _embedded: {
-    cityResponses: City[];
-  };
-  _links: any;
-  page: any;
-}
+// ❌ Suppression des interfaces locales
+// interface City { ... }
+// interface ApiResponse { ... }
 
 async function fetchCities(): Promise<City[]> {
   const res = await fetch("http://localhost:8090/cities");
   if (!res.ok) throw new Error("Erreur lors du chargement des villes");
-  const data: ApiResponse = await res.json();
+  const data: CitiesApiResponse = await res.json();
   return data._embedded?.cityResponses || [];
 }
 
@@ -109,18 +99,20 @@ export default function CitiesPage() {
     deleteMutation.mutate(id);
   };
 
-  // ✅ Filtrage des villes avec recherche
+  // ✅ Filtrage des villes avec recherche - mise à jour pour la nouvelle structure
   const filteredCities = Array.isArray(cities)
     ? cities.filter(
         (city) =>
           city.name.toLowerCase().includes(search.toLowerCase()) ||
           city.region.toLowerCase().includes(search.toLowerCase()) ||
           city.country.toLowerCase().includes(search.toLowerCase()) ||
-          city.postalCode.toLowerCase().includes(search.toLowerCase())
+          city.postalCode.toLowerCase().includes(search.toLowerCase()) ||
+          (city.description &&
+            city.description.toLowerCase().includes(search.toLowerCase()))
       )
     : [];
 
-  // Loading state
+  // Loading state (reste identique)
   if (isLoading) {
     return (
       <>
@@ -176,7 +168,7 @@ export default function CitiesPage() {
     );
   }
 
-  // Error state
+  // Error state (reste identique)
   if (error) {
     return (
       <>
@@ -193,91 +185,148 @@ export default function CitiesPage() {
     );
   }
 
+  // ✅ Calculs mis à jour pour la nouvelle structure
   const totalEvents =
     cities?.reduce((sum, city) => sum + city.eventsCount, 0) || 0;
+  const totalPastEvents =
+    cities?.reduce((sum, city) => sum + city.eventsPastCount, 0) || 0;
   const totalCountries = new Set(cities?.map((city) => city.country)).size;
+  const activeCities =
+    cities?.filter((city) => city.eventsCount > 0).length || 0;
 
-  // ✅ Données pour SectionCards
+  // ✅ Données pour SectionCards mises à jour
   const cardsData: CardData[] = [
     {
       id: "cities",
       title: "Total des villes",
-      description: "Total des villes",
+      description: "Toutes les villes disponibles",
       value: cities?.length || 0,
       trend: {
         value:
-          cities && cities.length > 10
+          cities && cities.length > 20
+            ? 18.7
+            : cities && cities.length > 10
             ? 12.5
             : cities && cities.length > 5
             ? 5.2
-            : -2.1,
-        isPositive: !!(cities && cities.length > 5),
+            : cities && cities.length > 0
+            ? 2.1
+            : 0,
+        isPositive: !!(cities && cities.length > 0),
         label:
-          cities && cities.length > 10
+          cities && cities.length > 20
+            ? "Réseau très développé"
+            : cities && cities.length > 10
             ? "Croissance stable"
             : cities && cities.length > 5
             ? "En développement"
-            : "Besoin d'extension",
+            : cities && cities.length > 0
+            ? "Premières villes"
+            : "Aucune ville",
       },
       footer: {
         primary:
-          cities && cities.length > 10
+          cities && cities.length > 20
+            ? "Réseau très développé"
+            : cities && cities.length > 10
             ? "Croissance stable"
             : cities && cities.length > 5
             ? "En développement"
-            : "Besoin d'extension",
+            : cities && cities.length > 0
+            ? "Premières villes"
+            : "Aucune ville",
         secondary:
           cities?.length === 1 ? "ville disponible" : "villes disponibles",
       },
     },
     {
-      id: "events",
-      title: "Événements totaux",
-      description: "Événements totaux",
-      value: totalEvents,
+      id: "active",
+      title: "Villes actives",
+      description: "Avec événements en cours",
+      value: activeCities,
       trend: {
-        value: totalEvents > 50 ? 8.3 : totalEvents > 20 ? 3.7 : -1.5,
-        isPositive: totalEvents > 20,
+        value:
+          activeCities > 15
+            ? 25.3
+            : activeCities > 8
+            ? 16.8
+            : activeCities > 3
+            ? 9.4
+            : activeCities > 0
+            ? 5.2
+            : 0,
+        isPositive: activeCities > 0,
         label:
-          totalEvents > 50
-            ? "Performance excellente"
-            : totalEvents > 20
+          activeCities > 15
+            ? "Très actif"
+            : activeCities > 8
             ? "Bonne activité"
-            : "Activation nécessaire",
+            : activeCities > 3
+            ? "Activité modérée"
+            : activeCities > 0
+            ? "Quelques villes actives"
+            : "Aucune ville active",
       },
       footer: {
         primary:
-          totalEvents > 50
-            ? "Performance excellente"
-            : totalEvents > 20
+          activeCities > 15
+            ? "Très actif"
+            : activeCities > 8
             ? "Bonne activité"
-            : "Activation nécessaire",
-        secondary: "événements dans toutes les villes",
+            : activeCities > 3
+            ? "Activité modérée"
+            : activeCities > 0
+            ? "Quelques villes actives"
+            : "Aucune ville active",
+        secondary: "villes avec événements",
       },
     },
     {
-      id: "countries",
-      title: "Pays couverts",
-      description: "Pays couverts",
-      value: totalCountries,
+      id: "events",
+      title: "Événements totaux",
+      description: "Tous événements confondus",
+      value: totalEvents + totalPastEvents,
       trend: {
-        value: totalCountries > 3 ? 15.0 : totalCountries > 1 ? 8.5 : 0,
-        isPositive: totalCountries > 1,
+        value:
+          totalEvents + totalPastEvents > 100
+            ? 22.9
+            : totalEvents + totalPastEvents > 50
+            ? 15.6
+            : totalEvents + totalPastEvents > 25
+            ? 8.3
+            : totalEvents + totalPastEvents > 10
+            ? 3.7
+            : totalEvents + totalPastEvents > 0
+            ? 1.5
+            : 0,
+        isPositive: totalEvents + totalPastEvents > 0,
         label:
-          totalCountries > 3
-            ? "Expansion géographique"
-            : totalCountries > 1
-            ? "Diversification"
-            : "Marché local",
+          totalEvents + totalPastEvents > 100
+            ? "Performance excellente"
+            : totalEvents + totalPastEvents > 50
+            ? "Très bonne activité"
+            : totalEvents + totalPastEvents > 25
+            ? "Bonne activité"
+            : totalEvents + totalPastEvents > 10
+            ? "Activité modérée"
+            : totalEvents + totalPastEvents > 0
+            ? "Premiers événements"
+            : "Aucun événement",
       },
       footer: {
         primary:
-          totalCountries > 3
-            ? "Expansion géographique"
-            : totalCountries > 1
-            ? "Diversification"
-            : "Marché local",
-        secondary: totalCountries === 1 ? "pays couvert" : "pays différents",
+          totalEvents + totalPastEvents > 100
+            ? "Performance excellente"
+            : totalEvents + totalPastEvents > 50
+            ? "Très bonne activité"
+            : totalEvents + totalPastEvents > 25
+            ? "Bonne activité"
+            : totalEvents + totalPastEvents > 10
+            ? "Activité modérée"
+            : totalEvents + totalPastEvents > 0
+            ? "Premiers événements"
+            : "Aucun événement",
+        secondary: "événements dans toutes les villes",
       },
     },
   ];
@@ -308,7 +357,7 @@ export default function CitiesPage() {
                 <CardHeader>
                   <CardTitle>Rechercher des villes</CardTitle>
                   <CardDescription>
-                    Filtrez par nom, région, pays ou code postal
+                    Filtrez par nom, région, pays, code postal ou description
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -316,7 +365,7 @@ export default function CitiesPage() {
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="text"
-                      placeholder="Rechercher par nom, région, pays ou code postal..."
+                      placeholder="Rechercher par nom, région, pays, code postal..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       className="pl-10"
@@ -326,7 +375,7 @@ export default function CitiesPage() {
               </Card>
             </div>
 
-            {/* ✅ Data Table */}
+            {/* ✅ Data Table avec colonnes mises à jour */}
             <div className="px-4 lg:px-6">
               <Card>
                 <CardHeader>
@@ -344,105 +393,137 @@ export default function CitiesPage() {
                 </CardHeader>
                 <CardContent>
                   {filteredCities && filteredCities.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nom</TableHead>
-                          <TableHead>Région</TableHead>
-                          <TableHead>Pays</TableHead>
-                          <TableHead>Code postal</TableHead>
-                          <TableHead className="text-center">
-                            Événements
-                          </TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredCities.map((city) => (
-                          <TableRow key={city.id}>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                                {city.name}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {city.region}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">{city.country}</Badge>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {city.postalCode}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge
-                                variant={
-                                  city.eventsCount > 0 ? "default" : "outline"
-                                }
-                              >
-                                {city.eventsCount}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button variant="outline" size="sm" asChild>
-                                  <Link href={`/cities/${city.id}/edit`}>
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Modifier</span>
-                                  </Link>
-                                </Button>
-
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-destructive hover:text-destructive"
-                                      disabled={deleteMutation.isPending}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                      <span className="sr-only">Supprimer</span>
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Supprimer la ville
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Êtes-vous sûr de vouloir supprimer "
-                                        {city.name}" ? Cette action est
-                                        irréversible.
-                                        {city.eventsCount > 0 && (
-                                          <span className="block mt-2 text-destructive font-medium">
-                                            ⚠️ Cette ville a {city.eventsCount}{" "}
-                                            événement(s).
-                                          </span>
-                                        )}
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Annuler
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() =>
-                                          handleDelete(city.id, city.name)
-                                        }
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      >
-                                        Supprimer
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[180px]">Nom</TableHead>
+                            <TableHead className="w-[120px]">Région</TableHead>
+                            <TableHead className="w-[120px]">Pays</TableHead>
+                            <TableHead className="w-[100px] hidden md:table-cell">
+                              Code postal
+                            </TableHead>
+                            <TableHead className="text-center w-[100px]">
+                              <span className="hidden sm:inline">
+                                Événements
+                              </span>
+                              <span className="sm:hidden">Actifs</span>
+                            </TableHead>
+                            <TableHead className="text-center w-[100px] hidden lg:table-cell">
+                              <span className="hidden xl:inline">
+                                Événements passés
+                              </span>
+                              <span className="xl:hidden">Passés</span>
+                            </TableHead>
+                            <TableHead className="text-right w-[120px]">
+                              Actions
+                            </TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredCities.map((city) => (
+                            <TableRow key={city.id}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <span className="truncate">{city.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {city.region}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className="text-xs">
+                                  {city.country}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground hidden md:table-cell">
+                                {city.postalCode}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge
+                                  variant={
+                                    city.eventsCount > 0 ? "default" : "outline"
+                                  }
+                                  className="text-xs min-w-[2rem] justify-center"
+                                >
+                                  {city.eventsCount}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center hidden lg:table-cell">
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs min-w-[2rem] justify-center"
+                                >
+                                  {city.eventsPastCount}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {/* ✅ TODO: Remplacer par ModifyCityDialog quand disponible */}
+                                  <Button variant="outline" size="sm" asChild>
+                                    <Link href={`/cities/${city.id}/edit`}>
+                                      <Edit className="h-4 w-4" />
+                                      <span className="sr-only">Modifier</span>
+                                    </Link>
+                                  </Button>
+
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-destructive hover:text-destructive"
+                                        disabled={deleteMutation.isPending}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">
+                                          Supprimer
+                                        </span>
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Supprimer la ville
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Êtes-vous sûr de vouloir supprimer "
+                                          {city.name}" ? Cette action est
+                                          irréversible.
+                                          {city.eventsCount > 0 && (
+                                            <span className="block mt-2 text-destructive font-medium">
+                                              ⚠️ Cette ville a{" "}
+                                              {city.eventsCount} événement(s)
+                                              actif(s).
+                                            </span>
+                                          )}
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Annuler
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() =>
+                                            handleDelete(city.id, city.name)
+                                          }
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Supprimer
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   ) : (
                     <div className="text-center py-8">
                       {search ? (

@@ -27,23 +27,22 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Plus, Loader2, AlertCircle } from "lucide-react";
 
-interface City {
-  id: number;
-  name: string;
-  region?: string;
-  country?: string;
-}
+import { PlaceCreateRequest } from "@/types/place";
+import { City, CitiesApiResponse } from "@/types/city";
 
 async function fetchCities(): Promise<City[]> {
   try {
     const res = await fetch("http://localhost:8090/cities");
     if (!res.ok) throw new Error("Erreur lors du chargement des villes");
-    const data = await res.json();
+    const data: CitiesApiResponse = await res.json();
 
-    console.log("API Cities response:", data); // ✅ Debug
-
-    // Adapter selon votre structure API
-    return data._embedded?.cityResponses || data.cities || data || [];
+    if (data._embedded?.cityResponses) {
+      return data._embedded.cityResponses;
+    }
+    if (Array.isArray(data)) {
+      return data as City[];
+    }
+    return [];
   } catch (error) {
     console.error("Erreur fetch cities:", error);
     return [];
@@ -54,7 +53,6 @@ export function CreatePlaceDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    description: "",
     address: "",
     type: "",
     latitude: "",
@@ -63,15 +61,21 @@ export function CreatePlaceDialog() {
     cityName: "",
     bannerUrl: "",
     imageUrl: "",
-    content: "",
+    content: "", // ✅ Une seule description basée sur content
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: cities, isLoading: citiesLoading } = useQuery<City[]>({
+  const {
+    data: cities,
+    isLoading: citiesLoading,
+    error: citiesError,
+  } = useQuery<City[]>({
     queryKey: ["cities"],
     queryFn: fetchCities,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const handleChange = (
@@ -81,8 +85,18 @@ export function CreatePlaceDialog() {
   };
 
   const handleSelectChange = (name: string, value: string) => {
+    if (
+      value.startsWith("no-") ||
+      value === "loading" ||
+      value === "unavailable"
+    ) {
+      return;
+    }
+
     if (name === "cityId") {
-      const selectedCity = cities?.find((city) => city.id.toString() === value);
+      const selectedCity = Array.isArray(cities)
+        ? cities.find((city) => city.id.toString() === value)
+        : null;
       setForm({
         ...form,
         cityId: value,
@@ -93,11 +107,10 @@ export function CreatePlaceDialog() {
     }
   };
 
-  // ✅ Validation des champs requis
+  // ✅ Validation mise à jour - plus de description obligatoire
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
-      form.description.trim() !== "" &&
       form.address.trim() !== "" &&
       form.type.trim() !== "" &&
       form.latitude.trim() !== "" &&
@@ -109,7 +122,6 @@ export function CreatePlaceDialog() {
   const resetForm = () => {
     setForm({
       name: "",
-      description: "",
       address: "",
       type: "",
       latitude: "",
@@ -118,7 +130,7 @@ export function CreatePlaceDialog() {
       cityName: "",
       bannerUrl: "",
       imageUrl: "",
-      content: "",
+      content: "", // ✅ Une seule description
     });
     setError("");
   };
@@ -126,13 +138,12 @@ export function CreatePlaceDialog() {
   const validateForm = () => {
     const required = [
       "name",
-      "description",
       "address",
       "type",
       "latitude",
       "longitude",
       "cityId",
-    ];
+    ]; // ✅ Plus de description obligatoire
     for (const field of required) {
       if (!form[field as keyof typeof form]) {
         throw new Error(`Le champ ${field} est requis`);
@@ -159,13 +170,10 @@ export function CreatePlaceDialog() {
     setError("");
 
     try {
-      // ✅ Validation
       validateForm();
 
-      // ✅ Payload conforme à l'API
-      const payload = {
+      const payload: PlaceCreateRequest = {
         name: form.name.trim(),
-        description: form.description.trim(),
         address: form.address.trim(),
         type: form.type,
         latitude: parseFloat(form.latitude),
@@ -174,10 +182,8 @@ export function CreatePlaceDialog() {
         cityId: parseInt(form.cityId),
         bannerUrl: form.bannerUrl.trim() || null,
         imageUrl: form.imageUrl.trim() || null,
-        content: form.content.trim() || null,
+        content: form.content.trim() || null, // ✅ Une seule description
       };
-
-      console.log("Payload envoyé:", payload); // ✅ Debug
 
       const res = await fetch("http://localhost:8090/places", {
         method: "POST",
@@ -194,19 +200,14 @@ export function CreatePlaceDialog() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Erreur API:", errorText);
         throw new Error(`Erreur ${res.status}: ${errorText}`);
       }
-
-      const result = await res.json();
-      console.log("Lieu créé:", result);
 
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu créé avec succès !");
       setOpen(false);
       resetForm();
     } catch (err: any) {
-      console.error("Erreur complète:", err);
       setError(err.message);
       toast.error(`Erreur: ${err.message}`);
     } finally {
@@ -227,73 +228,60 @@ export function CreatePlaceDialog() {
           Créer un lieu
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Créer un nouveau lieu</DialogTitle>
             <DialogDescription>
-              Ajoutez un nouveau lieu pour vos événements. Tous les champs
-              marqués * sont obligatoires.
+              Ajoutez un nouveau lieu pour vos événements. Les champs marqués
+              d'un * sont obligatoires.
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Nom et Type */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nom du lieu *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Palais des Festivals"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="type">Type *</Label>
-                <Select
-                  value={form.type}
-                  onValueChange={(value) => handleSelectChange("type", value)}
-                  disabled={loading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir un type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Musée">Musée</SelectItem>
-                    <SelectItem value="Salle de concert">
-                      Salle de concert
-                    </SelectItem>
-                    <SelectItem value="Stade">Stade</SelectItem>
-                    <SelectItem value="Théâtre">Théâtre</SelectItem>
-                    <SelectItem value="Centre de congrès">
-                      Centre de congrès
-                    </SelectItem>
-                    <SelectItem value="Parc">Parc</SelectItem>
-                    <SelectItem value="Autre">Autre</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Description */}
             <div className="grid gap-2">
-              <Label htmlFor="description">Description courte *</Label>
+              <Label htmlFor="name">Nom du lieu *</Label>
               <Input
-                id="description"
-                name="description"
-                value={form.description}
+                id="name"
+                name="name"
+                value={form.name}
                 onChange={handleChange}
-                placeholder="Un lieu prestigieux pour vos événements"
+                placeholder="Palais des Festivals"
                 required
                 disabled={loading}
               />
             </div>
 
-            {/* Ville */}
+            <div className="grid gap-2">
+              <Label htmlFor="type">Type de lieu *</Label>
+              <Select
+                value={form.type}
+                onValueChange={(value) => handleSelectChange("type", value)}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Théâtre">Théâtre</SelectItem>
+                  <SelectItem value="Salle de concert">
+                    Salle de concert
+                  </SelectItem>
+                  <SelectItem value="Centre de congrès">
+                    Centre de congrès
+                  </SelectItem>
+                  <SelectItem value="Musée">Musée</SelectItem>
+                  <SelectItem value="Galerie">Galerie</SelectItem>
+                  <SelectItem value="Parc">Parc</SelectItem>
+                  <SelectItem value="Stade">Stade</SelectItem>
+                  <SelectItem value="Cinéma">Cinéma</SelectItem>
+                  <SelectItem value="Restaurant">Restaurant</SelectItem>
+                  <SelectItem value="Hôtel">Hôtel</SelectItem>
+                  <SelectItem value="Autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="cityId">Ville *</Label>
               <Select
@@ -309,16 +297,35 @@ export function CreatePlaceDialog() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {cities?.map((city) => (
-                    <SelectItem key={city.id} value={city.id.toString()}>
-                      {city.name}
+                  {Array.isArray(cities) && cities.length > 0 ? (
+                    cities.map((city) => (
+                      <SelectItem key={city.id} value={city.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <span>{city.name}</span>
+                          {city.region && (
+                            <span className="text-xs text-muted-foreground">
+                              ({city.region})
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-cities-available" disabled>
+                      {citiesLoading
+                        ? "Chargement..."
+                        : "Aucune ville disponible"}
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
+              {citiesError && (
+                <p className="text-xs text-destructive">
+                  Erreur lors du chargement des villes
+                </p>
+              )}
             </div>
 
-            {/* Adresse */}
             <div className="grid gap-2">
               <Label htmlFor="address">Adresse *</Label>
               <Input
@@ -332,7 +339,6 @@ export function CreatePlaceDialog() {
               />
             </div>
 
-            {/* Coordonnées GPS */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="latitude">Latitude *</Label>
@@ -343,7 +349,7 @@ export function CreatePlaceDialog() {
                   step="0.000001"
                   value={form.latitude}
                   onChange={handleChange}
-                  placeholder="43.5508"
+                  placeholder="43.548346"
                   required
                   disabled={loading}
                 />
@@ -357,17 +363,16 @@ export function CreatePlaceDialog() {
                   step="0.000001"
                   value={form.longitude}
                   onChange={handleChange}
-                  placeholder="7.0174"
+                  placeholder="7.017369"
                   required
                   disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Images */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="imageUrl">Image principale</Label>
+                <Label htmlFor="imageUrl">Image principale (URL)</Label>
                 <Input
                   id="imageUrl"
                   name="imageUrl"
@@ -378,7 +383,7 @@ export function CreatePlaceDialog() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bannerUrl">Bannière</Label>
+                <Label htmlFor="bannerUrl">Bannière (URL)</Label>
                 <Input
                   id="bannerUrl"
                   name="bannerUrl"
@@ -390,16 +395,16 @@ export function CreatePlaceDialog() {
               </div>
             </div>
 
-            {/* Description détaillée */}
+            {/* ✅ Une seule description basée sur content */}
             <div className="grid gap-2">
-              <Label htmlFor="content">Description détaillée</Label>
+              <Label htmlFor="content">Description</Label>
               <Textarea
                 id="content"
                 name="content"
                 value={form.content}
                 onChange={handleChange}
-                rows={3}
-                placeholder="Informations complémentaires sur le lieu..."
+                rows={4}
+                placeholder="Description complète du lieu, équipements, historique..."
                 disabled={loading}
               />
             </div>

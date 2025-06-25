@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
-  Plus,
+  Edit,
   Loader2,
   AlertCircle,
   Tag,
@@ -28,10 +28,17 @@ import {
   FileText,
   TrendingUp,
 } from "lucide-react";
-// ✅ Import de l'interface centralisée
-import { CategoryCreateRequest } from "@/types/category";
+import { Category, CategoryUpdateRequest } from "@/types/category";
 
-export function CreateCategoryDialog() {
+interface ModifyCategoryDialogProps {
+  category: Category;
+  children?: React.ReactNode;
+}
+
+export function ModifyCategoryDialog({
+  category,
+  children,
+}: ModifyCategoryDialogProps) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -42,6 +49,18 @@ export function CreateCategoryDialog() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
+
+  // ✅ Initialiser le formulaire avec les données de la catégorie
+  useEffect(() => {
+    if (category) {
+      setForm({
+        name: category.name || "",
+        description: category.description || "",
+        key: category.key || "",
+        trending: category.trending || false,
+      });
+    }
+  }, [category]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -64,12 +83,14 @@ export function CreateCategoryDialog() {
   }, [form]);
 
   const resetForm = () => {
-    setForm({
-      name: "",
-      description: "",
-      key: "",
-      trending: false,
-    });
+    if (category) {
+      setForm({
+        name: category.name || "",
+        description: category.description || "",
+        key: category.key || "",
+        trending: category.trending || false,
+      });
+    }
     setError("");
   };
 
@@ -99,28 +120,37 @@ export function CreateCategoryDialog() {
     try {
       validateForm();
 
-      // ✅ Utilisation de l'interface CategoryCreateRequest
-      const payload: CategoryCreateRequest = {
+      // ✅ Utilisation de l'interface CategoryUpdateRequest
+      const payload: CategoryUpdateRequest = {
         name: form.name.trim(),
         description: form.description.trim(),
         key: form.key.trim(),
         trending: form.trending,
       };
 
-      console.log("🚀 Payload catégorie:", payload);
+      console.log("🚀 Payload modification catégorie:", payload);
+      console.log(
+        "📍 URL:",
+        `http://localhost:8090/categories/${category.key}`
+      );
 
-      const res = await fetch("http://localhost:8090/categories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(document.cookie.includes("token=") && {
-            Authorization: `Bearer ${
-              document.cookie.split("token=")[1]?.split(";")[0]
-            }`,
-          }),
-        },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `http://localhost:8090/categories/${category.key}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(document.cookie.includes("token=") && {
+              Authorization: `Bearer ${
+                document.cookie.split("token=")[1]?.split(";")[0]
+              }`,
+            }),
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      console.log("📡 Response status:", res.status);
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -128,13 +158,18 @@ export function CreateCategoryDialog() {
         throw new Error(`Erreur ${res.status}: ${errorText}`);
       }
 
-      const result = await res.json();
-      console.log("✅ Catégorie créée:", result);
+      let result;
+      try {
+        result = await res.json();
+        console.log("✅ Catégorie modifiée:", result);
+      } catch (parseError) {
+        console.log("⚠️ Pas de JSON dans la réponse, probablement OK");
+        result = { success: true };
+      }
 
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success("Catégorie créée avec succès !");
+      toast.success("Catégorie modifiée avec succès !");
       setOpen(false);
-      resetForm();
     } catch (err: any) {
       console.error("❌ Erreur complète:", err);
       setError(err.message);
@@ -154,18 +189,18 @@ export function CreateCategoryDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Créer une catégorie
-        </Button>
+        {children || (
+          <Button variant="outline" size="sm">
+            <Edit className="h-4 w-4" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Créer une nouvelle catégorie</DialogTitle>
+            <DialogTitle>Modifier la catégorie</DialogTitle>
             <DialogDescription>
-              Ajoutez une nouvelle catégorie d'événement. Les champs marqués
-              d'un * sont obligatoires.
+              Modifiez les informations de la catégorie "{category.name}".
             </DialogDescription>
           </DialogHeader>
 
@@ -268,12 +303,12 @@ export function CreateCategoryDialog() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création...
+                  Modification...
                 </>
               ) : (
                 <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer la catégorie
+                  <Edit className="mr-2 h-4 w-4" />
+                  Modifier
                 </>
               )}
             </Button>

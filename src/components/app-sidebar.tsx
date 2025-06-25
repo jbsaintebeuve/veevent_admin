@@ -12,6 +12,8 @@ import {
   HelpCircle,
   Search,
   User,
+  PlaneTakeoff,
+  Earth,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -77,15 +79,11 @@ const data = {
       url: "/settings",
       icon: Settings,
     },
+
     {
-      title: "Aide",
-      url: "/help",
-      icon: HelpCircle,
-    },
-    {
-      title: "Recherche",
-      url: "/search",
-      icon: Search,
+      title: "Site web",
+      url: "https://veevent.vercel.app/",
+      icon: Earth,
     },
   ],
 };

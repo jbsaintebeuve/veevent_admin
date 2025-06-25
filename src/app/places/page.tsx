@@ -50,37 +50,13 @@ import {
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
 
-// ✅ Interface Place complète qui correspond à l'API
-interface Place {
-  id: number;
-  name: string;
-  description: string;
-  address: string;
-  type: string;
-  latitude: number;
-  longitude: number;
-  cityName: string;
-  cityId: number;
-  bannerUrl?: string;
-  imageUrl?: string;
-  content?: string;
-  eventsCount: number;
-  eventsPastCount: number;
-}
-
-interface ApiResponse {
-  _embedded: {
-    placeResponses: Place[];
-  };
-  _links: any;
-  page: any;
-}
+import { Place, PlacesApiResponse } from "@/types/place";
 
 async function fetchPlaces(): Promise<Place[]> {
   const res = await fetch("http://localhost:8090/places");
   if (!res.ok) throw new Error("Erreur lors du chargement des lieux");
-  const data: ApiResponse = await res.json();
-  return data._embedded?.placeResponses || [];
+  const data: PlacesApiResponse = await res.json();
+  return data._embedded?.places || [];
 }
 
 async function deletePlace(id: number): Promise<void> {
@@ -119,19 +95,18 @@ export default function PlacesPage() {
     deleteMutation.mutate(id);
   };
 
-  // ✅ Filtrage des lieux avec recherche (inclut maintenant type et description)
+  // ✅ Filtrage des lieux avec recherche (mise à jour pour la nouvelle structure)
   const filteredPlaces = Array.isArray(places)
     ? places.filter(
         (place) =>
           place.name.toLowerCase().includes(search.toLowerCase()) ||
           place.address.toLowerCase().includes(search.toLowerCase()) ||
           place.cityName.toLowerCase().includes(search.toLowerCase()) ||
-          place.type.toLowerCase().includes(search.toLowerCase()) ||
-          place.description.toLowerCase().includes(search.toLowerCase())
+          place.type.toLowerCase().includes(search.toLowerCase())
       )
     : [];
 
-  // Loading state
+  // Loading state (reste identique)
   if (isLoading) {
     return (
       <>
@@ -187,7 +162,7 @@ export default function PlacesPage() {
     );
   }
 
-  // Error state
+  // Error state (reste identique)
   if (error) {
     return (
       <>
@@ -211,7 +186,7 @@ export default function PlacesPage() {
   const activePlaces =
     places?.filter((place) => place.eventsCount > 0).length || 0;
 
-  // ✅ Données pour SectionCards
+  // ✅ Données pour SectionCards (reste identique)
   const cardsData: CardData[] = [
     {
       id: "total",
@@ -492,7 +467,6 @@ export default function PlacesPage() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  {/* ✅ Utilisation du ModifyPlaceDialog avec les bonnes données */}
                                   <ModifyPlaceDialog place={place} />
 
                                   <AlertDialog>

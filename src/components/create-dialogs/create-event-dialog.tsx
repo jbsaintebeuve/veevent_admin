@@ -44,35 +44,91 @@ interface Category {
   trending?: boolean;
 }
 
-const fetchApi = async <T,>(url: string, errorMsg: string): Promise<T[]> => {
+// ✅ Fonctions fetch corrigées pour être plus robustes
+const fetchCities = async (): Promise<City[]> => {
   try {
-    const res = await fetch(`http://localhost:8090${url}`);
-    if (!res.ok) throw new Error(errorMsg);
+    const res = await fetch("http://localhost:8090/cities");
+    if (!res.ok) throw new Error("Erreur lors du chargement des villes");
     const data = await res.json();
-    return data._embedded?.[Object.keys(data._embedded)[0]] || [];
+
+    console.log("Cities API response:", data); // Debug
+
+    // ✅ Adaptation selon votre structure API
+    if (data._embedded?.cityResponses) {
+      return data._embedded.cityResponses;
+    }
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (data.cities && Array.isArray(data.cities)) {
+      return data.cities;
+    }
+
+    console.warn("Format de données cities inattendu:", data);
+    return [];
   } catch (error) {
-    console.error(`Erreur ${url}:`, error);
+    console.error("Erreur fetch cities:", error);
     return [];
   }
 };
 
-const fetchCities = () =>
-  fetchApi<City>("/cities", "Erreur lors du chargement des villes");
-const fetchPlacesByCity = (cityId: string) =>
-  cityId
-    ? fetchApi<Place>(
-        `/cities/${cityId}/places`,
-        "Erreur lors du chargement des lieux"
-      )
-    : Promise.resolve([]);
-const fetchCategories = async () => {
-  const categories = await fetchApi<Category>(
-    "/categories",
-    "Erreur lors du chargement des catégories"
-  );
-  return categories.filter(
-    (cat, i, arr) => arr.findIndex((c) => c.key === cat.key) === i
-  );
+const fetchPlacesByCity = async (cityId: string): Promise<Place[]> => {
+  if (!cityId) return [];
+
+  try {
+    const res = await fetch(`http://localhost:8090/cities/${cityId}/places`);
+    if (!res.ok) throw new Error("Erreur lors du chargement des lieux");
+    const data = await res.json();
+
+    console.log(`Places for city ${cityId}:`, data); // Debug
+
+    // ✅ Adaptation selon votre structure API
+    if (data._embedded?.placeResponses) {
+      return data._embedded.placeResponses;
+    }
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (data.places && Array.isArray(data.places)) {
+      return data.places;
+    }
+
+    return [];
+  } catch (error) {
+    console.error(`Erreur fetch places for city ${cityId}:`, error);
+    return [];
+  }
+};
+
+const fetchCategories = async (): Promise<Category[]> => {
+  try {
+    const res = await fetch("http://localhost:8090/categories");
+    if (!res.ok) throw new Error("Erreur lors du chargement des catégories");
+    const data = await res.json();
+
+    console.log("Categories API response:", data); // Debug
+
+    let categories: Category[] = [];
+
+    if (data._embedded?.categoryResponses) {
+      categories = data._embedded.categoryResponses;
+    } else if (Array.isArray(data)) {
+      categories = data;
+    } else if (data.categories && Array.isArray(data.categories)) {
+      categories = data.categories;
+    }
+
+    // ✅ Filtrer les catégories valides et dédupliquer
+    const validCategories = categories.filter(
+      (cat: any) => cat && cat.key && cat.name
+    );
+    return validCategories.filter(
+      (cat, i, arr) => arr.findIndex((c) => c.key === cat.key) === i
+    );
+  } catch (error) {
+    console.error("Erreur fetch categories:", error);
+    return [];
+  }
 };
 
 const initialForm = {
@@ -169,19 +225,40 @@ export function CreateEventDialog({
 
   const queryClient = useQueryClient();
 
-  const { data: cities, isLoading: citiesLoading } = useQuery({
+  // ✅ Requêtes avec gestion d'erreur améliorée
+  const {
+    data: cities,
+    isLoading: citiesLoading,
+    error: citiesError,
+  } = useQuery({
     queryKey: ["cities"],
     queryFn: fetchCities,
+    retry: 2,
+    retryDelay: 1000,
   });
+
   const { data: places, isLoading: placesLoading } = useQuery({
     queryKey: ["places", form.cityId],
     queryFn: () => fetchPlacesByCity(form.cityId),
     enabled: !!form.cityId,
+    retry: 2,
   });
+
   const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
+    retry: 2,
   });
+
+  // ✅ Debug des données reçues
+  console.log("Cities data:", cities, "Is array:", Array.isArray(cities));
+  console.log("Places data:", places, "Is array:", Array.isArray(places));
+  console.log(
+    "Categories data:",
+    categories,
+    "Is array:",
+    Array.isArray(categories)
+  );
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -431,15 +508,29 @@ export function CreateEventDialog({
                     citiesLoading ? "Chargement..." : "Sélectionner une ville"
                   }
                 >
-                  {cities?.map((city) => (
-                    <SelectItem key={city.id} value={city.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        {city.name}
-                      </div>
+                  {/* ✅ Vérification que cities est bien un tableau */}
+                  {Array.isArray(cities) && cities.length > 0 ? (
+                    cities.map((city) => (
+                      <SelectItem key={city.id} value={city.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          {city.name}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-cities-available" disabled>
+                      {citiesLoading
+                        ? "Chargement..."
+                        : "Aucune ville disponible"}
                     </SelectItem>
-                  ))}
+                  )}
                 </MemoizedSelect>
+                {citiesError && (
+                  <p className="text-xs text-destructive">
+                    Erreur lors du chargement des villes
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -456,18 +547,29 @@ export function CreateEventDialog({
                       : "Sélectionner un lieu"
                   }
                 >
-                  {places?.map((place) => (
-                    <SelectItem key={place.id} value={place.id.toString()}>
-                      <div>
-                        <div className="font-medium">{place.name}</div>
-                        {place.type && (
-                          <div className="text-xs text-muted-foreground">
-                            {place.type}
-                          </div>
-                        )}
-                      </div>
+                  {/* ✅ Vérification que places est bien un tableau */}
+                  {Array.isArray(places) && places.length > 0 ? (
+                    places.map((place) => (
+                      <SelectItem key={place.id} value={place.id.toString()}>
+                        <div>
+                          <div className="font-medium">{place.name}</div>
+                          {place.type && (
+                            <div className="text-xs text-muted-foreground">
+                              {place.type}
+                            </div>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-places-available" disabled>
+                      {!form.cityId
+                        ? "Sélectionnez une ville"
+                        : placesLoading
+                        ? "Chargement..."
+                        : "Aucun lieu disponible"}
                     </SelectItem>
-                  ))}
+                  )}
                 </MemoizedSelect>
               </div>
             </div>
@@ -492,8 +594,8 @@ export function CreateEventDialog({
                   <p className="text-sm text-muted-foreground col-span-2">
                     Chargement...
                   </p>
-                ) : (
-                  categories?.map((cat, i) => (
+                ) : Array.isArray(categories) && categories.length > 0 ? (
+                  categories.map((cat, i) => (
                     <div
                       key={`${cat.key}-${i}`}
                       className="flex items-center space-x-2"
@@ -519,6 +621,10 @@ export function CreateEventDialog({
                       </Label>
                     </div>
                   ))
+                ) : (
+                  <p className="text-sm text-muted-foreground col-span-2">
+                    Aucune catégorie disponible
+                  </p>
                 )}
               </div>
             </div>

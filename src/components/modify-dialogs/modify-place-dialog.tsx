@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,30 +23,28 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Edit, Loader2, AlertCircle } from "lucide-react";
+import { Edit, Loader2 } from "lucide-react";
+import { Place, PlaceUpdateRequest } from "@/types/place";
+import { City, CitiesApiResponse } from "@/types/city";
 
-interface City {
-  id: number;
-  name: string;
-  region?: string;
-  country?: string;
-}
+async function fetchCities(): Promise<City[]> {
+  try {
+    const res = await fetch("http://localhost:8090/cities");
+    if (!res.ok) throw new Error("Erreur lors du chargement des villes");
+    const data: CitiesApiResponse = await res.json();
 
-interface Place {
-  id: number;
-  name: string;
-  description: string;
-  address: string;
-  type: string;
-  latitude: number;
-  longitude: number;
-  cityName: string;
-  cityId: number;
-  bannerUrl?: string;
-  imageUrl?: string;
-  content?: string;
+    if (data._embedded?.cities) {
+      return data._embedded.cities;
+    }
+    if (Array.isArray(data)) {
+      return data as City[];
+    }
+    return [];
+  } catch (error) {
+    console.error("Erreur fetch cities:", error);
+    return [];
+  }
 }
 
 interface ModifyPlaceDialogProps {
@@ -54,23 +52,10 @@ interface ModifyPlaceDialogProps {
   children?: React.ReactNode;
 }
 
-async function fetchCities(): Promise<City[]> {
-  try {
-    const res = await fetch("http://localhost:8090/cities");
-    if (!res.ok) throw new Error("Erreur lors du chargement des villes");
-    const data = await res.json();
-    return data._embedded?.cityResponses || data.cities || data || [];
-  } catch (error) {
-    console.error("Erreur fetch cities:", error);
-    return [];
-  }
-}
-
 export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    description: "",
     address: "",
     type: "",
     latitude: "",
@@ -79,10 +64,9 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     cityName: "",
     bannerUrl: "",
     imageUrl: "",
-    content: "",
+    content: "", // ✅ Une seule description basée sur content
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const queryClient = useQueryClient();
 
   const { data: cities, isLoading: citiesLoading } = useQuery<City[]>({
@@ -90,24 +74,31 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     queryFn: fetchCities,
   });
 
-  // ✅ Charger les données du lieu au moment de l'ouverture
+  const findCityIdByName = (cityName: string): string => {
+    if (!cities || !cityName) return "";
+    const city = cities.find(
+      (c) => c.name.toLowerCase() === cityName.toLowerCase()
+    );
+    return city ? city.id.toString() : "";
+  };
+
+  // ✅ Initialisation simplifiée - plus de description
   useEffect(() => {
-    if (open && place) {
+    if (place) {
       setForm({
         name: place.name || "",
-        description: place.description || "",
         address: place.address || "",
         type: place.type || "",
-        latitude: place.latitude?.toString() || "",
-        longitude: place.longitude?.toString() || "",
-        cityId: place.cityId?.toString() || "",
+        latitude: place.location?.latitude?.toString() || "",
+        longitude: place.location?.longitude?.toString() || "",
+        cityId: findCityIdByName(place.cityName),
         cityName: place.cityName || "",
         bannerUrl: place.bannerUrl || "",
         imageUrl: place.imageUrl || "",
-        content: place.content || "",
+        content: place.content || "", // ✅ Une seule description
       });
     }
-  }, [open, place]);
+  }, [place, cities]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -128,205 +119,119 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     }
   };
 
-  // ✅ Validation des champs requis
-  const isFormValid = useMemo(() => {
-    return (
-      form.name.trim() !== "" &&
-      form.description.trim() !== "" &&
-      form.address.trim() !== "" &&
-      form.type.trim() !== "" &&
-      form.latitude.trim() !== "" &&
-      form.longitude.trim() !== "" &&
-      form.cityId.trim() !== ""
-    );
-  }, [form]);
-
-  const resetForm = () => {
-    setForm({
-      name: "",
-      description: "",
-      address: "",
-      type: "",
-      latitude: "",
-      longitude: "",
-      cityId: "",
-      cityName: "",
-      bannerUrl: "",
-      imageUrl: "",
-      content: "",
-    });
-    setError("");
-  };
-
-  const validateForm = () => {
-    const required = [
-      "name",
-      "description",
-      "address",
-      "type",
-      "latitude",
-      "longitude",
-      "cityId",
-    ];
-    for (const field of required) {
-      if (!form[field as keyof typeof form]) {
-        throw new Error(`Le champ ${field} est requis`);
-      }
-    }
-
-    // Validation GPS
-    const lat = parseFloat(form.latitude);
-    const lng = parseFloat(form.longitude);
-    if (isNaN(lat) || isNaN(lng)) {
-      throw new Error("Les coordonnées GPS doivent être des nombres valides");
-    }
-    if (lat < -90 || lat > 90) {
-      throw new Error("La latitude doit être entre -90 et 90");
-    }
-    if (lng < -180 || lng > 180) {
-      throw new Error("La longitude doit être entre -180 et 180");
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
-      validateForm();
+      let finalCityId =
+        parseInt(form.cityId) || parseInt(findCityIdByName(form.cityName));
 
-      const payload = {
+      if (isNaN(finalCityId)) {
+        throw new Error("Ville requise");
+      }
+
+      const payload: PlaceUpdateRequest = {
         name: form.name.trim(),
-        description: form.description.trim(),
         address: form.address.trim(),
         type: form.type,
         latitude: parseFloat(form.latitude),
         longitude: parseFloat(form.longitude),
         cityName: form.cityName,
-        cityId: parseInt(form.cityId),
+        cityId: finalCityId,
         bannerUrl: form.bannerUrl.trim() || null,
         imageUrl: form.imageUrl.trim() || null,
-        content: form.content.trim() || null,
+        content: form.content.trim() || null, // ✅ Une seule description
       };
-
-      console.log("Payload envoyé:", payload); // ✅ Debug
-
-      const token = document.cookie.split("token=")[1]?.split(";")[0];
 
       const res = await fetch(`http://localhost:8090/places/${place.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
+          ...(document.cookie.includes("token=") && {
+            Authorization: `Bearer ${
+              document.cookie.split("token=")[1]?.split(";")[0]
+            }`,
+          }),
         },
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Erreur API:", errorText);
-        throw new Error(`Erreur ${res.status}: ${errorText}`);
+        throw new Error(`Erreur ${res.status}`);
       }
-
-      const result = await res.json();
-      console.log("Lieu modifié:", result);
 
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu modifié avec succès !");
       setOpen(false);
-      resetForm();
-    } catch (err: any) {
-      console.error("Erreur complète:", err);
-      setError(err.message);
-      toast.error(`Erreur: ${err.message}`);
+    } catch (error: any) {
+      toast.error(`Erreur: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen) resetForm();
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {children || (
           <Button variant="outline" size="sm">
             <Edit className="h-4 w-4" />
-            <span className="sr-only">Modifier</span>
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Modifier le lieu</DialogTitle>
             <DialogDescription>
-              Modifiez les informations de "{place.name}". Tous les champs
-              marqués * sont obligatoires.
+              Modifiez les informations de "{place.name}".
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Nom et Type */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nom du lieu *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Palais des Festivals"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="type">Type *</Label>
-                <Select
-                  value={form.type}
-                  onValueChange={(value) => handleSelectChange("type", value)}
-                  disabled={loading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir un type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Musée">Musée</SelectItem>
-                    <SelectItem value="Salle de concert">
-                      Salle de concert
-                    </SelectItem>
-                    <SelectItem value="Stade">Stade</SelectItem>
-                    <SelectItem value="Théâtre">Théâtre</SelectItem>
-                    <SelectItem value="Centre de congrès">
-                      Centre de congrès
-                    </SelectItem>
-                    <SelectItem value="Parc">Parc</SelectItem>
-                    <SelectItem value="Autre">Autre</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Description */}
             <div className="grid gap-2">
-              <Label htmlFor="description">Description courte *</Label>
+              <Label htmlFor="name">Nom du lieu *</Label>
               <Input
-                id="description"
-                name="description"
-                value={form.description}
+                id="name"
+                name="name"
+                value={form.name}
                 onChange={handleChange}
-                placeholder="Un lieu prestigieux pour vos événements"
                 required
                 disabled={loading}
               />
             </div>
 
-            {/* Ville */}
+            <div className="grid gap-2">
+              <Label htmlFor="type">Type de lieu *</Label>
+              <Select
+                value={form.type}
+                onValueChange={(value) => handleSelectChange("type", value)}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Théâtre">Théâtre</SelectItem>
+                  <SelectItem value="Salle de concert">
+                    Salle de concert
+                  </SelectItem>
+                  <SelectItem value="Centre de congrès">
+                    Centre de congrès
+                  </SelectItem>
+                  <SelectItem value="Musée">Musée</SelectItem>
+                  <SelectItem value="Galerie">Galerie</SelectItem>
+                  <SelectItem value="Parc">Parc</SelectItem>
+                  <SelectItem value="Stade">Stade</SelectItem>
+                  <SelectItem value="Cinéma">Cinéma</SelectItem>
+                  <SelectItem value="Restaurant">Restaurant</SelectItem>
+                  <SelectItem value="Hôtel">Hôtel</SelectItem>
+                  <SelectItem value="Autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="cityId">Ville *</Label>
               <Select
@@ -336,9 +241,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
               >
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={
-                      citiesLoading ? "Chargement..." : "Choisir une ville"
-                    }
+                    placeholder={form.cityName || "Choisir une ville"}
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -351,7 +254,6 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
               </Select>
             </div>
 
-            {/* Adresse */}
             <div className="grid gap-2">
               <Label htmlFor="address">Adresse *</Label>
               <Input
@@ -359,13 +261,11 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
                 name="address"
                 value={form.address}
                 onChange={handleChange}
-                placeholder="1 Boulevard de la Croisette, 06400 Cannes"
                 required
                 disabled={loading}
               />
             </div>
 
-            {/* Coordonnées GPS */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="latitude">Latitude *</Label>
@@ -376,7 +276,6 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
                   step="0.000001"
                   value={form.latitude}
                   onChange={handleChange}
-                  placeholder="43.5508"
                   required
                   disabled={loading}
                 />
@@ -390,59 +289,48 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
                   step="0.000001"
                   value={form.longitude}
                   onChange={handleChange}
-                  placeholder="7.0174"
                   required
                   disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Images */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="imageUrl">Image principale</Label>
+                <Label htmlFor="imageUrl">Image (URL)</Label>
                 <Input
                   id="imageUrl"
                   name="imageUrl"
                   value={form.imageUrl}
                   onChange={handleChange}
-                  placeholder="https://exemple.com/image.jpg"
                   disabled={loading}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bannerUrl">Bannière</Label>
+                <Label htmlFor="bannerUrl">Bannière (URL)</Label>
                 <Input
                   id="bannerUrl"
                   name="bannerUrl"
                   value={form.bannerUrl}
                   onChange={handleChange}
-                  placeholder="https://exemple.com/banner.jpg"
                   disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Description détaillée */}
+            {/* ✅ Une seule description basée sur content */}
             <div className="grid gap-2">
-              <Label htmlFor="content">Description détaillée</Label>
+              <Label htmlFor="content">Description</Label>
               <Textarea
                 id="content"
                 name="content"
                 value={form.content}
                 onChange={handleChange}
-                rows={3}
-                placeholder="Informations complémentaires sur le lieu..."
+                rows={4}
+                placeholder="Description complète du lieu, équipements, historique..."
                 disabled={loading}
               />
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </div>
 
           <DialogFooter>
@@ -451,17 +339,14 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
+            <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Modification...
                 </>
               ) : (
-                <>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Modifier le lieu
-                </>
+                "Modifier"
               )}
             </Button>
           </DialogFooter>
