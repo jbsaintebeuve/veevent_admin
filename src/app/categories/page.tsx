@@ -48,6 +48,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
+import { fetchCategories } from "@/lib/fetch-categories";
 
 interface Category {
   name: string;
@@ -62,21 +63,6 @@ interface ApiResponse {
   };
   _links: any;
   page: any;
-}
-
-async function fetchCategories(): Promise<Category[]> {
-  const res = await fetch("http://localhost:8090/categories");
-  if (!res.ok) throw new Error("Erreur lors du chargement des catégories");
-  const data: ApiResponse = await res.json();
-
-  // ✅ Filtrer les doublons par clé unique
-  const categories = data._embedded?.categories || [];
-  const uniqueCategories = categories.filter(
-    (category, index, arr) =>
-      arr.findIndex((c) => c.key === category.key) === index
-  );
-
-  return uniqueCategories;
 }
 
 async function deleteCategory(key: string): Promise<void> {
@@ -99,6 +85,8 @@ export default function CategoriesPage() {
     queryFn: fetchCategories,
   });
 
+  console.log("Catégories reçues dans le composant :", categories);
+
   const deleteMutation = useMutation({
     mutationFn: deleteCategory,
     onSuccess: () => {
@@ -115,14 +103,9 @@ export default function CategoriesPage() {
     deleteMutation.mutate(key);
   };
 
-  const filteredCategories = Array.isArray(categories)
-    ? categories.filter(
-        (category) =>
-          category.name.toLowerCase().includes(search.toLowerCase()) ||
-          category.description.toLowerCase().includes(search.toLowerCase()) ||
-          category.key.toLowerCase().includes(search.toLowerCase())
-      )
-    : [];
+  // Désactivation temporaire du filtrage pour diagnostic
+  const filteredCategories = Array.isArray(categories) ? categories : [];
+  console.log("categories:", categories, "filteredCategories:", filteredCategories);
 
   const getTrendingBadge = (trending: boolean) => {
     return trending ? (

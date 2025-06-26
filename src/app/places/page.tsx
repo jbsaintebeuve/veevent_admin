@@ -49,15 +49,9 @@ import {
 } from "lucide-react";
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
+import { fetchPlaces } from "@/lib/fetch-places";
 
 import { Place, PlacesApiResponse } from "@/types/place";
-
-async function fetchPlaces(): Promise<Place[]> {
-  const res = await fetch("http://localhost:8090/places");
-  if (!res.ok) throw new Error("Erreur lors du chargement des lieux");
-  const data: PlacesApiResponse = await res.json();
-  return data._embedded?.places || [];
-}
 
 async function deletePlace(id: number): Promise<void> {
   const res = await fetch(`http://localhost:8090/places/${id}`, {
@@ -77,6 +71,7 @@ export default function PlacesPage() {
   } = useQuery<Place[]>({
     queryKey: ["places"],
     queryFn: fetchPlaces,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const deleteMutation = useMutation({
@@ -95,16 +90,8 @@ export default function PlacesPage() {
     deleteMutation.mutate(id);
   };
 
-  // ✅ Filtrage des lieux avec recherche (mise à jour pour la nouvelle structure)
-  const filteredPlaces = Array.isArray(places)
-    ? places.filter(
-        (place) =>
-          place.name.toLowerCase().includes(search.toLowerCase()) ||
-          place.address.toLowerCase().includes(search.toLowerCase()) ||
-          place.cityName.toLowerCase().includes(search.toLowerCase()) ||
-          place.type.toLowerCase().includes(search.toLowerCase())
-      )
-    : [];
+  // Désactivation temporaire du filtrage pour diagnostic
+  const filteredPlaces = Array.isArray(places) ? places : [];
 
   // Loading state (reste identique)
   if (isLoading) {

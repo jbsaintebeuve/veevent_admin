@@ -39,6 +39,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import { fetchCategories } from "@/lib/fetch-categories";
 
 // Interface pour les données profil utilisateur spécifique
 interface UserProfileData {
@@ -71,13 +72,6 @@ interface CategoriesApiResponse {
 interface Social {
   name: string;
   url: string;
-}
-
-async function fetchCategories(): Promise<Category[]> {
-  const res = await fetch("http://localhost:8090/categories");
-  if (!res.ok) throw new Error("Erreur lors du chargement des catégories");
-  const data: CategoriesApiResponse = await res.json();
-  return data._embedded?.categories || [];
 }
 
 export default function ProfilePage() {

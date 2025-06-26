@@ -29,25 +29,7 @@ import { Plus, Loader2, AlertCircle } from "lucide-react";
 
 import { PlaceCreateRequest } from "@/types/place";
 import { City, CitiesApiResponse } from "@/types/city";
-
-async function fetchCities(): Promise<City[]> {
-  try {
-    const res = await fetch("http://localhost:8090/cities");
-    if (!res.ok) throw new Error("Erreur lors du chargement des villes");
-    const data: CitiesApiResponse = await res.json();
-
-    if (data._embedded?.cities) {
-      return data._embedded.cities;
-    }
-    if (Array.isArray(data)) {
-      return data as City[];
-    }
-    return [];
-  } catch (error) {
-    console.error("Erreur fetch cities:", error);
-    return [];
-  }
-}
+import { fetchCities } from "@/lib/fetch-cities";
 
 export function CreatePlaceDialog() {
   const [open, setOpen] = useState(false);
@@ -76,6 +58,7 @@ export function CreatePlaceDialog() {
     queryFn: fetchCities,
     retry: 2,
     retryDelay: 1000,
+    enabled: open,
   });
 
   const handleChange = (

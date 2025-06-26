@@ -27,25 +27,7 @@ import { toast } from "sonner";
 import { Edit, Loader2 } from "lucide-react";
 import { Place, PlaceUpdateRequest } from "@/types/place";
 import { City, CitiesApiResponse } from "@/types/city";
-
-async function fetchCities(): Promise<City[]> {
-  try {
-    const res = await fetch("http://localhost:8090/cities");
-    if (!res.ok) throw new Error("Erreur lors du chargement des villes");
-    const data: CitiesApiResponse = await res.json();
-
-    if (data._embedded?.cities) {
-      return data._embedded.cities;
-    }
-    if (Array.isArray(data)) {
-      return data as City[];
-    }
-    return [];
-  } catch (error) {
-    console.error("Erreur fetch cities:", error);
-    return [];
-  }
-}
+import { fetchCities } from "@/lib/fetch-cities";
 
 interface ModifyPlaceDialogProps {
   place: Place;
@@ -72,6 +54,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
   const { data: cities, isLoading: citiesLoading } = useQuery<City[]>({
     queryKey: ["cities"],
     queryFn: fetchCities,
+    enabled: open,
   });
 
   const findCityIdByName = (cityName: string): string => {

@@ -50,6 +50,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateUserDialog } from "@/components/create-user-dialog";
+import { fetchUsers } from "@/lib/fetch-users";
 
 interface User {
   id: number;
@@ -67,13 +68,6 @@ interface ApiResponse {
   };
   _links: any;
   page: any;
-}
-
-async function fetchUsers(): Promise<User[]> {
-  const res = await fetch("http://localhost:8090/users");
-  if (!res.ok) throw new Error("Erreur lors du chargement des utilisateurs");
-  const data: ApiResponse = await res.json();
-  return data._embedded?.userResponses || [];
 }
 
 async function deleteUser(id: number): Promise<void> {

@@ -49,6 +49,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
+import { fetchEvents } from "@/lib/fetch-events";
 
 // Interface mise à jour selon la nouvelle structure API
 interface Event {
@@ -90,13 +91,6 @@ interface ApiResponse {
     totalPages: number;
     number: number;
   };
-}
-
-async function fetchEvents(): Promise<Event[]> {
-  const res = await fetch("http://localhost:8090/events");
-  if (!res.ok) throw new Error("Erreur lors du chargement des événements");
-  const data: ApiResponse = await res.json();
-  return data._embedded?.eventSummaryResponses || []; // Propriété corrigée
 }
 
 async function deleteEvent(id: number): Promise<void> {

@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Plus, Loader2, AlertCircle, MapPin } from "lucide-react";
+import { fetchCategories } from "@/lib/fetch-categories";
 
 interface City {
   id: number;
@@ -96,37 +97,6 @@ const fetchPlacesByCity = async (cityId: string): Promise<Place[]> => {
     return [];
   } catch (error) {
     console.error(`Erreur fetch places for city ${cityId}:`, error);
-    return [];
-  }
-};
-
-const fetchCategories = async (): Promise<Category[]> => {
-  try {
-    const res = await fetch("http://localhost:8090/categories");
-    if (!res.ok) throw new Error("Erreur lors du chargement des catégories");
-    const data = await res.json();
-
-    console.log("Categories API response:", data); // Debug
-
-    let categories: Category[] = [];
-
-    if (data._embedded?.categoryResponses) {
-      categories = data._embedded.categoryResponses;
-    } else if (Array.isArray(data)) {
-      categories = data;
-    } else if (data.categories && Array.isArray(data.categories)) {
-      categories = data.categories;
-    }
-
-    // ✅ Filtrer les catégories valides et dédupliquer
-    const validCategories = categories.filter(
-      (cat: any) => cat && cat.key && cat.name
-    );
-    return validCategories.filter(
-      (cat, i, arr) => arr.findIndex((c) => c.key === cat.key) === i
-    );
-  } catch (error) {
-    console.error("Erreur fetch categories:", error);
     return [];
   }
 };
@@ -235,12 +205,13 @@ export function CreateEventDialog({
     queryFn: fetchCities,
     retry: 2,
     retryDelay: 1000,
+    enabled: open,
   });
 
   const { data: places, isLoading: placesLoading } = useQuery({
     queryKey: ["places", form.cityId],
     queryFn: () => fetchPlacesByCity(form.cityId),
-    enabled: !!form.cityId,
+    enabled: !!form.cityId && open,
     retry: 2,
   });
 
@@ -248,6 +219,7 @@ export function CreateEventDialog({
     queryKey: ["categories"],
     queryFn: fetchCategories,
     retry: 2,
+    enabled: open,
   });
 
   // ✅ Debug des données reçues

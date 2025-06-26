@@ -46,15 +46,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
+import { fetchCities } from "@/lib/fetch-cities";
 
 import { City, CitiesApiResponse } from "@/types/city";
-
-async function fetchCities(): Promise<City[]> {
-  const res = await fetch("http://localhost:8090/cities");
-  if (!res.ok) throw new Error("Erreur lors du chargement des villes");
-  const data: CitiesApiResponse = await res.json();
-  return data._embedded?.cities || [];
-}
 
 async function deleteCity(id: number): Promise<void> {
   const res = await fetch(`http://localhost:8090/cities/${id}`, {
@@ -92,18 +86,8 @@ export default function CitiesPage() {
     deleteMutation.mutate(id);
   };
 
-  // ✅ Filtrage des villes avec recherche - mise à jour pour la nouvelle structure
-  const filteredCities = Array.isArray(cities)
-    ? cities.filter(
-        (city) =>
-          city.name.toLowerCase().includes(search.toLowerCase()) ||
-          city.region.toLowerCase().includes(search.toLowerCase()) ||
-          city.country.toLowerCase().includes(search.toLowerCase()) ||
-          city.postalCode.toLowerCase().includes(search.toLowerCase()) ||
-          (city.description &&
-            city.description.toLowerCase().includes(search.toLowerCase()))
-      )
-    : [];
+  // Désactivation temporaire du filtrage pour diagnostic
+  const filteredCities = Array.isArray(cities) ? cities : [];
 
   // Loading state (reste identique)
   if (isLoading) {
