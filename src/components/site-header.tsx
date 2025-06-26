@@ -15,7 +15,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Sun, Moon, Github, User } from "lucide-react";
+import { Sun, Moon, User, Globe2 } from "lucide-react";
 import React from "react";
 
 // Mapping des paths vers les labels
@@ -146,13 +146,13 @@ export function SiteHeader() {
           <Separator orientation="vertical" className="h-4" />
           <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
             <a
-              href="https://github.com/jbsaintebeuve/veevent_admin"
+              href="https://veevent.vercel.app/"
               rel="noopener noreferrer"
               target="_blank"
               className="flex items-center gap-2"
             >
-              <Github className="h-4 w-4" />
-              <span className="hidden lg:inline">GitHub</span>
+              <Globe2 className="h-4 w-4" />
+              <span className="hidden lg:inline">Site web</span>
             </a>
           </Button>
         </div>
@@ -238,13 +238,13 @@ export function SiteHeader() {
 
         <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
           <a
-            href="https://github.com/jbsaintebeuve/veevent_admin"
+            href="https://veevent.vercel.app/"
             rel="noopener noreferrer"
             target="_blank"
             className="flex items-center gap-2"
           >
-            <Github className="h-4 w-4" />
-            <span className="hidden lg:inline">GitHub</span>
+            <Globe2 className="h-4 w-4" />
+            <span className="hidden lg:inline">Site web</span>
           </a>
         </Button>
       </div>

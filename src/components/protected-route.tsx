@@ -63,7 +63,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       console.log(`❌ ${reason}, redirecting to login`);
       setIsAuthenticated(false);
       router.replace(
-        `/login?redirect=${encodeURIComponent(window.location.pathname)}`
+        `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`
       );
     };
 

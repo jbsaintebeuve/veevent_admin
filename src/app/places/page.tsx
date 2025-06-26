@@ -50,12 +50,16 @@ import {
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
 import { fetchPlaces } from "@/lib/fetch-places";
+import { useAuth } from "@/hooks/use-auth";
 
 import { Place, PlacesApiResponse } from "@/types/place";
 
-async function deletePlace(id: number): Promise<void> {
+async function deletePlace(id: number, token: string): Promise<void> {
   const res = await fetch(`http://localhost:8090/places/${id}`, {
     method: "DELETE",
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
   if (!res.ok) throw new Error("Erreur lors de la suppression");
 }
@@ -63,6 +67,7 @@ async function deletePlace(id: number): Promise<void> {
 export default function PlacesPage() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const {
     data: places,
@@ -75,7 +80,7 @@ export default function PlacesPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deletePlace,
+    mutationFn: (id: number) => deletePlace(id, getToken() || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu supprimé avec succès");

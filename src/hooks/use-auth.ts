@@ -69,7 +69,7 @@ export function useAuth() {
 
     // Forcer la redirection
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      window.location.href = "/auth/login";
     }
   }, [cleanupAuth]);
 
@@ -101,8 +101,6 @@ export function useAuth() {
               cleanupAuth();
               setUser(null);
               setIsAuthenticated(false);
-              setLoading(false);
-              return;
             }
 
             setUser(userData);

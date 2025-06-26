@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { fetchEvents } from "@/lib/fetch-events";
+import { useAuth } from "@/hooks/use-auth";
 
 // Interface mise à jour selon la nouvelle structure API
 interface Event {
@@ -93,9 +94,12 @@ interface ApiResponse {
   };
 }
 
-async function deleteEvent(id: number): Promise<void> {
+async function deleteEvent(id: number, token: string): Promise<void> {
   const res = await fetch(`http://localhost:8090/events/${id}`, {
     method: "DELETE",
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
   if (!res.ok) throw new Error("Erreur lors de la suppression");
 }
@@ -103,6 +107,7 @@ async function deleteEvent(id: number): Promise<void> {
 export default function EventsPage() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const {
     data: events,
@@ -114,7 +119,7 @@ export default function EventsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteEvent,
+    mutationFn: (id: number) => deleteEvent(id, getToken() || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Événement supprimé avec succès");

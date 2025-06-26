@@ -16,4 +16,4 @@ export async function fetchUsers(): Promise<User[]> {
     return data._embedded.userResponses;
   }
   return [];
-} 
+}

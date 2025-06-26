@@ -79,12 +79,6 @@ const data = {
       url: "/settings",
       icon: Settings,
     },
-
-    {
-      title: "Site web",
-      url: "https://veevent.vercel.app/",
-      icon: Earth,
-    },
   ],
 };
 

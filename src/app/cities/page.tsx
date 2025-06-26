@@ -47,19 +47,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 import { fetchCities } from "@/lib/fetch-cities";
+import { useAuth } from "@/hooks/use-auth";
 
 import { City, CitiesApiResponse } from "@/types/city";
-
-async function deleteCity(id: number): Promise<void> {
-  const res = await fetch(`http://localhost:8090/cities/${id}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) throw new Error("Erreur lors de la suppression");
-}
 
 export default function CitiesPage() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const {
     data: cities,
@@ -70,8 +65,19 @@ export default function CitiesPage() {
     queryFn: fetchCities,
   });
 
+  async function deleteCity(id: number, token: string | null): Promise<void> {
+    const res = await fetch(`http://localhost:8090/cities/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Erreur lors de la suppression");
+  }
+
   const deleteMutation = useMutation({
-    mutationFn: deleteCity,
+    mutationFn: (id: number) => deleteCity(id, getToken()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville supprimée avec succès");

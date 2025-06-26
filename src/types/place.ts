@@ -2,6 +2,7 @@ export interface Place {
   id: number;
   name: string;
   address: string;
+  description?: string;
   slug: string;
   type: string;
   location: {
@@ -28,6 +29,7 @@ export interface PlacesApiResponse {
 export interface PlaceRequest {
   name: string;
   address: string;
+  description?: string;
   type: string;
   latitude: number;
   longitude: number;

@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
 import { fetchCategories } from "@/lib/fetch-categories";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Category {
   name: string;
@@ -57,17 +58,12 @@ interface Category {
   trending: boolean;
 }
 
-interface ApiResponse {
-  _embedded: {
-    categories: Category[];
-  };
-  _links: any;
-  page: any;
-}
-
-async function deleteCategory(key: string): Promise<void> {
+async function deleteCategory(key: string, token: string): Promise<void> {
   const res = await fetch(`http://localhost:8090/categories/${key}`, {
     method: "DELETE",
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
   if (!res.ok) throw new Error("Erreur lors de la suppression");
 }
@@ -75,6 +71,7 @@ async function deleteCategory(key: string): Promise<void> {
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const {
     data: categories,
@@ -88,7 +85,7 @@ export default function CategoriesPage() {
   console.log("Catégories reçues dans le composant :", categories);
 
   const deleteMutation = useMutation({
-    mutationFn: deleteCategory,
+    mutationFn: (key: string) => deleteCategory(key, getToken() || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie supprimée avec succès");
@@ -105,7 +102,12 @@ export default function CategoriesPage() {
 
   // Désactivation temporaire du filtrage pour diagnostic
   const filteredCategories = Array.isArray(categories) ? categories : [];
-  console.log("categories:", categories, "filteredCategories:", filteredCategories);
+  console.log(
+    "categories:",
+    categories,
+    "filteredCategories:",
+    filteredCategories
+  );
 
   const getTrendingBadge = (trending: boolean) => {
     return trending ? (
