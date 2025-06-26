@@ -1,24 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-
-interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
-  pseudo: string;
-  email: string;
-  phone?: string;
-  role: string;
-  description?: string;
-  imageUrl?: string;
-  bannerUrl?: string;
-  eventPastCount: number;
-  eventsCount: number;
-  note?: number;
-  socials: any[];
-  categories: any[];
-}
+import { User } from "@/types/user";
+import { isRoleAllowed } from "@/lib/auth-roles";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -95,8 +79,7 @@ export function useAuth() {
             console.log("✅ Données utilisateur trouvées:", userData.pseudo);
 
             // Vérification du rôle (sécurité supplémentaire)
-            const allowedRoles = ["ADMIN", "ORGANIZER", "Admin", "Organizer"];
-            if (!allowedRoles.includes(userData.role)) {
+            if (!isRoleAllowed(userData.role)) {
               console.log("❌ Rôle non autorisé détecté, nettoyage");
               cleanupAuth();
               setUser(null);

@@ -28,15 +28,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import {
-  Search,
-  Edit,
-  Trash2,
   Users,
-  Shield,
-  UserCheck,
-  AlertCircle,
+  User as UserIcon,
   Mail,
-  User,
+  Search,
+  Trash2,
+  Edit,
+  AlertCircle,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -49,37 +47,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CreateUserDialog } from "@/components/create-user-dialog";
 import { fetchUsers } from "@/lib/fetch-users";
-
-interface User {
-  id: number;
-  lastName: string;
-  firstName: string;
-  pseudo: string;
-  email: string;
-  role: string;
-  imageUrl?: string;
-}
-
-interface ApiResponse {
-  _embedded: {
-    userResponses: User[];
-  };
-  _links: any;
-  page: any;
-}
-
-async function deleteUser(id: number): Promise<void> {
-  const res = await fetch(`http://localhost:8090/users/${id}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) throw new Error("Erreur lors de la suppression");
-}
+import { deleteUser } from "@/lib/fetch-user";
+import { User } from "@/types/user";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  const fetchUsersWithToken = () => fetchUsers(getToken() || undefined);
 
   const {
     data: users,
@@ -87,7 +65,7 @@ export default function UsersPage() {
     error,
   } = useQuery<User[]>({
     queryKey: ["users"],
-    queryFn: fetchUsers,
+    queryFn: fetchUsersWithToken,
   });
 
   const deleteMutation = useMutation({
@@ -413,7 +391,6 @@ export default function UsersPage() {
                   Gérez tous les utilisateurs de votre plateforme
                 </p>
               </div>
-              <CreateUserDialog />
             </div>
 
             {/* ✅ SectionCards au lieu des cards manuelles */}
@@ -476,12 +453,12 @@ export default function UsersPage() {
                           <TableRow key={user.id}>
                             <TableCell>
                               <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
+                                <Avatar className="h-10 w-10">
                                   <AvatarImage
-                                    src={user.imageUrl}
+                                    src={user.imageUrl || undefined}
                                     alt={`${user.firstName} ${user.lastName}`}
                                   />
-                                  <AvatarFallback className="text-xs">
+                                  <AvatarFallback>
                                     {getInitials(user.firstName, user.lastName)}
                                   </AvatarFallback>
                                 </Avatar>
@@ -497,7 +474,7 @@ export default function UsersPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground" />
+                                <UserIcon className="h-4 w-4 text-muted-foreground" />
                                 <span className="font-mono text-sm">
                                   @{user.pseudo}
                                 </span>
@@ -604,7 +581,6 @@ export default function UsersPage() {
                           <p className="text-muted-foreground mb-4">
                             Commencez par créer votre premier utilisateur.
                           </p>
-                          <CreateUserDialog />
                         </>
                       )}
                     </div>

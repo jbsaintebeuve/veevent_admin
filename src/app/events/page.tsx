@@ -49,60 +49,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
-import { fetchEvents } from "@/lib/fetch-events";
+import { fetchEvents, deleteEvent } from "@/lib/fetch-events";
 import { useAuth } from "@/hooks/use-auth";
-
-// Interface mise à jour selon la nouvelle structure API
-interface Event {
-  id: number;
-  name: string;
-  description: string;
-  date: string; // Date et heure combinées
-  address: string;
-  maxCustomers: number;
-  currentParticipants: number;
-  price: number;
-  status: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "CANCELLED";
-  isTrending: boolean;
-  isFirstEdition: boolean;
-  imageUrl: string;
-  cityName: string;
-  placeName: string;
-  categories: Array<{
-    name: string;
-    key: string;
-  }>;
-  organizer: {
-    pseudo: string;
-    lastName: string;
-    firstName: string;
-    imageUrl: string | null;
-    note: number | null;
-  };
-}
-
-interface ApiResponse {
-  _embedded: {
-    eventSummaryResponses: Event[]; // Nom correct de la propriété
-  };
-  _links: any;
-  page: {
-    size: number;
-    totalElements: number;
-    totalPages: number;
-    number: number;
-  };
-}
-
-async function deleteEvent(id: number, token: string): Promise<void> {
-  const res = await fetch(`http://localhost:8090/events/${id}`, {
-    method: "DELETE",
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) throw new Error("Erreur lors de la suppression");
-}
+import { Event, EventsApiResponse } from "@/types/event";
+import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
 
 export default function EventsPage() {
   const [search, setSearch] = useState("");
@@ -110,16 +60,18 @@ export default function EventsPage() {
   const { getToken } = useAuth();
 
   const {
-    data: events,
+    data: eventsResponse,
     isLoading,
     error,
-  } = useQuery<Event[]>({
+  } = useQuery<EventsApiResponse>({
     queryKey: ["events"],
-    queryFn: fetchEvents,
+    queryFn: () => fetchEvents(getToken() || undefined),
   });
 
+  const events = eventsResponse?._embedded?.eventSummaryResponses || [];
+
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteEvent(id, getToken() || ""),
+    mutationFn: (deleteUrl: string) => deleteEvent(deleteUrl, getToken() || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Événement supprimé avec succès");
@@ -130,8 +82,8 @@ export default function EventsPage() {
     },
   });
 
-  const handleDelete = (id: number, name: string) => {
-    deleteMutation.mutate(id);
+  const handleDelete = (deleteUrl: string, name: string) => {
+    deleteMutation.mutate(deleteUrl);
   };
 
   // ✅ Filtrage des événements avec recherche
@@ -584,6 +536,8 @@ export default function EventsPage() {
                                     </Link>
                                   </Button>
 
+                                  <ModifyEventDialog event={event} />
+
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button
@@ -622,7 +576,10 @@ export default function EventsPage() {
                                         </AlertDialogCancel>
                                         <AlertDialogAction
                                           onClick={() =>
-                                            handleDelete(event.id, event.name)
+                                            handleDelete(
+                                              event._links?.self?.href,
+                                              event.name
+                                            )
                                           }
                                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         >

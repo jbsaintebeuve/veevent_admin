@@ -48,25 +48,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
-import { fetchCategories } from "@/lib/fetch-categories";
+import { fetchCategories, deleteCategory } from "@/lib/fetch-categories";
 import { useAuth } from "@/hooks/use-auth";
-
-interface Category {
-  name: string;
-  description: string;
-  key: string;
-  trending: boolean;
-}
-
-async function deleteCategory(key: string, token: string): Promise<void> {
-  const res = await fetch(`http://localhost:8090/categories/${key}`, {
-    method: "DELETE",
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) throw new Error("Erreur lors de la suppression");
-}
+import { CategoriesApiResponse } from "@/types/category";
+import { ModifyCategoryDialog } from "@/components/modify-dialogs/modify-category-dialog";
 
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
@@ -74,18 +59,23 @@ export default function CategoriesPage() {
   const { getToken } = useAuth();
 
   const {
-    data: categories,
+    data: categoriesResponse,
     isLoading,
     error,
-  } = useQuery<Category[]>({
+  } = useQuery<CategoriesApiResponse>({
     queryKey: ["categories"],
-    queryFn: fetchCategories,
+    queryFn: () => fetchCategories(getToken() || undefined),
   });
 
+  const categories = categoriesResponse?._embedded?.categories || [];
+
   console.log("Catégories reçues dans le composant :", categories);
+  console.log("Structure complète de la réponse :", categoriesResponse);
+  console.log("Première catégorie avec liens :", categories[0]);
 
   const deleteMutation = useMutation({
-    mutationFn: (key: string) => deleteCategory(key, getToken() || ""),
+    mutationFn: (deleteUrl: string) =>
+      deleteCategory(deleteUrl, getToken() || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie supprimée avec succès");
@@ -96,8 +86,8 @@ export default function CategoriesPage() {
     },
   });
 
-  const handleDelete = (key: string, name: string) => {
-    deleteMutation.mutate(key);
+  const handleDelete = (deleteUrl: string, name: string) => {
+    deleteMutation.mutate(deleteUrl);
   };
 
   // Désactivation temporaire du filtrage pour diagnostic
@@ -423,15 +413,7 @@ export default function CategoriesPage() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <Button variant="outline" size="sm" asChild>
-                                  <Link
-                                    href={`/categories/${category.key}/edit`}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Modifier</span>
-                                  </Link>
-                                </Button>
-
+                                <ModifyCategoryDialog category={category} />
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
@@ -463,7 +445,7 @@ export default function CategoriesPage() {
                                       <AlertDialogAction
                                         onClick={() =>
                                           handleDelete(
-                                            category.key,
+                                            category._links?.self?.href,
                                             category.name
                                           )
                                         }

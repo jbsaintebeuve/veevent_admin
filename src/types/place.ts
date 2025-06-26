@@ -4,23 +4,23 @@ export interface Place {
   address: string;
   description?: string;
   slug: string;
-  type: string;
+  type: string | null;
   location: {
-    latitude: number;
-    longitude: number;
+    latitude: number | null;
+    longitude: number | null;
   };
   eventsCount: number;
   eventsPastCount: number;
   cityName: string;
-  bannerUrl?: string;
-  imageUrl?: string;
-  content?: string;
+  bannerUrl?: string | null;
+  imageUrl?: string | null;
+  content?: string | null;
   _links?: any;
 }
 
 export interface PlacesApiResponse {
   _embedded: {
-    places: Place[];
+    placeResponses: Place[];
   };
   _links: any;
   page: any;
@@ -28,13 +28,13 @@ export interface PlacesApiResponse {
 
 export interface PlaceRequest {
   name: string;
-  address: string;
   description?: string;
-  type: string;
-  latitude: number;
-  longitude: number;
+  address: string;
   cityName: string;
   cityId: number;
+  type?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   bannerUrl?: string | null;
   imageUrl?: string | null;
   content?: string | null;

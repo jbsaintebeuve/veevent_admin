@@ -4,36 +4,42 @@ export interface User {
   firstName: string;
   pseudo: string;
   email: string;
-  phone: number;
+  phone?: string | null;
   eventPastCount: number;
   eventsCount: number;
   role: string;
-  description?: string;
+  description?: string | null;
   imageUrl?: string | null;
   bannerUrl?: string | null;
-  socials?: string[];
+  socials?: string[] | string;
   categories?: string[];
-  note?: number;
-  _links?: any;
+  categoryKeys?: string[];
+  note?: number | null;
+  _links?: {
+    self: {
+      href: string;
+    };
+  };
 }
 
 export interface UsersApiResponse {
   _embedded: {
-    users: User[];
+    userResponses: User[];
   };
   _links: any;
 }
 
 export interface UserUpdateRequest {
-  lastName: string;
-  firstName: string;
-  pseudo: string;
-  email: string;
-  phone: number;
-  description?: string;
+  firstName?: string;
+  lastName?: string;
+  pseudo?: string;
+  email?: string;
+  password?: string;
+  phone?: string | null;
+  description?: string | null;
   imageUrl?: string | null;
   bannerUrl?: string | null;
-  socials?: string[];
-  categoryKey?: string[];
-  note?: number;
+  socials?: string | null;
+  categoryKeys?: string[];
+  note?: number | null;
 }

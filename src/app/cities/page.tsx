@@ -46,8 +46,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
-import { fetchCities } from "@/lib/fetch-cities";
+import { fetchCities, deleteCity } from "@/lib/fetch-cities";
 import { useAuth } from "@/hooks/use-auth";
+import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
 
 import { City, CitiesApiResponse } from "@/types/city";
 
@@ -57,27 +58,19 @@ export default function CitiesPage() {
   const { getToken } = useAuth();
 
   const {
-    data: cities,
+    data: citiesResponse,
     isLoading,
     error,
-  } = useQuery<City[]>({
+  } = useQuery<CitiesApiResponse>({
     queryKey: ["cities"],
-    queryFn: fetchCities,
+    queryFn: () => fetchCities(getToken() || undefined),
   });
 
-  async function deleteCity(id: number, token: string | null): Promise<void> {
-    const res = await fetch(`http://localhost:8090/cities/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
-      },
-    });
-    if (!res.ok) throw new Error("Erreur lors de la suppression");
-  }
+  const cities = citiesResponse?._embedded?.cityResponses || [];
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteCity(id, getToken()),
+    mutationFn: (deleteUrl: string) =>
+      deleteCity(deleteUrl, getToken() || undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville supprimée avec succès");
@@ -88,8 +81,8 @@ export default function CitiesPage() {
     },
   });
 
-  const handleDelete = (id: number, name: string) => {
-    deleteMutation.mutate(id);
+  const handleDelete = (deleteUrl: string, name: string) => {
+    deleteMutation.mutate(deleteUrl);
   };
 
   // Désactivation temporaire du filtrage pour diagnostic
@@ -169,13 +162,18 @@ export default function CitiesPage() {
   }
 
   // ✅ Calculs mis à jour pour la nouvelle structure
-  const totalEvents =
-    cities?.reduce((sum, city) => sum + city.eventsCount, 0) || 0;
-  const totalPastEvents =
-    cities?.reduce((sum, city) => sum + city.eventsPastCount, 0) || 0;
-  const totalCountries = new Set(cities?.map((city) => city.country)).size;
-  const activeCities =
-    cities?.filter((city) => city.eventsCount > 0).length || 0;
+  const totalEvents = cities.reduce(
+    (sum: number, city: City) => sum + city.eventsCount,
+    0
+  );
+  const totalPastEvents = cities.reduce(
+    (sum: number, city: City) => sum + city.eventsPastCount,
+    0
+  );
+  const totalCountries = new Set(cities.map((city: City) => city.country)).size;
+  const activeCities = cities.filter(
+    (city: City) => city.eventsCount > 0
+  ).length;
 
   // ✅ Données pour SectionCards mises à jour
   const cardsData: CardData[] = [
@@ -445,13 +443,7 @@ export default function CitiesPage() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  {/* ✅ TODO: Remplacer par ModifyCityDialog quand disponible */}
-                                  <Button variant="outline" size="sm" asChild>
-                                    <Link href={`/cities/${city.id}/edit`}>
-                                      <Edit className="h-4 w-4" />
-                                      <span className="sr-only">Modifier</span>
-                                    </Link>
-                                  </Button>
+                                  <ModifyCityDialog city={city} />
 
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -491,7 +483,10 @@ export default function CitiesPage() {
                                         </AlertDialogCancel>
                                         <AlertDialogAction
                                           onClick={() =>
-                                            handleDelete(city.id, city.name)
+                                            handleDelete(
+                                              city._links?.self?.href,
+                                              city.name
+                                            )
                                           }
                                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         >

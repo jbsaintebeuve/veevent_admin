@@ -12,7 +12,6 @@ export interface City {
   bannerUrl?: string | null;
   imageUrl?: string | null;
   content?: string | null;
-  description?: string;
   eventsCount: number;
   eventsPastCount: number;
   nearestCities: City[];
@@ -21,24 +20,18 @@ export interface City {
 
 export interface CitiesApiResponse {
   _embedded: {
-    cities: City[];
+    cityResponses: City[];
   };
   _links: any;
-  page: any;
+  page?: any;
 }
 
 export interface CityRequest {
   name: string;
-  description: string;
+  postalCode: string;
   region: string;
   country: string;
-  postalCode: string;
-  latitude: number;
-  longitude: number;
-  bannerUrl?: string | null;
-  imageUrl?: string | null;
-  content?: string | null;
-  nearestCityIds: number[];
+  description: string;
 }
 
 export type CityCreateRequest = CityRequest;

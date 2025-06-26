@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 // ✅ Import de l'interface centralisée
 import { CategoryCreateRequest } from "@/types/category";
+import { createCategory } from "@/lib/fetch-categories";
 
 export function CreateCategoryDialog() {
   const [open, setOpen] = useState(false);
@@ -109,26 +110,11 @@ export function CreateCategoryDialog() {
 
       console.log("🚀 Payload catégorie:", payload);
 
-      const res = await fetch("http://localhost:8090/categories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(document.cookie.includes("token=") && {
-            Authorization: `Bearer ${
-              document.cookie.split("token=")[1]?.split(";")[0]
-            }`,
-          }),
-        },
-        body: JSON.stringify(payload),
-      });
+      const token = document.cookie.includes("token=")
+        ? document.cookie.split("token=")[1]?.split(";")[0]
+        : undefined;
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("❌ Erreur API:", errorText);
-        throw new Error(`Erreur ${res.status}: ${errorText}`);
-      }
-
-      const result = await res.json();
+      const result = await createCategory(payload, token);
       console.log("✅ Catégorie créée:", result);
 
       queryClient.invalidateQueries({ queryKey: ["categories"] });

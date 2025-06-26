@@ -1,14 +1,55 @@
-export interface Event {}
+export interface Event {
+  id: number;
+  name: string;
+  description: string;
+  date: string; // Date et heure combinées
+  address: string;
+  maxCustomers: number;
+  currentParticipants: number;
+  price: number;
+  status: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+  isTrending: boolean;
+  isFirstEdition: boolean;
+  imageUrl: string;
+  cityName: string;
+  placeName: string;
+  categories: Array<{
+    name: string;
+    key: string;
+  }>;
+  organizer: {
+    pseudo: string;
+    lastName: string;
+    firstName: string;
+    imageUrl: string | null;
+    note: number | null;
+  };
+  _links?: any;
+}
 
 export interface EventsApiResponse {
   _embedded: {
-    events: Event[];
+    eventSummaryResponses: Event[];
   };
   _links: any;
   page: any;
 }
 
-export interface EventRequest {}
+export interface EventRequest {
+  name: string;
+  description: string;
+  date: string;
+  address: string;
+  maxCustomers: number;
+  price: number;
+  cityId: number;
+  placeId: number;
+  categoryKeys: string[];
+  imageUrl?: string;
+  isTrending?: boolean;
+  status?: string;
+  contentHtml?: string;
+}
 
 export type EventCreateRequest = EventRequest;
 export type EventUpdateRequest = EventRequest;

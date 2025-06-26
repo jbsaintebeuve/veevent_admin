@@ -49,20 +49,10 @@ import {
 } from "lucide-react";
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
-import { fetchPlaces } from "@/lib/fetch-places";
+import { fetchPlaces, deletePlace } from "@/lib/fetch-places";
 import { useAuth } from "@/hooks/use-auth";
 
 import { Place, PlacesApiResponse } from "@/types/place";
-
-async function deletePlace(id: number, token: string): Promise<void> {
-  const res = await fetch(`http://localhost:8090/places/${id}`, {
-    method: "DELETE",
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok) throw new Error("Erreur lors de la suppression");
-}
 
 export default function PlacesPage() {
   const [search, setSearch] = useState("");
@@ -70,17 +60,19 @@ export default function PlacesPage() {
   const { getToken } = useAuth();
 
   const {
-    data: places,
+    data: placesResponse,
     isLoading,
     error,
-  } = useQuery<Place[]>({
+  } = useQuery<PlacesApiResponse>({
     queryKey: ["places"],
-    queryFn: fetchPlaces,
+    queryFn: () => fetchPlaces(getToken() || undefined),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  const places = placesResponse?._embedded?.placeResponses || [];
+
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => deletePlace(id, getToken() || ""),
+    mutationFn: (deleteUrl: string) => deletePlace(deleteUrl, getToken() || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu supprimé avec succès");
@@ -91,8 +83,8 @@ export default function PlacesPage() {
     },
   });
 
-  const handleDelete = (id: number, name: string) => {
-    deleteMutation.mutate(id);
+  const handleDelete = (deleteUrl: string, name: string) => {
+    deleteMutation.mutate(deleteUrl);
   };
 
   // Désactivation temporaire du filtrage pour diagnostic
@@ -498,7 +490,10 @@ export default function PlacesPage() {
                                         </AlertDialogCancel>
                                         <AlertDialogAction
                                           onClick={() =>
-                                            handleDelete(place.id, place.name)
+                                            handleDelete(
+                                              place._links?.self?.href,
+                                              place.name
+                                            )
                                           }
                                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         >

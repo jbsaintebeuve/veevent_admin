@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { checkAuthWithRoles } from "@/lib/fetch-user";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -24,30 +25,18 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
           return redirectToLogin("No token found");
         }
 
-        const response = await fetch("http://localhost:8090/users/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const { user, isAuthorized } = await checkAuthWithRoles(token);
 
-        if (!response.ok) {
+        if (!isAuthorized) {
           clearAuthData();
-          return redirectToLogin("Token invalid");
-        }
-
-        const userData = await response.json();
-        const allowedRoles = ["ADMIN", "ORGANIZER", "Admin", "Organizer"];
-
-        if (!allowedRoles.includes(userData.role)) {
-          clearAuthData();
-          return router.replace("/login?error=insufficient-permissions");
+          return router.replace("/auth/login?error=insufficient-permissions");
         }
 
         console.log("✅ Authentication successful");
         setIsAuthenticated(true);
       } catch (error) {
         console.error("❌ Auth check error:", error);
+        clearAuthData();
         redirectToLogin("Auth check failed");
       }
     };

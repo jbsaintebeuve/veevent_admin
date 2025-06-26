@@ -26,10 +26,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Plus, Loader2, AlertCircle } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 import { PlaceCreateRequest } from "@/types/place";
 import { City, CitiesApiResponse } from "@/types/city";
 import { fetchCities } from "@/lib/fetch-cities";
+import { createPlace } from "@/lib/fetch-places";
 
 export function CreatePlaceDialog() {
   const [open, setOpen] = useState(false);
@@ -43,23 +45,26 @@ export function CreatePlaceDialog() {
     cityName: "",
     bannerUrl: "",
     imageUrl: "",
-    content: "", // ✅ Une seule description basée sur content
+    description: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const {
-    data: cities,
+    data: citiesResponse,
     isLoading: citiesLoading,
     error: citiesError,
-  } = useQuery<City[]>({
+  } = useQuery<CitiesApiResponse>({
     queryKey: ["cities"],
-    queryFn: fetchCities,
+    queryFn: () => fetchCities(getToken() || undefined),
     retry: 2,
     retryDelay: 1000,
     enabled: open,
   });
+
+  const cities = citiesResponse?._embedded?.cityResponses || [];
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -113,7 +118,7 @@ export function CreatePlaceDialog() {
       cityName: "",
       bannerUrl: "",
       imageUrl: "",
-      content: "", // ✅ Une seule description
+      description: "",
     });
     setError("");
   };
@@ -145,6 +150,8 @@ export function CreatePlaceDialog() {
     if (lng < -180 || lng > 180) {
       throw new Error("La longitude doit être entre -180 et 180");
     }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,39 +159,26 @@ export function CreatePlaceDialog() {
     setLoading(true);
     setError("");
 
-    try {
-      validateForm();
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
+    try {
       const payload: PlaceCreateRequest = {
         name: form.name.trim(),
+        description: form.description.trim(),
         address: form.address.trim(),
-        type: form.type,
-        latitude: parseFloat(form.latitude),
-        longitude: parseFloat(form.longitude),
         cityName: form.cityName,
         cityId: parseInt(form.cityId),
+        type: form.type || null,
+        latitude: form.latitude ? parseFloat(form.latitude) : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
         bannerUrl: form.bannerUrl.trim() || null,
         imageUrl: form.imageUrl.trim() || null,
-        content: form.content.trim() || null, // ✅ Une seule description
       };
 
-      const res = await fetch("http://localhost:8090/places", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(document.cookie.includes("token=") && {
-            Authorization: `Bearer ${
-              document.cookie.split("token=")[1]?.split(";")[0]
-            }`,
-          }),
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Erreur ${res.status}: ${errorText}`);
-      }
+      await createPlace(payload, getToken() || undefined);
 
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu créé avec succès !");
@@ -378,13 +372,13 @@ export function CreatePlaceDialog() {
               </div>
             </div>
 
-            {/* ✅ Une seule description basée sur content */}
+            {/* Description */}
             <div className="grid gap-2">
-              <Label htmlFor="content">Description</Label>
+              <Label htmlFor="description">Description</Label>
               <Textarea
-                id="content"
-                name="content"
-                value={form.content}
+                id="description"
+                name="description"
+                value={form.description}
                 onChange={handleChange}
                 rows={4}
                 placeholder="Description complète du lieu, équipements, historique..."

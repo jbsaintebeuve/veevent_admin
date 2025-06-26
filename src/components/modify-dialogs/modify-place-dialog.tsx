@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,8 @@ import { Edit, Loader2 } from "lucide-react";
 import { Place, PlaceUpdateRequest } from "@/types/place";
 import { City, CitiesApiResponse } from "@/types/city";
 import { fetchCities } from "@/lib/fetch-cities";
+import { modifyPlace } from "@/lib/fetch-places";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ModifyPlaceDialogProps {
   place: Place;
@@ -50,24 +52,28 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
   });
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
-  const { data: cities, isLoading: citiesLoading } = useQuery<City[]>({
-    queryKey: ["cities"],
-    queryFn: fetchCities,
-    enabled: open,
-  });
+  const { data: citiesResponse, isLoading: citiesLoading } =
+    useQuery<CitiesApiResponse>({
+      queryKey: ["cities"],
+      queryFn: () => fetchCities(getToken() || undefined),
+      enabled: open,
+    });
+
+  const cities = citiesResponse?._embedded?.cityResponses || [];
 
   const findCityIdByName = (cityName: string): string => {
     if (!cities || !cityName) return "";
     const city = cities.find(
-      (c) => c.name.toLowerCase() === cityName.toLowerCase()
+      (c: City) => c.name.toLowerCase() === cityName.toLowerCase()
     );
     return city ? city.id.toString() : "";
   };
 
   // ✅ Initialisation simplifiée - plus de description
   useEffect(() => {
-    if (place) {
+    if (place && cities.length > 0) {
       setForm({
         name: place.name || "",
         address: place.address || "",
@@ -81,7 +87,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
         content: place.content || "", // ✅ Une seule description
       });
     }
-  }, [place, cities]);
+  }, [place, citiesResponse]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -91,7 +97,9 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === "cityId") {
-      const selectedCity = cities?.find((city) => city.id.toString() === value);
+      const selectedCity = cities?.find(
+        (city: City) => city.id.toString() === value
+      );
       setForm({
         ...form,
         cityId: value,
@@ -102,47 +110,40 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     }
   };
 
+  // ✅ Validation des champs obligatoires
+  const isFormValid = useMemo(() => {
+    return (
+      form.name.trim() !== "" &&
+      form.address.trim() !== "" &&
+      form.type.trim() !== "" &&
+      form.latitude.trim() !== "" &&
+      form.longitude.trim() !== "" &&
+      form.cityId.trim() !== "" &&
+      !isNaN(parseFloat(form.latitude)) &&
+      !isNaN(parseFloat(form.longitude))
+    );
+  }, [form]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      let finalCityId =
-        parseInt(form.cityId) || parseInt(findCityIdByName(form.cityName));
-
-      if (isNaN(finalCityId)) {
-        throw new Error("Ville requise");
-      }
-
       const payload: PlaceUpdateRequest = {
         name: form.name.trim(),
+        description: form.content.trim() || undefined,
         address: form.address.trim(),
-        type: form.type,
-        latitude: parseFloat(form.latitude),
-        longitude: parseFloat(form.longitude),
         cityName: form.cityName,
-        cityId: finalCityId,
+        cityId: parseInt(form.cityId),
+        type: form.type || null,
+        latitude: form.latitude ? parseFloat(form.latitude) : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
         bannerUrl: form.bannerUrl.trim() || null,
         imageUrl: form.imageUrl.trim() || null,
-        content: form.content.trim() || null, // ✅ Une seule description
+        content: form.content.trim() || null,
       };
 
-      const res = await fetch(`http://localhost:8090/places/${place.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(document.cookie.includes("token=") && {
-            Authorization: `Bearer ${
-              document.cookie.split("token=")[1]?.split(";")[0]
-            }`,
-          }),
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Erreur ${res.status}`);
-      }
+      await modifyPlace(place._links.self.href, payload);
 
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu modifié avec succès !");
@@ -228,7 +229,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {cities?.map((city) => (
+                  {cities?.map((city: City) => (
                     <SelectItem key={city.id} value={city.id.toString()}>
                       {city.name}
                     </SelectItem>
@@ -322,7 +323,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !isFormValid}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

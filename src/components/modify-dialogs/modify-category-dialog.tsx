@@ -29,6 +29,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Category, CategoryUpdateRequest } from "@/types/category";
+import { modifyCategory } from "@/lib/fetch-categories";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ModifyCategoryDialogProps {
   category: Category;
@@ -49,6 +51,7 @@ export function ModifyCategoryDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   // ✅ Initialiser le formulaire avec les données de la catégorie
   useEffect(() => {
@@ -119,8 +122,6 @@ export function ModifyCategoryDialog({
 
     try {
       validateForm();
-
-      // ✅ Utilisation de l'interface CategoryUpdateRequest
       const payload: CategoryUpdateRequest = {
         name: form.name.trim(),
         description: form.description.trim(),
@@ -128,50 +129,29 @@ export function ModifyCategoryDialog({
         trending: form.trending,
       };
 
-      console.log("🚀 Payload modification catégorie:", payload);
+      console.log("🔧 Modification catégorie - Payload:", payload);
+      console.log("🔧 Modification catégorie - Category:", category);
+      console.log("🔧 Modification catégorie - _links:", category._links);
+
+      const patchUrl = category._links?.self?.href;
+      console.log("🔧 Modification catégorie - Patch URL:", patchUrl);
+
+      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+
+      const token = getToken() || undefined;
       console.log(
-        "📍 URL:",
-        `http://localhost:8090/categories/${category.key}`
+        "🔧 Modification catégorie - Token:",
+        token ? "Présent" : "Manquant"
       );
 
-      const res = await fetch(
-        `http://localhost:8090/categories/${category.key}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(document.cookie.includes("token=") && {
-              Authorization: `Bearer ${
-                document.cookie.split("token=")[1]?.split(";")[0]
-              }`,
-            }),
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      console.log("📡 Response status:", res.status);
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("❌ Erreur API:", errorText);
-        throw new Error(`Erreur ${res.status}: ${errorText}`);
-      }
-
-      let result;
-      try {
-        result = await res.json();
-        console.log("✅ Catégorie modifiée:", result);
-      } catch (parseError) {
-        console.log("⚠️ Pas de JSON dans la réponse, probablement OK");
-        result = { success: true };
-      }
+      const result = await modifyCategory(patchUrl, payload, token);
+      console.log("🔧 Modification catégorie - Résultat:", result);
 
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie modifiée avec succès !");
       setOpen(false);
     } catch (err: any) {
-      console.error("❌ Erreur complète:", err);
+      console.error("❌ Erreur modification catégorie:", err);
       setError(err.message);
       toast.error(`Erreur: ${err.message}`);
     } finally {

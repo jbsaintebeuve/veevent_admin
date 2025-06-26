@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,30 +19,57 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
-  Plus,
   Loader2,
+  Edit,
   AlertCircle,
   MapPin,
   Globe,
   FileText,
 } from "lucide-react";
-import { CityCreateRequest } from "@/types/city";
-import { createCity } from "@/lib/fetch-cities";
+import { City, CityUpdateRequest } from "@/types/city";
+import { modifyCity } from "@/lib/fetch-cities";
+import { useAuth } from "@/hooks/use-auth";
 
-const initialForm = {
-  name: "",
-  region: "",
-  postalCode: "",
-  country: "France",
-  description: "",
-};
+interface ModifyCityDialogProps {
+  city: City;
+  children?: React.ReactNode;
+}
 
-export function CreateCityDialog() {
+export function ModifyCityDialog({ city, children }: ModifyCityDialogProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState({
+    name: "",
+    region: "",
+    postalCode: "",
+    country: "France",
+    description: "",
+    latitude: "",
+    longitude: "",
+    bannerUrl: "",
+    imageUrl: "",
+    nearestCityIds: [] as number[],
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    if (city) {
+      setForm({
+        name: city.name || "",
+        region: city.region || "",
+        postalCode: city.postalCode || "",
+        country: city.country || "France",
+        description: city.content || city.description || "",
+        latitude: city.location?.latitude?.toString() || "",
+        longitude: city.location?.longitude?.toString() || "",
+        bannerUrl: city.bannerUrl || "",
+        imageUrl: city.imageUrl || "",
+        nearestCityIds: city.nearestCities?.map((c) => c.id) || [],
+      });
+    }
+  }, [city]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -50,7 +77,6 @@ export function CreateCityDialog() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ✅ Validation des champs requis
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
@@ -61,35 +87,36 @@ export function CreateCityDialog() {
     );
   }, [form]);
 
-  const resetForm = () => {
-    setForm(initialForm);
-    setError("");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     try {
-      const payload: CityCreateRequest = {
+      const token = getToken() || undefined;
+      const patchUrl = city._links?.self?.href;
+      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+      const payload: any = {
         name: form.name.trim(),
-        postalCode: form.postalCode.trim(),
+        description: form.description.trim(),
         region: form.region.trim(),
         country: form.country.trim(),
-        description: form.description.trim(),
+        postalCode: form.postalCode.trim(),
+        latitude: form.latitude ? parseFloat(form.latitude) : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
+        bannerUrl: form.bannerUrl || null,
+        imageUrl: form.imageUrl || null,
+        content: form.description.trim(),
       };
-
-      const token = document.cookie.split("token=")[1]?.split(";")[0];
-      await createCity(payload, token);
-
+      if (form.nearestCityIds && form.nearestCityIds.length > 0) {
+        payload.nearestCityIds = form.nearestCityIds;
+      }
+      await modifyCity(patchUrl, payload, token);
       queryClient.invalidateQueries({ queryKey: ["cities"] });
-      toast.success("Ville créée avec succès !");
+      toast.success("Ville modifiée avec succès !");
       setOpen(false);
-      resetForm();
     } catch (err: any) {
-      setError(err.message || "Erreur lors de la création de la ville");
-      toast.error("Erreur lors de la création");
+      setError(err.message);
+      toast.error(`Erreur: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -97,24 +124,38 @@ export function CreateCityDialog() {
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    if (!newOpen) resetForm();
+    if (!newOpen && city) {
+      setForm({
+        name: city.name || "",
+        region: city.region || "",
+        postalCode: city.postalCode || "",
+        country: city.country || "France",
+        description: city.content || city.description || "",
+        latitude: city.location?.latitude?.toString() || "",
+        longitude: city.location?.longitude?.toString() || "",
+        bannerUrl: city.bannerUrl || "",
+        imageUrl: city.imageUrl || "",
+        nearestCityIds: city.nearestCities?.map((c) => c.id) || [],
+      });
+      setError("");
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Créer une ville
-        </Button>
+        {children || (
+          <Button variant="outline" size="sm">
+            <Edit className="h-4 w-4" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Créer une nouvelle ville</DialogTitle>
+            <DialogTitle>Modifier la ville</DialogTitle>
             <DialogDescription>
-              Ajoutez une nouvelle ville pour vos événements. Les champs marqués
-              d'un * sont obligatoires.
+              Modifiez les informations de la ville "{city.name}".
             </DialogDescription>
           </DialogHeader>
 
@@ -190,19 +231,18 @@ export function CreateCityDialog() {
                 value={form.description}
                 onChange={handleChange}
                 rows={3}
-                placeholder="Petite ville du sud de la france"
                 required
                 disabled={loading}
               />
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </div>
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           <DialogFooter>
             <DialogClose asChild>
@@ -214,12 +254,12 @@ export function CreateCityDialog() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création...
+                  Modification...
                 </>
               ) : (
                 <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer la ville
+                  <Edit className="mr-2 h-4 w-4" />
+                  Modifier
                 </>
               )}
             </Button>

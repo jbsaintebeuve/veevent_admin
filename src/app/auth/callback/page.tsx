@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchUserMe } from "@/lib/fetch-user";
+import { isRoleAllowed } from "@/lib/auth-roles";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -20,7 +21,9 @@ export default function AuthCallbackPage() {
     if (!token) {
       setError("Aucun token trouvé dans l'URL de callback.");
       router.replace(
-        `/login?error=auth_failed&redirect=${encodeURIComponent(redirectUrl)}`
+        `/auth/login?error=auth_failed&redirect=${encodeURIComponent(
+          redirectUrl
+        )}`
       );
       return;
     }
@@ -28,9 +31,7 @@ export default function AuthCallbackPage() {
     const handleAuth = async () => {
       try {
         const userData = await fetchUserMe(token);
-        if (
-          !["ADMIN", "ORGANIZER", "Admin", "Organizer"].includes(userData.role)
-        ) {
+        if (!isRoleAllowed(userData.role)) {
           throw new Error(
             `Accès refusé. Votre rôle "${userData.role}" ne permet pas d'accéder à cette interface.`
           );
@@ -43,7 +44,9 @@ export default function AuthCallbackPage() {
       } catch (err: any) {
         setError(err.message || "Erreur d'authentification");
         router.replace(
-          `/login?error=auth_failed&redirect=${encodeURIComponent(redirectUrl)}`
+          `/auth/login?error=auth_failed&redirect=${encodeURIComponent(
+            redirectUrl
+          )}`
         );
       }
     };

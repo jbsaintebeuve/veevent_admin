@@ -28,78 +28,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Plus, Loader2, AlertCircle, MapPin } from "lucide-react";
+import { fetchCities } from "@/lib/fetch-cities";
+import { fetchPlacesByCity } from "@/lib/fetch-places";
 import { fetchCategories } from "@/lib/fetch-categories";
-
-interface City {
-  id: number;
-  name: string;
-}
-interface Place {
-  id: number;
-  name: string;
-  type?: string;
-}
-interface Category {
-  key: string;
-  name: string;
-  trending?: boolean;
-}
-
-// ✅ Fonctions fetch corrigées pour être plus robustes
-const fetchCities = async (): Promise<City[]> => {
-  try {
-    const res = await fetch("http://localhost:8090/cities");
-    if (!res.ok) throw new Error("Erreur lors du chargement des villes");
-    const data = await res.json();
-
-    console.log("Cities API response:", data); // Debug
-
-    // ✅ Adaptation selon votre structure API
-    if (data._embedded?.cityResponses) {
-      return data._embedded.cityResponses;
-    }
-    if (Array.isArray(data)) {
-      return data;
-    }
-    if (data.cities && Array.isArray(data.cities)) {
-      return data.cities;
-    }
-
-    console.warn("Format de données cities inattendu:", data);
-    return [];
-  } catch (error) {
-    console.error("Erreur fetch cities:", error);
-    return [];
-  }
-};
-
-const fetchPlacesByCity = async (cityId: string): Promise<Place[]> => {
-  if (!cityId) return [];
-
-  try {
-    const res = await fetch(`http://localhost:8090/cities/${cityId}/places`);
-    if (!res.ok) throw new Error("Erreur lors du chargement des lieux");
-    const data = await res.json();
-
-    console.log(`Places for city ${cityId}:`, data); // Debug
-
-    // ✅ Adaptation selon votre structure API
-    if (data._embedded?.placeResponses) {
-      return data._embedded.placeResponses;
-    }
-    if (Array.isArray(data)) {
-      return data;
-    }
-    if (data.places && Array.isArray(data.places)) {
-      return data.places;
-    }
-
-    return [];
-  } catch (error) {
-    console.error(`Erreur fetch places for city ${cityId}:`, error);
-    return [];
-  }
-};
+import { createEvent } from "@/lib/fetch-events";
+import { City } from "@/types/city";
+import { Place } from "@/types/place";
+import { Category } from "@/types/category";
+import { useAuth } from "@/hooks/use-auth";
 
 const initialForm = {
   name: "",
@@ -109,12 +45,12 @@ const initialForm = {
   price: "",
   maxCustomers: "",
   imageUrl: "",
-  contentHtml: "",
-  status: "NOT_STARTED",
-  isTrending: false,
   cityId: "",
   placeId: "",
-  categoryKeys: [] as string[],
+  categoryIds: [] as string[],
+  isTrending: false,
+  status: "NOT_STARTED",
+  contentHtml: "",
 };
 
 // ✅ Composant InputField séparé et mémorisé
@@ -194,15 +130,16 @@ export function CreateEventDialog({
   const [form, setForm] = useState(initialForm);
 
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   // ✅ Requêtes avec gestion d'erreur améliorée
   const {
-    data: cities,
+    data: citiesResponse,
     isLoading: citiesLoading,
     error: citiesError,
   } = useQuery({
     queryKey: ["cities"],
-    queryFn: fetchCities,
+    queryFn: () => fetchCities(getToken() || undefined),
     retry: 2,
     retryDelay: 1000,
     enabled: open,
@@ -210,17 +147,22 @@ export function CreateEventDialog({
 
   const { data: places, isLoading: placesLoading } = useQuery({
     queryKey: ["places", form.cityId],
-    queryFn: () => fetchPlacesByCity(form.cityId),
+    queryFn: () => fetchPlacesByCity(form.cityId, getToken() || undefined),
     enabled: !!form.cityId && open,
     retry: 2,
   });
 
-  const { data: categories, isLoading: categoriesLoading } = useQuery({
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
-    queryFn: fetchCategories,
+    queryFn: () => fetchCategories(getToken() || undefined),
     retry: 2,
     enabled: open,
   });
+
+  // Extraction des données des réponses HAL
+  const cities = citiesResponse?._embedded?.cityResponses || [];
+  const categories = categoriesResponse?._embedded?.categories || [];
+  const placesList = Array.isArray(places) ? places : [];
 
   // ✅ Debug des données reçues
   console.log("Cities data:", cities, "Is array:", Array.isArray(cities));
@@ -243,6 +185,20 @@ export function CreateEventDialog({
     []
   );
 
+  const handleCheckboxChange = useCallback((name: string, checked: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
+  }, []);
+
+  const handleSelectChange = useCallback((name: string, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }, []);
+
   const handleCityChange = useCallback((value: string) => {
     setForm((prev) => ({ ...prev, cityId: value, placeId: "" }));
   }, []);
@@ -251,18 +207,34 @@ export function CreateEventDialog({
     setForm((prev) => ({ ...prev, placeId: value }));
   }, []);
 
-  const handleStatusChange = useCallback((value: string) => {
-    setForm((prev) => ({ ...prev, status: value }));
-  }, []);
+  const handleCategoryChange = useCallback(
+    (categoryKey: string, checked: boolean) => {
+      setForm((prev) => ({
+        ...prev,
+        categoryIds: checked
+          ? [...prev.categoryIds, categoryKey]
+          : prev.categoryIds.filter((key) => key !== categoryKey),
+      }));
+    },
+    []
+  );
 
-  const handleCategoryChange = useCallback((key: string, checked: boolean) => {
-    setForm((prev) => ({
-      ...prev,
-      categoryKeys: checked
-        ? [...prev.categoryKeys, key]
-        : prev.categoryKeys.filter((k) => k !== key),
-    }));
-  }, []);
+  // ✅ Validation des champs obligatoires
+  const isFormValid = useMemo(() => {
+    return (
+      form.name.trim() !== "" &&
+      form.description.trim() !== "" &&
+      form.date !== "" &&
+      form.address.trim() !== "" &&
+      form.price.trim() !== "" &&
+      parseFloat(form.price) >= 0 &&
+      form.maxCustomers.trim() !== "" &&
+      parseInt(form.maxCustomers) > 0 &&
+      form.cityId !== "" &&
+      form.placeId !== "" &&
+      form.categoryIds.length > 0
+    );
+  }, [form]);
 
   const resetForm = useCallback(() => {
     setForm(initialForm);
@@ -282,7 +254,7 @@ export function CreateEventDialog({
     ];
     const missing = required.find((field) => !form[field as keyof typeof form]);
     if (missing) throw new Error(`Le champ ${missing} est requis`);
-    if (!form.categoryKeys.length)
+    if (!form.categoryIds.length)
       throw new Error("Au moins une catégorie est requise");
 
     const price = parseFloat(form.price);
@@ -301,49 +273,22 @@ export function CreateEventDialog({
 
       try {
         validateForm();
-
         const payload = {
-          date: new Date(form.date).toISOString().slice(0, 19),
-          description: form.description,
-          name: form.name,
-          address: form.address,
+          name: form.name.trim(),
+          description: form.description.trim(),
+          date: form.date,
+          address: form.address.trim(),
           price: parseFloat(form.price),
           maxCustomers: parseInt(form.maxCustomers, 10),
           isTrending: form.isTrending,
           status: form.status,
-          imageUrl: form.imageUrl || null,
-          contentHtml: form.contentHtml || null,
+          imageUrl: form.imageUrl.trim() || undefined,
+          contentHtml: form.contentHtml.trim() || undefined,
           placeId: parseInt(form.placeId, 10),
           cityId: parseInt(form.cityId, 10),
-          categoryKeys: form.categoryKeys,
+          categoryKeys: form.categoryIds,
         };
-
-        const res = await fetch("http://localhost:8090/events", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(document.cookie.includes("token=") && {
-              Authorization: `Bearer ${
-                document.cookie.split("token=")[1]?.split(";")[0]
-              }`,
-            }),
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          const statusErrors = {
-            401: "Token expiré. Reconnectez-vous.",
-            403: "Permissions insuffisantes.",
-            400: "Données invalides.",
-          };
-          throw new Error(
-            statusErrors[res.status as keyof typeof statusErrors] ||
-              `Erreur ${res.status}`
-          );
-        }
-
+        await createEvent(payload, getToken() || undefined);
         queryClient.invalidateQueries({ queryKey: ["events"] });
         toast.success("Événement créé avec succès !");
         setOpen(false);
@@ -355,17 +300,7 @@ export function CreateEventDialog({
         setLoading(false);
       }
     },
-    [form, validateForm, queryClient, resetForm]
-  );
-
-  const statusOptions = useMemo(
-    () => [
-      ["NOT_STARTED", "À venir"],
-      ["IN_PROGRESS", "En cours"],
-      ["FINISHED", "Terminé"],
-      ["CANCELLED", "Annulé"],
-    ],
-    []
+    [form, validateForm, queryClient, resetForm, getToken]
   );
 
   return (
@@ -519,9 +454,9 @@ export function CreateEventDialog({
                       : "Sélectionner un lieu"
                   }
                 >
-                  {/* ✅ Vérification que places est bien un tableau */}
-                  {Array.isArray(places) && places.length > 0 ? (
-                    places.map((place) => (
+                  {/* ✅ Vérification que placesList est bien un tableau */}
+                  {Array.isArray(placesList) && placesList.length > 0 ? (
+                    placesList.map((place) => (
                       <SelectItem key={place.id} value={place.id.toString()}>
                         <div>
                           <div className="font-medium">{place.name}</div>
@@ -547,19 +482,6 @@ export function CreateEventDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
-              <Textarea
-                id="contentHtml"
-                name="contentHtml"
-                value={form.contentHtml}
-                onChange={handleChange}
-                rows={3}
-                placeholder="<p>Rejoignez-nous...</p>"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="grid gap-2">
               <Label>Catégories *</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3">
                 {categoriesLoading ? (
@@ -574,7 +496,7 @@ export function CreateEventDialog({
                     >
                       <Checkbox
                         id={`${cat.key}-${i}`}
-                        checked={form.categoryKeys.includes(cat.key)}
+                        checked={form.categoryIds.includes(cat.key)}
                         onCheckedChange={(checked) =>
                           handleCategoryChange(cat.key, checked as boolean)
                         }
@@ -601,16 +523,26 @@ export function CreateEventDialog({
               </div>
             </div>
 
+            <div className="grid gap-2">
+              <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
+              <Textarea
+                id="contentHtml"
+                name="contentHtml"
+                value={form.contentHtml}
+                onChange={handleChange}
+                rows={3}
+                placeholder="<p>Rejoignez-nous...</p>"
+                disabled={loading}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="isTrending"
                   checked={form.isTrending}
                   onCheckedChange={(checked) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      isTrending: checked as boolean,
-                    }))
+                    handleCheckboxChange("isTrending", checked as boolean)
                   }
                   disabled={loading}
                 />
@@ -623,15 +555,14 @@ export function CreateEventDialog({
                 <Label>Statut</Label>
                 <MemoizedSelect
                   value={form.status}
-                  onValueChange={handleStatusChange}
+                  onValueChange={(value) => handleSelectChange("status", value)}
                   disabled={loading}
                   placeholder="Sélectionner un statut"
                 >
-                  {statusOptions.map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="NOT_STARTED">À venir</SelectItem>
+                  <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                  <SelectItem value="FINISHED">Terminé</SelectItem>
+                  <SelectItem value="CANCELLED">Annulé</SelectItem>
                 </MemoizedSelect>
               </div>
             </div>
@@ -650,15 +581,7 @@ export function CreateEventDialog({
                 Annuler
               </Button>
             </DialogClose>
-            <Button
-              type="submit"
-              disabled={
-                loading ||
-                !form.categoryKeys.length ||
-                !form.cityId ||
-                !form.placeId
-              }
-            >
+            <Button type="submit" disabled={loading || !isFormValid}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

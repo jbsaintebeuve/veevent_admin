@@ -18,37 +18,13 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
-import { fetchUserMe } from "@/lib/fetch-user";
+import { authenticateUser, fetchUserMe } from "@/lib/fetch-user";
+import { User } from "@/types/user";
+import { isRoleAllowed } from "@/lib/auth-roles";
 
 interface LoginResponse {
   token: string;
-  user: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    pseudo: string;
-    email: string;
-    role: string;
-    imageUrl?: string;
-  };
-}
-
-interface UserMeResponse {
-  id: number;
-  lastName: string;
-  firstName: string;
-  pseudo: string;
-  email: string;
-  phone?: string;
-  eventPastCount: number;
-  eventsCount: number;
-  role: string;
-  description?: string;
-  imageUrl?: string;
-  bannerUrl?: string;
-  socials: any[];
-  categories: any[];
-  note?: number;
+  user: User;
 }
 
 export function LoginForm({
@@ -87,36 +63,12 @@ export function LoginForm({
 
     try {
       // Authentification
-      const authRes = await fetch(
-        "http://localhost:8090/api/v1/auth/authenticate",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-
-      if (!authRes.ok) {
-        const errors: Record<number, string> = {
-          401: "Email ou mot de passe incorrect",
-          403: "Accès interdit",
-          500: "Erreur serveur. Veuillez réessayer plus tard.",
-        };
-        throw new Error(
-          errors[authRes.status] ||
-            `Erreur d'authentification (${authRes.status})`
-        );
-      }
-
-      const { token }: LoginResponse = await authRes.json();
-      if (!token) throw new Error("Token manquant dans la réponse");
+      const { token } = await authenticateUser({ email, password });
 
       // Récupération et vérification du profil
       const userData = await fetchUserMe(token);
 
-      if (
-        !["ADMIN", "ORGANIZER", "Admin", "Organizer"].includes(userData.role)
-      ) {
+      if (!isRoleAllowed(userData.role)) {
         throw new Error(
           `Accès refusé. Votre rôle "${userData.role}" ne permet pas d'accéder à cette interface.`
         );

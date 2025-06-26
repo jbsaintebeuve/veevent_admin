@@ -40,8 +40,10 @@ import {
   X,
 } from "lucide-react";
 import { fetchCategories } from "@/lib/fetch-categories";
+import { fetchUserProfile, updateUserProfile } from "@/lib/fetch-user";
+import { User as UserType } from "@/types/user";
+import { Category as CategoryType } from "@/types/category";
 
-// Interface pour les données profil utilisateur spécifique
 interface UserProfileData {
   description?: string;
   phone?: string;
@@ -52,23 +54,6 @@ interface UserProfileData {
   categoryKeys?: string[];
 }
 
-// Interface pour les catégories
-interface Category {
-  key: string;
-  name: string;
-  description: string;
-  trending: boolean;
-}
-
-interface CategoriesApiResponse {
-  _embedded: {
-    categories: Category[];
-  };
-  _links: any;
-  page: any;
-}
-
-// Interface pour les réseaux sociaux
 interface Social {
   name: string;
   url: string;
@@ -100,10 +85,13 @@ export default function ProfilePage() {
   const router = useRouter();
 
   // Récupération des catégories
-  const { data: categories } = useQuery<Category[]>({
+  const { data: categoriesResponse } = useQuery({
     queryKey: ["categories"],
-    queryFn: fetchCategories,
+    queryFn: () => fetchCategories(getToken() || undefined),
+    enabled: !!getToken(),
   });
+
+  const categories = categoriesResponse?._embedded?.categories || [];
 
   useEffect(() => {
     async function fetchUserProfileData() {
@@ -113,19 +101,7 @@ export default function ProfilePage() {
       try {
         // ✅ Récupérer les données de profil depuis /users/{id}
         const token = getToken();
-        const profileRes = await fetch(
-          `http://localhost:8090/users/${user.id}`,
-          {
-            headers: {
-              ...(token && { Authorization: `Bearer ${token}` }),
-            },
-          }
-        );
-
-        let profileData: UserProfileData = {};
-        if (profileRes.ok) {
-          profileData = await profileRes.json();
-        }
+        const profileData = await fetchUserProfile(user.id, token || undefined);
 
         // ✅ Combiner les données useAuth + profil
         setForm({
@@ -219,11 +195,15 @@ export default function ProfilePage() {
     try {
       // ✅ Préparer le payload selon le format API
       const payload = {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        pseudo: form.pseudo.trim(),
+        email: form.email.trim(),
         description: form.description.trim() || null,
         phone: form.phone.trim() || null,
         imageUrl: form.imageUrl.trim() || null,
         bannerUrl: form.bannerUrl.trim() || null,
-        note: form.note,
+        note: form.note || null,
         socials: socials.length > 0 ? JSON.stringify(socials) : null,
         categoryKeys: form.categoryKeys,
       };
@@ -232,20 +212,8 @@ export default function ProfilePage() {
 
       const token = getToken();
 
-      // ✅ Utiliser PATCH au lieu de PUT
-      const res = await fetch(`http://localhost:8090/users/${user.id}`, {
-        method: "PATCH", // ✅ PATCH au lieu de PUT
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Erreur ${res.status}: ${errorText}`);
-      }
+      // ✅ Utiliser la fonction centralisée
+      await updateUserProfile(user.id, payload, token || undefined);
 
       toast.success("Profil mis à jour avec succès !");
     } catch (err: any) {
@@ -570,7 +538,7 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Catégories d'intérêt</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {categories?.map((category) => (
+                    {categories.map((category: CategoryType) => (
                       <div
                         key={category.key}
                         className="flex items-center space-x-2"
