@@ -83,7 +83,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ✅ Validation des champs obligatoires
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&

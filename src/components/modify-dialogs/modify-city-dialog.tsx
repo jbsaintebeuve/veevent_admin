@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,18 +18,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Edit,
-  AlertCircle,
-  MapPin,
-  Globe,
-  FileText,
-} from "lucide-react";
-import { City, CityUpdateRequest } from "@/types/city";
+import { Loader2, Edit, AlertCircle, MapPin, Globe } from "lucide-react";
+import { City } from "@/types/city";
 import { modifyCity } from "@/lib/fetch-cities";
 import { useAuth } from "@/hooks/use-auth";
-import { fetchCities } from "@/lib/fetch-cities";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface ModifyCityDialogProps {
@@ -46,7 +38,10 @@ export function ModifyCityDialog({
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    location: { latitude: null, longitude: null },
+    location: {
+      latitude: null as number | null,
+      longitude: null as number | null,
+    },
     region: "",
     postalCode: "",
     country: "France",
@@ -60,7 +55,6 @@ export function ModifyCityDialog({
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
-  // Utiliser la prop cities au lieu du fetch
   const allCities = cities || [];
 
   useEffect(() => {

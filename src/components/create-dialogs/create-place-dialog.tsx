@@ -29,7 +29,7 @@ import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 import { PlaceCreateRequest } from "@/types/place";
-import { City, CitiesApiResponse } from "@/types/city";
+import { CitiesApiResponse } from "@/types/city";
 import { fetchCities } from "@/lib/fetch-cities";
 import { createPlace } from "@/lib/fetch-places";
 
@@ -95,7 +95,6 @@ export function CreatePlaceDialog() {
     }
   };
 
-  // ✅ Validation mise à jour - plus de description obligatoire
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
@@ -131,14 +130,13 @@ export function CreatePlaceDialog() {
       "latitude",
       "longitude",
       "cityId",
-    ]; // ✅ Plus de description obligatoire
+    ];
     for (const field of required) {
       if (!form[field as keyof typeof form]) {
         throw new Error(`Le champ ${field} est requis`);
       }
     }
 
-    // Validation GPS
     const lat = parseFloat(form.latitude);
     const lng = parseFloat(form.longitude);
     if (isNaN(lat) || isNaN(lng)) {

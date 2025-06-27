@@ -1,5 +1,6 @@
 import { LoginForm } from "@/components/login-form";
 import { IconInnerShadowTop } from "@tabler/icons-react";
+import { Suspense } from "react";
 
 export default function LoginPage() {
   return (
@@ -11,7 +12,9 @@ export default function LoginPage() {
           </div>
           Veevent
         </a>
-        <LoginForm />
+        <Suspense>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );

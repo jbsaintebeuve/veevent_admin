@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth"; // ✅ Utilisation du hook useAuth
+import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,12 +24,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
-  User,
-  Mail,
-  Lock,
   Image as ImageIcon,
   FileText,
-  Shield,
   Save,
   AlertCircle,
   Loader2,
@@ -41,18 +37,7 @@ import {
 } from "lucide-react";
 import { fetchCategories } from "@/lib/fetch-categories";
 import { fetchUserProfile, updateUserProfile } from "@/lib/fetch-user";
-import { User as UserType } from "@/types/user";
 import { Category as CategoryType } from "@/types/category";
-
-interface UserProfileData {
-  description?: string;
-  phone?: string;
-  imageUrl?: string;
-  bannerUrl?: string;
-  note?: number;
-  socials?: string; // JSON string
-  categoryKeys?: string[];
-}
 
 interface Social {
   name: string;
@@ -60,17 +45,14 @@ interface Social {
 }
 
 export default function ProfilePage() {
-  // ✅ Utilisation du hook useAuth au lieu de fetch manuel
   const { user, loading: authLoading, getToken } = useAuth();
 
   const [form, setForm] = useState({
-    // Données de base (non modifiables - viennent de useAuth)
     lastName: "",
     firstName: "",
     pseudo: "",
     email: "",
     role: "",
-    // Données du profil (modifiables)
     description: "",
     phone: "",
     imageUrl: "",
@@ -84,7 +66,6 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  // Récupération des catégories
   const { data: categoriesResponse } = useQuery({
     queryKey: ["categories"],
     queryFn: () => fetchCategories(getToken() || undefined),
@@ -193,7 +174,6 @@ export default function ProfilePage() {
     setError("");
 
     try {
-      // ✅ Préparer le payload selon le format API
       const payload = {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
@@ -212,7 +192,6 @@ export default function ProfilePage() {
 
       const token = getToken();
 
-      // ✅ Utiliser la fonction centralisée
       await updateUserProfile(user.id, payload, token || undefined);
 
       toast.success("Profil mis à jour avec succès !");
@@ -225,7 +204,6 @@ export default function ProfilePage() {
     }
   };
 
-  // ✅ Loading state avec authLoading
   if (authLoading || loading) {
     return (
       <>
@@ -258,7 +236,6 @@ export default function ProfilePage() {
     );
   }
 
-  // ✅ Si pas d'utilisateur connecté
   if (!user) {
     return (
       <>

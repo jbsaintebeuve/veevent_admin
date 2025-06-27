@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import Link from "next/link";
 import { useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
@@ -26,14 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import {
-  Search,
-  Edit,
-  Trash2,
-  MapPin,
-  AlertCircle,
-  Building,
-} from "lucide-react";
+import { Search, Trash2, MapPin, AlertCircle, Building } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,7 +41,6 @@ import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog
 import { fetchCities, deleteCity } from "@/lib/fetch-cities";
 import { useAuth } from "@/hooks/use-auth";
 import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
-
 import { City, CitiesApiResponse } from "@/types/city";
 
 export default function CitiesPage() {

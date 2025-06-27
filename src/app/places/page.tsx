@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/site-header";
@@ -37,22 +36,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Building2,
-  MapPin,
-  Calendar,
-  CalendarX,
-  Edit,
-  Trash2,
-  AlertCircle,
-  Search,
-} from "lucide-react";
+import { Building2, MapPin, Trash2, AlertCircle, Search } from "lucide-react";
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
 import { fetchPlaces, deletePlace } from "@/lib/fetch-places";
 import { useAuth } from "@/hooks/use-auth";
 
-import { Place, PlacesApiResponse } from "@/types/place";
+import { PlacesApiResponse } from "@/types/place";
 
 export default function PlacesPage() {
   const [search, setSearch] = useState("");

@@ -11,12 +11,10 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPublicRoute = publicRoutes.includes(pathname);
 
-  // Si c'est une route publique (login), pas de protection
   if (isPublicRoute) {
     return <>{children}</>;
   }
 
-  // Sinon, route protégée avec sidebar
   return (
     <ProtectedRoute>
       <SidebarProvider

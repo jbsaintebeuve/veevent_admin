@@ -32,9 +32,6 @@ import { fetchCities } from "@/lib/fetch-cities";
 import { fetchPlacesByCity } from "@/lib/fetch-places";
 import { fetchCategories } from "@/lib/fetch-categories";
 import { createEvent } from "@/lib/fetch-events";
-import { City } from "@/types/city";
-import { Place } from "@/types/place";
-import { Category } from "@/types/category";
 import { useAuth } from "@/hooks/use-auth";
 
 const initialForm = {
@@ -53,7 +50,6 @@ const initialForm = {
   contentHtml: "",
 };
 
-// ✅ Composant InputField séparé et mémorisé
 const InputField = memo(
   ({
     label,
@@ -95,7 +91,6 @@ const InputField = memo(
   )
 );
 
-// ✅ Composant Select mémorisé
 const MemoizedSelect = memo(
   ({
     value,
@@ -132,7 +127,6 @@ export function CreateEventDialog({
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
-  // ✅ Requêtes avec gestion d'erreur améliorée
   const {
     data: citiesResponse,
     isLoading: citiesLoading,
@@ -159,12 +153,10 @@ export function CreateEventDialog({
     enabled: open,
   });
 
-  // Extraction des données des réponses HAL
   const cities = citiesResponse?._embedded?.cityResponses || [];
   const categories = categoriesResponse?._embedded?.categories || [];
   const placesList = Array.isArray(places) ? places : [];
 
-  // ✅ Debug des données reçues
   console.log("Cities data:", cities, "Is array:", Array.isArray(cities));
   console.log("Places data:", places, "Is array:", Array.isArray(places));
   console.log(
@@ -219,7 +211,6 @@ export function CreateEventDialog({
     []
   );
 
-  // ✅ Validation des champs obligatoires
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
@@ -415,7 +406,6 @@ export function CreateEventDialog({
                     citiesLoading ? "Chargement..." : "Sélectionner une ville"
                   }
                 >
-                  {/* ✅ Vérification que cities est bien un tableau */}
                   {Array.isArray(cities) && cities.length > 0 ? (
                     cities.map((city) => (
                       <SelectItem key={city.id} value={city.id.toString()}>
@@ -454,7 +444,6 @@ export function CreateEventDialog({
                       : "Sélectionner un lieu"
                   }
                 >
-                  {/* ✅ Vérification que placesList est bien un tableau */}
                   {Array.isArray(placesList) && placesList.length > 0 ? (
                     placesList.map((place) => (
                       <SelectItem key={place.id} value={place.id.toString()}>

@@ -9,12 +9,8 @@ import {
   Tag,
   BarChart3,
   Settings,
-  HelpCircle,
-  Search,
   User,
   PlaneTakeoff,
-  Earth,
-  Flag,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";

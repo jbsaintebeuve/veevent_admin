@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchUserMe } from "@/lib/fetch-user";
 import { isRoleAllowed } from "@/lib/auth-roles";
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
@@ -53,4 +53,14 @@ export default function AuthCallbackPage() {
 
     handleAuth();
   }, [searchParams, router]);
+
+  return null;
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense>
+      <AuthCallbackContent />
+    </Suspense>
+  );
 }

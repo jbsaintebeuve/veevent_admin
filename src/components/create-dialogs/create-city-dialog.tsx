@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,16 +18,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import {
-  Plus,
-  Loader2,
-  AlertCircle,
-  MapPin,
-  Globe,
-  FileText,
-} from "lucide-react";
-import { CityCreateRequest, City } from "@/types/city";
-import { createCity, fetchCities } from "@/lib/fetch-cities";
+import { Plus, Loader2, AlertCircle, MapPin, Globe } from "lucide-react";
+import { City } from "@/types/city";
+import { createCity } from "@/lib/fetch-cities";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const initialForm = {
@@ -49,7 +42,6 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
 
-  // Utiliser la prop cities au lieu du fetch
   const allCities = cities || [];
 
   const handleChange = (
@@ -78,7 +70,6 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
     setForm({ ...form, nearestCities: selected });
   };
 
-  // Validation des champs requis
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&

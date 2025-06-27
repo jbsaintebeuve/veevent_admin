@@ -31,9 +31,6 @@ import {
   Edit,
   Trash2,
   MapPin,
-  Calendar,
-  CalendarClock,
-  Users,
   AlertCircle,
   CalendarDays,
 } from "lucide-react";
@@ -51,7 +48,7 @@ import {
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { fetchEvents, deleteEvent } from "@/lib/fetch-events";
 import { useAuth } from "@/hooks/use-auth";
-import { Event, EventsApiResponse } from "@/types/event";
+import { EventsApiResponse } from "@/types/event";
 import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
 
 export default function EventsPage() {

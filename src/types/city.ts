@@ -2,8 +2,8 @@ export interface City {
   id: number;
   name: string;
   location: {
-    latitude: number | null;
-    longitude: number | null;
+    latitude: number;
+    longitude: number;
   };
   region: string;
   slug: string;

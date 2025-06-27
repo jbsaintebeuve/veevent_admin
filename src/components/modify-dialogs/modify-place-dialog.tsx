@@ -48,7 +48,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     cityName: "",
     bannerUrl: "",
     imageUrl: "",
-    content: "", // ✅ Une seule description basée sur content
+    content: "",
   });
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
@@ -71,7 +71,6 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     return city ? city.id.toString() : "";
   };
 
-  // ✅ Initialisation simplifiée - plus de description
   useEffect(() => {
     if (place && cities.length > 0) {
       setForm({
@@ -84,7 +83,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
         cityName: place.cityName || "",
         bannerUrl: place.bannerUrl || "",
         imageUrl: place.imageUrl || "",
-        content: place.content || "", // ✅ Une seule description
+        content: place.content || "",
       });
     }
   }, [place, citiesResponse]);
@@ -110,7 +109,6 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     }
   };
 
-  // ✅ Validation des champs obligatoires
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&

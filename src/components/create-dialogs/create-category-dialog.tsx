@@ -28,7 +28,6 @@ import {
   FileText,
   TrendingUp,
 } from "lucide-react";
-// ✅ Import de l'interface centralisée
 import { CategoryCreateRequest } from "@/types/category";
 import { createCategory } from "@/lib/fetch-categories";
 

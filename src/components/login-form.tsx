@@ -17,7 +17,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { useAuth } from "@/hooks/use-auth";
 import { authenticateUser, fetchUserMe } from "@/lib/fetch-user";
 import { User } from "@/types/user";
 import { isRoleAllowed } from "@/lib/auth-roles";

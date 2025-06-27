@@ -31,7 +31,7 @@ const pathConfig = {
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // Éviter les erreurs d'hydratation

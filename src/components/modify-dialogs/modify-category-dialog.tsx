@@ -53,7 +53,6 @@ export function ModifyCategoryDialog({
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
-  // ✅ Initialiser le formulaire avec les données de la catégorie
   useEffect(() => {
     if (category) {
       setForm({
@@ -76,7 +75,6 @@ export function ModifyCategoryDialog({
     setForm({ ...form, trending: checked });
   };
 
-  // ✅ Validation des champs requis
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
@@ -107,7 +105,6 @@ export function ModifyCategoryDialog({
     if (!form.key.trim()) {
       throw new Error("La clé unique est requise");
     }
-    // Validation du format de la clé
     if (!/^[a-z0-9-_]+$/.test(form.key)) {
       throw new Error(
         "La clé ne peut contenir que des lettres minuscules, chiffres, tirets et underscores"
@@ -185,7 +182,6 @@ export function ModifyCategoryDialog({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Nom */}
             <div className="grid gap-2">
               <Label htmlFor="name">
                 <Tag className="inline mr-1 h-4 w-4" />
@@ -202,7 +198,6 @@ export function ModifyCategoryDialog({
               />
             </div>
 
-            {/* Clé */}
             <div className="grid gap-2">
               <Label htmlFor="key">
                 <Hash className="inline mr-1 h-4 w-4" />
@@ -223,7 +218,6 @@ export function ModifyCategoryDialog({
               </p>
             </div>
 
-            {/* Description */}
             <div className="grid gap-2">
               <Label htmlFor="description">
                 <FileText className="inline mr-1 h-4 w-4" />
@@ -241,7 +235,6 @@ export function ModifyCategoryDialog({
               />
             </div>
 
-            {/* Tendance */}
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="trending"
@@ -264,7 +257,6 @@ export function ModifyCategoryDialog({
               </div>
             </div>
 
-            {/* Erreur */}
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />

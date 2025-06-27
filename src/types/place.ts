@@ -6,8 +6,8 @@ export interface Place {
   slug: string;
   type: string | null;
   location: {
-    latitude: number | null;
-    longitude: number | null;
+    latitude: number;
+    longitude: number;
   };
   eventsCount: number;
   eventsPastCount: number;
