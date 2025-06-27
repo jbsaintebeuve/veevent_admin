@@ -17,7 +17,7 @@ export async function fetchCities(token?: string): Promise<CitiesApiResponse> {
   return await res.json();
 }
 
-export async function createCity(payload: CityCreateRequest, token?: string) {
+export async function createCity(payload: any, token?: string) {
   const res = await fetch(`${API_URL}/cities`, {
     method: "POST",
     headers: {
@@ -50,10 +50,12 @@ export async function modifyCity(
     },
     body: JSON.stringify(payload),
   });
+
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`Erreur ${res.status}: ${errorText}`);
   }
+
   try {
     return await res.json();
   } catch {

@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Loader2, Edit, AlertCircle, MapPin, Globe } from "lucide-react";
-import { City } from "@/types/city";
+import { City, CityUpdateRequest } from "@/types/city";
 import { modifyCity } from "@/lib/fetch-cities";
 import { useAuth } from "@/hooks/use-auth";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -121,12 +121,11 @@ export function ModifyCityDialog({
       const token = getToken() || undefined;
       const patchUrl = city._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+
       const payload = {
         name: form.name.trim(),
-        location: {
-          latitude: form.location.latitude,
-          longitude: form.location.longitude,
-        },
+        latitude: form.location.latitude,
+        longitude: form.location.longitude,
         region: form.region.trim(),
         postalCode: form.postalCode.trim(),
         country: form.country.trim(),
@@ -134,7 +133,8 @@ export function ModifyCityDialog({
         imageUrl: form.imageUrl?.trim() || null,
         content: form.content?.trim() || null,
         nearestCities: form.nearestCities,
-      };
+      } as CityUpdateRequest;
+
       await modifyCity(patchUrl, payload, token);
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville modifiée avec succès !");

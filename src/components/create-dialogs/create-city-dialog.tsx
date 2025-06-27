@@ -22,6 +22,8 @@ import { Plus, Loader2, AlertCircle, MapPin, Globe } from "lucide-react";
 import { City } from "@/types/city";
 import { createCity } from "@/lib/fetch-cities";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/hooks/use-auth";
+import { CityCreateRequest } from "@/types/city";
 
 const initialForm = {
   name: "",
@@ -41,6 +43,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const allCities = cities || [];
 
@@ -48,12 +51,17 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    console.log("🔧 handleChange - name:", name, "value:", value);
+
     if (name === "latitude" || name === "longitude") {
+      const newValue = value === "" ? null : parseFloat(value);
+      console.log("🔧 handleChange - setting location", name, "to:", newValue);
+
       setForm({
         ...form,
         location: {
           ...form.location,
-          [name]: value === "" ? null : parseFloat(value),
+          [name]: newValue,
         },
       });
     } else {
@@ -94,10 +102,8 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
     try {
       const payload = {
         name: form.name.trim(),
-        location: {
-          latitude: form.location.latitude,
-          longitude: form.location.longitude,
-        },
+        latitude: form.location.latitude,
+        longitude: form.location.longitude,
         region: form.region.trim(),
         postalCode: form.postalCode.trim(),
         country: form.country.trim(),
@@ -105,9 +111,12 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
         imageUrl: form.imageUrl?.trim() || null,
         content: form.content?.trim() || null,
         nearestCities: form.nearestCities,
-      };
+      } as CityCreateRequest;
 
-      const token = document.cookie.split("token=")[1]?.split(";")[0];
+      console.log("🔧 handleSubmit - final payload:", payload);
+      console.log("🔧 handleSubmit - form.location:", form.location);
+
+      const token = getToken() || undefined;
       await createCity(payload, token);
 
       queryClient.invalidateQueries({ queryKey: ["cities"] });

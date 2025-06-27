@@ -76,6 +76,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --sonner-success-bg: var(--card);
+  --sonner-success-text: var(--card-foreground);
+  --sonner-error-bg: var(--card);
+  --sonner-error-text: var(--card-foreground);
+  --sonner-warning-bg: var(--card);
+  --sonner-warning-text: var(--card-foreground);
+  --sonner-info-bg: var(--card);
+  --sonner-info-text: var(--card-foreground);
 }
 
 .dark {
@@ -110,6 +118,14 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --sonner-success-bg: var(--card);
+  --sonner-success-text: var(--card-foreground);
+  --sonner-error-bg: var(--card);
+  --sonner-error-text: var(--card-foreground);
+  --sonner-warning-bg: var(--card);
+  --sonner-warning-text: var(--card-foreground);
+  --sonner-info-bg: var(--card);
+  --sonner-info-text: var(--card-foreground);
 }
 
 @layer base {
@@ -119,4 +135,9 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  display: none;
 }

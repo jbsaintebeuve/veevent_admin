@@ -27,17 +27,40 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Plus, Loader2, AlertCircle, MapPin } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  AlertCircle,
+  MapPin,
+  CalendarIcon,
+  ClockIcon,
+  ChevronDownIcon,
+} from "lucide-react";
 import { fetchCities } from "@/lib/fetch-cities";
 import { fetchPlacesByCity } from "@/lib/fetch-places";
 import { fetchCategories } from "@/lib/fetch-categories";
 import { createEvent } from "@/lib/fetch-events";
 import { useAuth } from "@/hooks/use-auth";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+
+const now = new Date();
+const nowTime = now.toLocaleTimeString("fr-FR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 const initialForm = {
   name: "",
   description: "",
-  date: "",
+  date: undefined as Date | undefined,
+  time: nowTime,
   address: "",
   price: "",
   maxCustomers: "",
@@ -123,6 +146,7 @@ export function CreateEventDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
@@ -215,7 +239,7 @@ export function CreateEventDialog({
     return (
       form.name.trim() !== "" &&
       form.description.trim() !== "" &&
-      form.date !== "" &&
+      form.date !== undefined &&
       form.address.trim() !== "" &&
       form.price.trim() !== "" &&
       parseFloat(form.price) >= 0 &&
@@ -253,8 +277,20 @@ export function CreateEventDialog({
     if (isNaN(price) || price < 0) throw new Error("Prix invalide");
     if (isNaN(maxCustomers) || maxCustomers <= 0)
       throw new Error("Capacité invalide");
-    if (new Date(form.date) <= new Date()) throw new Error("Date invalide");
+    if (form.date && new Date(form.date) <= new Date())
+      throw new Error("Date invalide");
   }, [form]);
+
+  const getDateTimeISO = () => {
+    if (!form.date || !form.time) return "";
+    const [hours, minutes] = form.time.split(":");
+    const year = form.date.getFullYear();
+    const month = form.date.getMonth();
+    const day = form.date.getDate();
+    return new Date(
+      Date.UTC(year, month, day, Number(hours), Number(minutes))
+    ).toISOString();
+  };
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -267,7 +303,7 @@ export function CreateEventDialog({
         const payload = {
           name: form.name.trim(),
           description: form.description.trim(),
-          date: form.date,
+          date: getDateTimeISO(),
           address: form.address.trim(),
           price: parseFloat(form.price),
           maxCustomers: parseInt(form.maxCustomers, 10),
@@ -340,28 +376,64 @@ export function CreateEventDialog({
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <InputField
-                label="Date et heure"
-                name="date"
-                type="datetime-local"
-                value={form.date}
-                onChange={handleChange}
-                disabled={loading}
-                required
-              />
-              <InputField
-                label="Prix (€)"
-                name="price"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="20.00"
-                value={form.price}
-                onChange={handleChange}
-                disabled={loading}
-                required
-              />
+              <div className="grid gap-2">
+                <Label>Date *</Label>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {form.date
+                        ? format(form.date, "PPP")
+                        : "Choisir une date"}
+                      <ChevronDownIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={form.date}
+                      onSelect={(date) => {
+                        setForm((prev) => ({ ...prev, date }));
+                        setDatePickerOpen(false);
+                      }}
+                      captionLayout="dropdown"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label>Heure *</Label>
+                <div className="relative">
+                  <ClockIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="time"
+                    value={form.time}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, time: e.target.value }))
+                    }
+                    required
+                    disabled={loading}
+                    className="pl-8 appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
+                  />
+                </div>
+              </div>
             </div>
+
+            <InputField
+              label="Prix (€)"
+              name="price"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="20.00"
+              value={form.price}
+              onChange={handleChange}
+              disabled={loading}
+              required
+            />
 
             <InputField
               label="Adresse"

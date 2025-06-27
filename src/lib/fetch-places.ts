@@ -71,6 +71,10 @@ export async function modifyPlace(
   payload: PlaceUpdateRequest,
   token?: string
 ) {
+  console.log("🔧 modifyPlace - URL:", patchUrl);
+  console.log("🔧 modifyPlace - Payload:", payload);
+  console.log("🔧 modifyPlace - Token:", token ? "Présent" : "Manquant");
+
   const res = await fetch(patchUrl, {
     method: "PATCH",
     headers: {
@@ -79,13 +83,25 @@ export async function modifyPlace(
     },
     body: JSON.stringify(payload),
   });
+
+  console.log("🔧 modifyPlace - Response status:", res.status);
+  console.log(
+    "🔧 modifyPlace - Response headers:",
+    Object.fromEntries(res.headers.entries())
+  );
+
   if (!res.ok) {
     const errorText = await res.text();
+    console.error("❌ modifyPlace - Error Response:", errorText);
     throw new Error(`Erreur ${res.status}: ${errorText}`);
   }
+
   try {
-    return await res.json();
+    const result = await res.json();
+    console.log("✅ modifyPlace - Success Response:", result);
+    return result;
   } catch {
+    console.log("✅ modifyPlace - No JSON response, returning success");
     return { success: true };
   }
 }

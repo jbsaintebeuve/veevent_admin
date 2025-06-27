@@ -2,8 +2,8 @@ export interface City {
   id: number;
   name: string;
   location: {
-    latitude: number;
-    longitude: number;
+    latitude: number | null;
+    longitude: number | null;
   };
   region: string;
   slug: string;
@@ -28,10 +28,8 @@ export interface CitiesApiResponse {
 
 export interface CityRequest {
   name: string;
-  location: {
-    latitude: number | null;
-    longitude: number | null;
-  };
+  latitude: number | null;
+  longitude: number | null;
   region: string;
   postalCode: string;
   country: string;

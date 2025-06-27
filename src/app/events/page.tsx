@@ -119,6 +119,7 @@ export default function EventsPage() {
       time: date.toLocaleTimeString("fr-FR", {
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
       }),
     };
   };
@@ -526,13 +527,6 @@ export default function EventsPage() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  <Button variant="outline" size="sm" asChild>
-                                    <Link href={`/events/${event.id}/edit`}>
-                                      <Edit className="h-4 w-4" />
-                                      <span className="sr-only">Modifier</span>
-                                    </Link>
-                                  </Button>
-
                                   <ModifyEventDialog event={event} />
 
                                   <AlertDialog>

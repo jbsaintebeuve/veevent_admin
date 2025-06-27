@@ -141,12 +141,28 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
         content: form.content.trim() || null,
       };
 
-      await modifyPlace(place._links.self.href, payload);
+      console.log("🔧 Modification lieu - Payload:", payload);
+      console.log("🔧 Modification lieu - Place:", place);
+      console.log("🔧 Modification lieu - _links:", place._links);
+
+      const patchUrl = place._links?.self?.href;
+      console.log("🔧 Modification lieu - Patch URL:", patchUrl);
+
+      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+
+      const token = getToken() || undefined;
+      console.log(
+        "🔧 Modification lieu - Token:",
+        token ? "Présent" : "Manquant"
+      );
+
+      await modifyPlace(patchUrl, payload, token);
 
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu modifié avec succès !");
       setOpen(false);
     } catch (error: any) {
+      console.error("❌ Erreur modification lieu:", error);
       toast.error(`Erreur: ${error.message}`);
     } finally {
       setLoading(false);
