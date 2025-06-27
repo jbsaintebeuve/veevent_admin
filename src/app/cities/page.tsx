@@ -326,7 +326,7 @@ export default function CitiesPage() {
                   Gérez les villes où se déroulent vos événements
                 </p>
               </div>
-              <CreateCityDialog />
+              <CreateCityDialog cities={cities} />
             </div>
 
             {/* ✅ SectionCards au lieu des cards manuelles */}
@@ -443,7 +443,10 @@ export default function CitiesPage() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
-                                  <ModifyCityDialog city={city} />
+                                  <ModifyCityDialog
+                                    city={city}
+                                    cities={cities}
+                                  />
 
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -531,7 +534,7 @@ export default function CitiesPage() {
                           <p className="text-muted-foreground mb-4">
                             Commencez par créer votre première ville.
                           </p>
-                          <CreateCityDialog />
+                          <CreateCityDialog cities={cities} />
                         </>
                       )}
                     </div>

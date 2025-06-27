@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,38 +26,67 @@ import {
   Globe,
   FileText,
 } from "lucide-react";
-import { CityCreateRequest } from "@/types/city";
-import { createCity } from "@/lib/fetch-cities";
+import { CityCreateRequest, City } from "@/types/city";
+import { createCity, fetchCities } from "@/lib/fetch-cities";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const initialForm = {
   name: "",
+  location: { latitude: null, longitude: null },
   region: "",
   postalCode: "",
   country: "France",
-  description: "",
+  bannerUrl: "",
+  imageUrl: "",
+  content: "",
+  nearestCities: [] as number[],
 };
 
-export function CreateCityDialog() {
+export function CreateCityDialog({ cities }: { cities: City[] }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
 
+  // Utiliser la prop cities au lieu du fetch
+  const allCities = cities || [];
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "latitude" || name === "longitude") {
+      setForm({
+        ...form,
+        location: {
+          ...form.location,
+          [name]: value === "" ? null : parseFloat(value),
+        },
+      });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
 
-  // ✅ Validation des champs requis
+  const handleNearestCitiesChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selected = Array.from(e.target.selectedOptions, (option) =>
+      Number(option.value)
+    );
+    setForm({ ...form, nearestCities: selected });
+  };
+
+  // Validation des champs requis
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
       form.region.trim() !== "" &&
       form.postalCode.trim() !== "" &&
       form.country.trim() !== "" &&
-      form.description.trim() !== ""
+      form.location.latitude !== null &&
+      form.location.longitude !== null
     );
   }, [form]);
 
@@ -72,12 +101,19 @@ export function CreateCityDialog() {
     setError("");
 
     try {
-      const payload: CityCreateRequest = {
+      const payload = {
         name: form.name.trim(),
-        postalCode: form.postalCode.trim(),
+        location: {
+          latitude: form.location.latitude,
+          longitude: form.location.longitude,
+        },
         region: form.region.trim(),
+        postalCode: form.postalCode.trim(),
         country: form.country.trim(),
-        description: form.description.trim(),
+        bannerUrl: form.bannerUrl?.trim() || null,
+        imageUrl: form.imageUrl?.trim() || null,
+        content: form.content?.trim() || null,
+        nearestCities: form.nearestCities,
       };
 
       const token = document.cookie.split("token=")[1]?.split(";")[0];
@@ -179,21 +215,107 @@ export function CreateCityDialog() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="latitude">Latitude *</Label>
+                <Input
+                  id="latitude"
+                  name="latitude"
+                  type="number"
+                  value={form.location.latitude ?? ""}
+                  onChange={handleChange}
+                  placeholder="43.7"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="longitude">Longitude *</Label>
+                <Input
+                  id="longitude"
+                  name="longitude"
+                  type="number"
+                  value={form.location.longitude ?? ""}
+                  onChange={handleChange}
+                  placeholder="7.25"
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
             <div className="grid gap-2">
-              <Label htmlFor="description">
-                <FileText className="inline mr-1 h-4 w-4" />
-                Description *
-              </Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={form.description}
+              <Label htmlFor="bannerUrl">Bannière (URL)</Label>
+              <Input
+                id="bannerUrl"
+                name="bannerUrl"
+                value={form.bannerUrl ?? ""}
                 onChange={handleChange}
-                rows={3}
-                placeholder="Petite ville du sud de la france"
-                required
+                placeholder="https://..."
                 disabled={loading}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="imageUrl">Image (URL)</Label>
+              <Input
+                id="imageUrl"
+                name="imageUrl"
+                value={form.imageUrl ?? ""}
+                onChange={handleChange}
+                placeholder="https://..."
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content">Description longue</Label>
+              <Textarea
+                id="content"
+                name="content"
+                value={form.content ?? ""}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Description détaillée de la ville"
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Villes proches</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3">
+                {allCities.length === 0 ? (
+                  <p className="text-sm text-muted-foreground col-span-2">
+                    Aucune ville disponible
+                  </p>
+                ) : (
+                  allCities.map((city) => (
+                    <div key={city.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`nearestCity-${city.id}`}
+                        checked={form.nearestCities.includes(city.id)}
+                        onCheckedChange={(checked: boolean) => {
+                          setForm((prev) => ({
+                            ...prev,
+                            nearestCities: checked
+                              ? [...prev.nearestCities, city.id]
+                              : prev.nearestCities.filter(
+                                  (id) => id !== city.id
+                                ),
+                          }));
+                        }}
+                        disabled={loading}
+                      />
+                      <Label
+                        htmlFor={`nearestCity-${city.id}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {city.name}
+                      </Label>
+                    </div>
+                  ))
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Sélectionnez une ou plusieurs villes proches
+              </span>
             </div>
 
             {error && (
@@ -205,24 +327,18 @@ export function CreateCityDialog() {
           </div>
 
           <DialogFooter>
+            <Button type="submit" disabled={!isFormValid || loading}>
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                "Créer la ville"
+              )}
+            </Button>
             <DialogClose asChild>
-              <Button variant="outline" disabled={loading}>
+              <Button type="button" variant="outline" onClick={resetForm}>
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création...
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer la ville
-                </>
-              )}
-            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

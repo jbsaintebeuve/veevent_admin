@@ -5,8 +5,10 @@ import {
   CityCreateRequest,
 } from "@/types/city";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function fetchCities(token?: string): Promise<CitiesApiResponse> {
-  const res = await fetch("http://localhost:8090/api/v1/cities", {
+  const res = await fetch(`${API_URL}/cities`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
@@ -16,7 +18,7 @@ export async function fetchCities(token?: string): Promise<CitiesApiResponse> {
 }
 
 export async function createCity(payload: CityCreateRequest, token?: string) {
-  const res = await fetch("http://localhost:8090/api/v1/cities", {
+  const res = await fetch(`${API_URL}/cities`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

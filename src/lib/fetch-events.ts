@@ -5,8 +5,10 @@ import {
   EventUpdateRequest,
 } from "@/types/event";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function fetchEvents(token?: string): Promise<EventsApiResponse> {
-  const res = await fetch("http://localhost:8090/api/v1/events", {
+  const res = await fetch(`${API_URL}/events`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
@@ -19,7 +21,7 @@ export async function createEvent(
   eventData: EventCreateRequest,
   token?: string
 ): Promise<Event> {
-  const res = await fetch("http://localhost:8090/api/v1/events", {
+  const res = await fetch(`${API_URL}/events`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -75,4 +77,20 @@ export async function deleteEvent(deleteUrl: string, token?: string) {
     },
   });
   if (!res.ok) throw new Error("Erreur lors de la suppression");
+}
+
+export async function fetchUserEvents(
+  userEventsUrl: string,
+  token?: string
+): Promise<EventsApiResponse> {
+  const res = await fetch(userEventsUrl, {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!res.ok)
+    throw new Error(
+      "Erreur lors du chargement des événements de l'utilisateur"
+    );
+  return await res.json();
 }

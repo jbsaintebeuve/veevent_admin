@@ -1,7 +1,9 @@
 import { User } from "@/types/user";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function fetchUsers(token?: string): Promise<User[]> {
-  const res = await fetch("http://localhost:8090/api/v1/users", {
+  const res = await fetch(`${API_URL}/users`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },

@@ -11,10 +11,12 @@ interface LoginResponse {
   user: User;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function authenticateUser(
   credentials: LoginRequest
 ): Promise<LoginResponse> {
-  const res = await fetch("http://localhost:8090/api/v1/auth/authenticate", {
+  const res = await fetch(`${API_URL}/auth/authenticate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
@@ -35,7 +37,7 @@ export async function authenticateUser(
 }
 
 export async function fetchUserMe(token: string): Promise<User> {
-  const res = await fetch("http://localhost:8090/api/v1/users/me", {
+  const res = await fetch(`${API_URL}/users/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -63,17 +65,6 @@ export async function checkAuthWithRoles(
   } catch (error) {
     throw error;
   }
-}
-
-export async function deleteUser(id: number, token?: string): Promise<void> {
-  const res = await fetch(`http://localhost:8090/api/v1/users/${id}`, {
-    method: "DELETE",
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-
-  if (!res.ok) throw new Error("Erreur lors de la suppression");
 }
 
 interface UserProfileData {
@@ -105,7 +96,7 @@ export async function fetchUserProfile(
   userId: number,
   token?: string
 ): Promise<UserProfileData> {
-  const res = await fetch(`http://localhost:8090/api/v1/users/${userId}`, {
+  const res = await fetch(`${API_URL}/users/${userId}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
@@ -135,7 +126,7 @@ export async function updateUserProfile(
   token?: string
 ): Promise<void> {
   // D'abord récupérer l'utilisateur pour obtenir le HAL link
-  const userRes = await fetch(`http://localhost:8090/api/v1/users/${userId}`, {
+  const userRes = await fetch(`${API_URL}/users/${userId}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },

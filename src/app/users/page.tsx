@@ -48,7 +48,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { fetchUsers } from "@/lib/fetch-users";
-import { deleteUser } from "@/lib/fetch-user";
 import { User } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -67,22 +66,6 @@ export default function UsersPage() {
     queryKey: ["users"],
     queryFn: fetchUsersWithToken,
   });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("Utilisateur supprimé avec succès");
-    },
-    onError: (error) => {
-      toast.error("Erreur lors de la suppression");
-      console.error(error);
-    },
-  });
-
-  const handleDelete = (id: number, name: string) => {
-    deleteMutation.mutate(id);
-  };
 
   // ✅ Filtrage des utilisateurs avec recherche
   const filteredUsers = Array.isArray(users)
@@ -497,56 +480,6 @@ export default function UsersPage() {
                                     <span className="sr-only">Modifier</span>
                                   </Link>
                                 </Button>
-
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-destructive hover:text-destructive"
-                                      disabled={deleteMutation.isPending}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                      <span className="sr-only">Supprimer</span>
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Supprimer l'utilisateur
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Êtes-vous sûr de vouloir supprimer "
-                                        {user.firstName} {user.lastName}" (@
-                                        {user.pseudo}) ? Cette action est
-                                        irréversible.
-                                        {user.role.toUpperCase() ===
-                                          "ADMIN" && (
-                                          <span className="block mt-2 text-destructive font-medium">
-                                            ⚠️ Attention : Cet utilisateur est
-                                            administrateur.
-                                          </span>
-                                        )}
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Annuler
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() =>
-                                          handleDelete(
-                                            user.id,
-                                            `${user.firstName} ${user.lastName}`
-                                          )
-                                        }
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      >
-                                        Supprimer
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
                               </div>
                             </TableCell>
                           </TableRow>

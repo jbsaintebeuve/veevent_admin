@@ -1,8 +1,10 @@
 import { Place, PlacesApiResponse, PlaceCreateRequest } from "@/types/place";
 import { PlaceUpdateRequest } from "@/types/place";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function fetchPlaces(token?: string): Promise<PlacesApiResponse> {
-  const res = await fetch("http://localhost:8090/api/v1/places", {
+  const res = await fetch(`${API_URL}/places`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
@@ -18,14 +20,11 @@ export async function fetchPlacesByCity(
   if (!cityId) return [];
 
   try {
-    const res = await fetch(
-      `http://localhost:8090/api/v1/cities/${cityId}/places`,
-      {
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      }
-    );
+    const res = await fetch(`${API_URL}/cities/${cityId}/places`, {
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
     if (!res.ok) throw new Error("Erreur lors du chargement des lieux");
     const data = await res.json();
 
@@ -48,7 +47,7 @@ export async function fetchPlacesByCity(
 }
 
 export async function createPlace(payload: PlaceCreateRequest, token?: string) {
-  const res = await fetch("http://localhost:8090/api/v1/places", {
+  const res = await fetch(`${API_URL}/places`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

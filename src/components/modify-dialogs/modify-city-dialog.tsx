@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,44 +29,55 @@ import {
 import { City, CityUpdateRequest } from "@/types/city";
 import { modifyCity } from "@/lib/fetch-cities";
 import { useAuth } from "@/hooks/use-auth";
+import { fetchCities } from "@/lib/fetch-cities";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ModifyCityDialogProps {
   city: City;
+  cities: City[];
   children?: React.ReactNode;
 }
 
-export function ModifyCityDialog({ city, children }: ModifyCityDialogProps) {
+export function ModifyCityDialog({
+  city,
+  cities,
+  children,
+}: ModifyCityDialogProps) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
+    location: { latitude: null, longitude: null },
     region: "",
     postalCode: "",
     country: "France",
-    description: "",
-    latitude: "",
-    longitude: "",
     bannerUrl: "",
     imageUrl: "",
-    nearestCityIds: [] as number[],
+    content: "",
+    nearestCities: [] as number[],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
+  // Utiliser la prop cities au lieu du fetch
+  const allCities = cities || [];
+
   useEffect(() => {
     if (city) {
       setForm({
         name: city.name || "",
+        location: {
+          latitude: city.location?.latitude ?? null,
+          longitude: city.location?.longitude ?? null,
+        },
         region: city.region || "",
         postalCode: city.postalCode || "",
         country: city.country || "France",
-        description: city.content || city.description || "",
-        latitude: city.location?.latitude?.toString() || "",
-        longitude: city.location?.longitude?.toString() || "",
         bannerUrl: city.bannerUrl || "",
         imageUrl: city.imageUrl || "",
-        nearestCityIds: city.nearestCities?.map((c) => c.id) || [],
+        content: city.content || "",
+        nearestCities: city.nearestCities?.map((c) => c.id) || [],
       });
     }
   }, [city]);
@@ -74,7 +85,27 @@ export function ModifyCityDialog({ city, children }: ModifyCityDialogProps) {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "latitude" || name === "longitude") {
+      setForm({
+        ...form,
+        location: {
+          ...form.location,
+          [name]: value === "" ? null : parseFloat(value),
+        },
+      });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+
+  const handleNearestCitiesChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selected = Array.from(e.target.selectedOptions, (option) =>
+      Number(option.value)
+    );
+    setForm({ ...form, nearestCities: selected });
   };
 
   const isFormValid = useMemo(() => {
@@ -83,7 +114,8 @@ export function ModifyCityDialog({ city, children }: ModifyCityDialogProps) {
       form.region.trim() !== "" &&
       form.postalCode.trim() !== "" &&
       form.country.trim() !== "" &&
-      form.description.trim() !== ""
+      form.location.latitude !== null &&
+      form.location.longitude !== null
     );
   }, [form]);
 
@@ -95,21 +127,20 @@ export function ModifyCityDialog({ city, children }: ModifyCityDialogProps) {
       const token = getToken() || undefined;
       const patchUrl = city._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-      const payload: any = {
+      const payload = {
         name: form.name.trim(),
-        description: form.description.trim(),
+        location: {
+          latitude: form.location.latitude,
+          longitude: form.location.longitude,
+        },
         region: form.region.trim(),
-        country: form.country.trim(),
         postalCode: form.postalCode.trim(),
-        latitude: form.latitude ? parseFloat(form.latitude) : null,
-        longitude: form.longitude ? parseFloat(form.longitude) : null,
-        bannerUrl: form.bannerUrl || null,
-        imageUrl: form.imageUrl || null,
-        content: form.description.trim(),
+        country: form.country.trim(),
+        bannerUrl: form.bannerUrl?.trim() || null,
+        imageUrl: form.imageUrl?.trim() || null,
+        content: form.content?.trim() || null,
+        nearestCities: form.nearestCities,
       };
-      if (form.nearestCityIds && form.nearestCityIds.length > 0) {
-        payload.nearestCityIds = form.nearestCityIds;
-      }
       await modifyCity(patchUrl, payload, token);
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville modifiée avec succès !");
@@ -127,15 +158,17 @@ export function ModifyCityDialog({ city, children }: ModifyCityDialogProps) {
     if (!newOpen && city) {
       setForm({
         name: city.name || "",
+        location: {
+          latitude: city.location?.latitude ?? null,
+          longitude: city.location?.longitude ?? null,
+        },
         region: city.region || "",
         postalCode: city.postalCode || "",
         country: city.country || "France",
-        description: city.content || city.description || "",
-        latitude: city.location?.latitude?.toString() || "",
-        longitude: city.location?.longitude?.toString() || "",
         bannerUrl: city.bannerUrl || "",
         imageUrl: city.imageUrl || "",
-        nearestCityIds: city.nearestCities?.map((c) => c.id) || [],
+        content: city.content || "",
+        nearestCities: city.nearestCities?.map((c) => c.id) || [],
       });
       setError("");
     }
@@ -220,49 +253,139 @@ export function ModifyCityDialog({ city, children }: ModifyCityDialogProps) {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="latitude">Latitude *</Label>
+                <Input
+                  id="latitude"
+                  name="latitude"
+                  type="number"
+                  value={form.location.latitude ?? ""}
+                  onChange={handleChange}
+                  placeholder="43.7"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="longitude">Longitude *</Label>
+                <Input
+                  id="longitude"
+                  name="longitude"
+                  type="number"
+                  value={form.location.longitude ?? ""}
+                  onChange={handleChange}
+                  placeholder="7.25"
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
             <div className="grid gap-2">
-              <Label htmlFor="description">
-                <FileText className="inline mr-1 h-4 w-4" />
-                Description *
-              </Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={form.description}
+              <Label htmlFor="bannerUrl">Bannière (URL)</Label>
+              <Input
+                id="bannerUrl"
+                name="bannerUrl"
+                value={form.bannerUrl ?? ""}
                 onChange={handleChange}
-                rows={3}
-                required
+                placeholder="https://..."
                 disabled={loading}
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="imageUrl">Image (URL)</Label>
+              <Input
+                id="imageUrl"
+                name="imageUrl"
+                value={form.imageUrl ?? ""}
+                onChange={handleChange}
+                placeholder="https://..."
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content">Description longue</Label>
+              <Textarea
+                id="content"
+                name="content"
+                value={form.content ?? ""}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Description détaillée de la ville"
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Villes proches</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3">
+                {allCities.filter((c) => c.id !== city.id).length === 0 ? (
+                  <p className="text-sm text-muted-foreground col-span-2">
+                    Aucune ville disponible
+                  </p>
+                ) : (
+                  allCities
+                    .filter((c) => c.id !== city.id)
+                    .map((city) => (
+                      <div
+                        key={city.id}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={`nearestCity-${city.id}`}
+                          checked={form.nearestCities.includes(city.id)}
+                          onCheckedChange={(checked: boolean) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              nearestCities: checked
+                                ? [...prev.nearestCities, city.id]
+                                : prev.nearestCities.filter(
+                                    (id) => id !== city.id
+                                  ),
+                            }));
+                          }}
+                          disabled={loading}
+                        />
+                        <Label
+                          htmlFor={`nearestCity-${city.id}`}
+                          className="text-sm cursor-pointer"
+                        >
+                          {city.name}
+                        </Label>
+                      </div>
+                    ))
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Sélectionnez une ou plusieurs villes proches
+              </span>
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
           </div>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <DialogFooter>
+            <Button type="submit" disabled={!isFormValid || loading}>
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                "Modifier la ville"
+              )}
+            </Button>
             <DialogClose asChild>
-              <Button variant="outline" disabled={loading}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Modification...
-                </>
-              ) : (
-                <>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Modifier
-                </>
-              )}
-            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -14,6 +14,7 @@ import {
   User,
   PlaneTakeoff,
   Earth,
+  Flag,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -29,6 +30,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { IconInnerShadowTop } from "@tabler/icons-react";
+import { routePermissions } from "@/lib/route-permissions";
+import { useAuth } from "@/hooks/use-auth";
 
 const data = {
   user: {
@@ -45,6 +48,11 @@ const data = {
     {
       title: "Événements",
       url: "/events",
+      icon: Calendar,
+    },
+    {
+      title: "Mes événements",
+      url: "/my-events",
       icon: Calendar,
     },
     {
@@ -67,6 +75,11 @@ const data = {
       url: "/places",
       icon: Building2,
     },
+    {
+      title: "Invitations",
+      url: "/invitations",
+      icon: PlaneTakeoff,
+    },
   ],
   navSecondary: [
     {
@@ -83,6 +96,25 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAuth();
+  // Filtrage dynamique des liens selon le rôle et la config centralisée
+  const filteredNavMain = data.navMain.filter((item) => {
+    if (!user?.role) return false;
+    // Trouver la règle la plus spécifique pour l'URL
+    const matched = Object.entries(routePermissions).find(([prefix]) =>
+      item.url.startsWith(prefix)
+    );
+    const allowedRoles = matched ? matched[1] : [];
+    return allowedRoles.includes(user.role.toLowerCase());
+  });
+  const filteredNavSecondary = data.navSecondary.filter((item) => {
+    if (!user?.role) return false;
+    const matched = Object.entries(routePermissions).find(([prefix]) =>
+      item.url.startsWith(prefix)
+    );
+    const allowedRoles = matched ? matched[1] : [];
+    return allowedRoles.includes(user.role.toLowerCase());
+  });
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -101,8 +133,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={filteredNavMain} />
+        <NavSecondary items={filteredNavSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

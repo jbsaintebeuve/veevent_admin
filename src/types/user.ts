@@ -15,11 +15,7 @@ export interface User {
   categories?: string[];
   categoryKeys?: string[];
   note?: number | null;
-  _links?: {
-    self: {
-      href: string;
-    };
-  };
+  _links?: any;
 }
 
 export interface UsersApiResponse {

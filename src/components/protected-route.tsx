@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { checkAuthWithRoles } from "@/lib/fetch-user";
+import { routePermissions } from "@/lib/route-permissions";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -25,17 +27,21 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
           return redirectToLogin("No token found");
         }
 
-        const { user, isAuthorized } = await checkAuthWithRoles(token);
+        const { user } = await checkAuthWithRoles(token);
 
-        if (!isAuthorized) {
+        // Trouver la règle la plus spécifique pour la route courante
+        const matched = Object.entries(routePermissions).find(([prefix]) =>
+          pathname.startsWith(prefix)
+        );
+        const allowedRoles = matched ? matched[1] : [];
+
+        if (!allowedRoles.includes(user.role.toLowerCase())) {
           clearAuthData();
           return router.replace("/auth/login?error=insufficient-permissions");
         }
 
-        console.log("✅ Authentication successful");
         setIsAuthenticated(true);
       } catch (error) {
-        console.error("❌ Auth check error:", error);
         clearAuthData();
         redirectToLogin("Auth check failed");
       }
@@ -49,7 +55,6 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     };
 
     const redirectToLogin = (reason: string) => {
-      console.log(`❌ ${reason}, redirecting to login`);
       setIsAuthenticated(false);
       router.replace(
         `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`
@@ -57,7 +62,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, pathname]);
 
   // Chargement
   if (isAuthenticated === null) {

@@ -6,10 +6,12 @@ import {
   CategoryCreateRequest,
 } from "@/types/category";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function fetchCategories(
   token?: string
 ): Promise<CategoriesApiResponse> {
-  const res = await fetch("http://localhost:8090/api/v1/categories", {
+  const res = await fetch(`${API_URL}/categories`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
@@ -22,7 +24,7 @@ export async function createCategory(
   payload: CategoryCreateRequest,
   token?: string
 ): Promise<Category> {
-  const res = await fetch("http://localhost:8090/api/v1/categories", {
+  const res = await fetch(`${API_URL}/categories`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -44,10 +46,6 @@ export async function modifyCategory(
   payload: CategoryUpdateRequest,
   token?: string
 ) {
-  console.log("🔧 modifyCategory - URL:", patchUrl);
-  console.log("🔧 modifyCategory - Payload:", payload);
-  console.log("🔧 modifyCategory - Token:", token ? "Présent" : "Manquant");
-
   const res = await fetch(patchUrl, {
     method: "PATCH",
     headers: {
@@ -56,9 +54,6 @@ export async function modifyCategory(
     },
     body: JSON.stringify(payload),
   });
-
-  console.log("🔧 modifyCategory - Status:", res.status);
-  console.log("🔧 modifyCategory - Status Text:", res.statusText);
 
   if (!res.ok) {
     const errorText = await res.text();

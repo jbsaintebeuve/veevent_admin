@@ -28,10 +28,17 @@ export interface CitiesApiResponse {
 
 export interface CityRequest {
   name: string;
-  postalCode: string;
+  location: {
+    latitude: number | null;
+    longitude: number | null;
+  };
   region: string;
+  postalCode: string;
   country: string;
-  description: string;
+  bannerUrl?: string | null;
+  imageUrl?: string | null;
+  content?: string | null;
+  nearestCities: number[]; // liste d'IDs
 }
 
 export type CityCreateRequest = CityRequest;
