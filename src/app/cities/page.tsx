@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
 import { Button } from "@/components/ui/button";
@@ -72,12 +72,191 @@ export default function CitiesPage() {
     },
   });
 
-  const handleDelete = (deleteUrl: string, name: string) => {
-    deleteMutation.mutate(deleteUrl);
-  };
+  const handleDelete = useCallback(
+    (deleteUrl: string, name: string) => {
+      deleteMutation.mutate(deleteUrl);
+    },
+    [deleteMutation]
+  );
 
-  // Désactivation temporaire du filtrage pour diagnostic
-  const filteredCities = Array.isArray(cities) ? cities : [];
+  // Filtrage optimisé avec useMemo
+  const filteredCities = useMemo(() => {
+    if (!Array.isArray(cities)) return [];
+
+    if (!search.trim()) return cities;
+
+    const searchLower = search.toLowerCase();
+    return cities.filter(
+      (city) =>
+        city.name.toLowerCase().includes(searchLower) ||
+        city.country.toLowerCase().includes(searchLower)
+    );
+  }, [cities, search]);
+
+  // Calculs optimisés avec useMemo - une seule boucle au lieu de 4
+  const { totalEvents, totalPastEvents, totalCountries, activeCities } =
+    useMemo(() => {
+      const stats = {
+        totalEvents: 0,
+        totalPastEvents: 0,
+        totalCountries: 0,
+        activeCities: 0,
+      };
+
+      const countries = new Set<string>();
+
+      cities.forEach((city: City) => {
+        stats.totalEvents += city.eventsCount;
+        stats.totalPastEvents += city.eventsPastCount;
+        countries.add(city.country);
+        if (city.eventsCount > 0) {
+          stats.activeCities++;
+        }
+      });
+
+      stats.totalCountries = countries.size;
+
+      return stats;
+    }, [cities]);
+
+  // Données pour SectionCards optimisées avec useMemo
+  const cardsData: CardData[] = useMemo(
+    () => [
+      {
+        id: "cities",
+        title: "Total des villes",
+        description: "Toutes les villes disponibles",
+        value: cities?.length || 0,
+        trend: {
+          value:
+            cities && cities.length > 20
+              ? 18.7
+              : cities && cities.length > 10
+              ? 12.5
+              : cities && cities.length > 5
+              ? 5.2
+              : cities && cities.length > 0
+              ? 2.1
+              : 0,
+          isPositive: !!(cities && cities.length > 0),
+          label:
+            cities && cities.length > 20
+              ? "Réseau très développé"
+              : cities && cities.length > 10
+              ? "Croissance stable"
+              : cities && cities.length > 5
+              ? "En développement"
+              : cities && cities.length > 0
+              ? "Premières villes"
+              : "Aucune ville",
+        },
+        footer: {
+          primary:
+            cities && cities.length > 20
+              ? "Réseau très développé"
+              : cities && cities.length > 10
+              ? "Croissance stable"
+              : cities && cities.length > 5
+              ? "En développement"
+              : cities && cities.length > 0
+              ? "Premières villes"
+              : "Aucune ville",
+          secondary: cities?.length === 1 ? "ville" : "villes",
+        },
+      },
+      {
+        id: "events",
+        title: "Total événements",
+        description: "Tous les événements",
+        value: totalEvents,
+        trend: {
+          value:
+            totalEvents > 100
+              ? 25.4
+              : totalEvents > 50
+              ? 18.2
+              : totalEvents > 20
+              ? 12.1
+              : totalEvents > 5
+              ? 6.8
+              : totalEvents > 0
+              ? 2.1
+              : 0,
+          isPositive: totalEvents > 0,
+          label:
+            totalEvents > 100
+              ? "Très actif"
+              : totalEvents > 50
+              ? "Bonne activité"
+              : totalEvents > 20
+              ? "Activité modérée"
+              : totalEvents > 5
+              ? "Démarrage"
+              : totalEvents > 0
+              ? "Premiers événements"
+              : "Aucun événement",
+        },
+        footer: {
+          primary:
+            totalEvents > 100
+              ? "Très actif"
+              : totalEvents > 50
+              ? "Bonne activité"
+              : totalEvents > 20
+              ? "Activité modérée"
+              : totalEvents > 5
+              ? "Démarrage"
+              : totalEvents > 0
+              ? "Premiers événements"
+              : "Aucun événement",
+          secondary: totalEvents === 1 ? "événement" : "événements",
+        },
+      },
+      {
+        id: "countries",
+        title: "Pays couverts",
+        description: "Nombre de pays",
+        value: totalCountries,
+        trend: {
+          value:
+            totalCountries > 10
+              ? 15.7
+              : totalCountries > 5
+              ? 10.2
+              : totalCountries > 2
+              ? 5.8
+              : totalCountries > 0
+              ? 2.3
+              : 0,
+          isPositive: totalCountries > 0,
+          label:
+            totalCountries > 10
+              ? "International"
+              : totalCountries > 5
+              ? "Multi-pays"
+              : totalCountries > 2
+              ? "Plusieurs pays"
+              : totalCountries > 0
+              ? "Un pays"
+              : "Aucun pays",
+        },
+        footer: {
+          primary:
+            totalCountries > 10
+              ? "International"
+              : totalCountries > 5
+              ? "Multi-pays"
+              : totalCountries > 2
+              ? "Plusieurs pays"
+              : totalCountries > 0
+              ? "Un pays"
+              : "Aucun pays",
+          secondary: totalCountries === 1 ? "pays" : "pays",
+        },
+      },
+    ],
+    [cities, totalEvents, totalCountries]
+  );
 
   // Loading state (reste identique)
   if (isLoading) {
@@ -151,157 +330,6 @@ export default function CitiesPage() {
       </>
     );
   }
-
-  // ✅ Calculs mis à jour pour la nouvelle structure
-  const totalEvents = cities.reduce(
-    (sum: number, city: City) => sum + city.eventsCount,
-    0
-  );
-  const totalPastEvents = cities.reduce(
-    (sum: number, city: City) => sum + city.eventsPastCount,
-    0
-  );
-  const totalCountries = new Set(cities.map((city: City) => city.country)).size;
-  const activeCities = cities.filter(
-    (city: City) => city.eventsCount > 0
-  ).length;
-
-  // ✅ Données pour SectionCards mises à jour
-  const cardsData: CardData[] = [
-    {
-      id: "cities",
-      title: "Total des villes",
-      description: "Toutes les villes disponibles",
-      value: cities?.length || 0,
-      trend: {
-        value:
-          cities && cities.length > 20
-            ? 18.7
-            : cities && cities.length > 10
-            ? 12.5
-            : cities && cities.length > 5
-            ? 5.2
-            : cities && cities.length > 0
-            ? 2.1
-            : 0,
-        isPositive: !!(cities && cities.length > 0),
-        label:
-          cities && cities.length > 20
-            ? "Réseau très développé"
-            : cities && cities.length > 10
-            ? "Croissance stable"
-            : cities && cities.length > 5
-            ? "En développement"
-            : cities && cities.length > 0
-            ? "Premières villes"
-            : "Aucune ville",
-      },
-      footer: {
-        primary:
-          cities && cities.length > 20
-            ? "Réseau très développé"
-            : cities && cities.length > 10
-            ? "Croissance stable"
-            : cities && cities.length > 5
-            ? "En développement"
-            : cities && cities.length > 0
-            ? "Premières villes"
-            : "Aucune ville",
-        secondary:
-          cities?.length === 1 ? "ville disponible" : "villes disponibles",
-      },
-    },
-    {
-      id: "active",
-      title: "Villes actives",
-      description: "Avec événements en cours",
-      value: activeCities,
-      trend: {
-        value:
-          activeCities > 15
-            ? 25.3
-            : activeCities > 8
-            ? 16.8
-            : activeCities > 3
-            ? 9.4
-            : activeCities > 0
-            ? 5.2
-            : 0,
-        isPositive: activeCities > 0,
-        label:
-          activeCities > 15
-            ? "Très actif"
-            : activeCities > 8
-            ? "Bonne activité"
-            : activeCities > 3
-            ? "Activité modérée"
-            : activeCities > 0
-            ? "Quelques villes actives"
-            : "Aucune ville active",
-      },
-      footer: {
-        primary:
-          activeCities > 15
-            ? "Très actif"
-            : activeCities > 8
-            ? "Bonne activité"
-            : activeCities > 3
-            ? "Activité modérée"
-            : activeCities > 0
-            ? "Quelques villes actives"
-            : "Aucune ville active",
-        secondary: "villes avec événements",
-      },
-    },
-    {
-      id: "events",
-      title: "Événements totaux",
-      description: "Tous événements confondus",
-      value: totalEvents + totalPastEvents,
-      trend: {
-        value:
-          totalEvents + totalPastEvents > 100
-            ? 22.9
-            : totalEvents + totalPastEvents > 50
-            ? 15.6
-            : totalEvents + totalPastEvents > 25
-            ? 8.3
-            : totalEvents + totalPastEvents > 10
-            ? 3.7
-            : totalEvents + totalPastEvents > 0
-            ? 1.5
-            : 0,
-        isPositive: totalEvents + totalPastEvents > 0,
-        label:
-          totalEvents + totalPastEvents > 100
-            ? "Performance excellente"
-            : totalEvents + totalPastEvents > 50
-            ? "Très bonne activité"
-            : totalEvents + totalPastEvents > 25
-            ? "Bonne activité"
-            : totalEvents + totalPastEvents > 10
-            ? "Activité modérée"
-            : totalEvents + totalPastEvents > 0
-            ? "Premiers événements"
-            : "Aucun événement",
-      },
-      footer: {
-        primary:
-          totalEvents + totalPastEvents > 100
-            ? "Performance excellente"
-            : totalEvents + totalPastEvents > 50
-            ? "Très bonne activité"
-            : totalEvents + totalPastEvents > 25
-            ? "Bonne activité"
-            : totalEvents + totalPastEvents > 10
-            ? "Activité modérée"
-            : totalEvents + totalPastEvents > 0
-            ? "Premiers événements"
-            : "Aucun événement",
-        secondary: "événements dans toutes les villes",
-      },
-    },
-  ];
 
   return (
     <>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
 import {
@@ -23,20 +23,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertCircle,
-  Search,
-  MapPin,
-  Calendar,
-  CalendarClock,
-  Users,
-  CalendarDays,
-} from "lucide-react";
+import { AlertCircle, Search, MapPin, CalendarDays } from "lucide-react";
 import { fetchUserEvents } from "@/lib/fetch-events";
 import { useAuth } from "@/hooks/use-auth";
 import { Event, EventsApiResponse } from "@/types/event";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
+import { Button } from "@/components/ui/button";
 
 export default function MyEventsPage() {
   const [search, setSearch] = useState("");
@@ -55,32 +48,37 @@ export default function MyEventsPage() {
     data: eventsResponse,
     isLoading,
     error,
+    refetch,
   } = useQuery<EventsApiResponse>({
-    queryKey: ["my-events", userEventsUrl],
-    queryFn: () =>
-      userEventsUrl
-        ? fetchUserEvents(userEventsUrl, getToken() || undefined)
-        : Promise.resolve(emptyEventsApiResponse),
-    enabled: !!userEventsUrl,
+    queryKey: ["my-events", user?.id],
+    queryFn: () => fetchUserEvents(userEventsUrl!, getToken() || undefined),
+    enabled: !!user?.id && !!userEventsUrl,
+    staleTime: 30000, // 30 secondes
+    refetchOnWindowFocus: false,
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
 
-  // Filtrage des événements avec recherche
-  const filteredEvents = Array.isArray(events)
-    ? events.filter(
-        (event: Event) =>
-          event.name.toLowerCase().includes(search.toLowerCase()) ||
-          event.description.toLowerCase().includes(search.toLowerCase()) ||
-          event.cityName.toLowerCase().includes(search.toLowerCase()) ||
-          event.placeName.toLowerCase().includes(search.toLowerCase()) ||
-          event.categories.some((cat: { name: string }) =>
-            cat.name.toLowerCase().includes(search.toLowerCase())
-          )
-      )
-    : [];
+  // Filtrage des événements avec recherche - optimisé avec useMemo
+  const filteredEvents = useMemo(() => {
+    if (!Array.isArray(events)) return [];
 
-  const getStatusBadge = (status: string) => {
+    if (!search.trim()) return events;
+
+    const searchLower = search.toLowerCase();
+    return events.filter(
+      (event: Event) =>
+        event.name.toLowerCase().includes(searchLower) ||
+        event.description.toLowerCase().includes(searchLower) ||
+        event.cityName.toLowerCase().includes(searchLower) ||
+        event.placeName.toLowerCase().includes(searchLower) ||
+        event.categories.some((cat: { name: string }) =>
+          cat.name.toLowerCase().includes(searchLower)
+        )
+    );
+  }, [events, search]);
+
+  const getStatusBadge = useCallback((status: string) => {
     switch (status) {
       case "NOT_STARTED":
         return <Badge variant="default">À venir</Badge>;
@@ -93,9 +91,9 @@ export default function MyEventsPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  };
+  }, []);
 
-  const formatDateTime = (dateStr: string) => {
+  const formatDateTime = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
     return {
       date: date.toLocaleDateString("fr-FR"),
@@ -104,7 +102,136 @@ export default function MyEventsPage() {
         minute: "2-digit",
       }),
     };
-  };
+  }, []);
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearch(e.target.value);
+    },
+    []
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setSearch("");
+  }, []);
+
+  // Statistiques optimisées avec useMemo - une seule boucle au lieu de 4
+  const { totalEvents, upcomingCount, ongoingCount, completedCount } =
+    useMemo(() => {
+      const stats = {
+        totalEvents: events.length,
+        upcomingCount: 0,
+        ongoingCount: 0,
+        completedCount: 0,
+      };
+
+      events.forEach((event: Event) => {
+        switch (event.status) {
+          case "NOT_STARTED":
+            stats.upcomingCount++;
+            break;
+          case "ONGOING":
+            stats.ongoingCount++;
+            break;
+          case "COMPLETED":
+            stats.completedCount++;
+            break;
+        }
+      });
+
+      return stats;
+    }, [events]);
+
+  const cardsData: CardData[] = useMemo(
+    () => [
+      {
+        id: "total",
+        title: "Total événements",
+        description: "Nombre total d'événements organisés",
+        value: totalEvents,
+        trend: {
+          value: totalEvents > 10 ? 12.5 : totalEvents > 0 ? 3.2 : 0,
+          isPositive: totalEvents > 0,
+          label:
+            totalEvents > 10
+              ? "Organisateur actif"
+              : totalEvents > 0
+              ? "Quelques événements"
+              : "Aucun événement",
+        },
+        footer: {
+          primary: totalEvents === 1 ? "événement" : "événements",
+          secondary: "organisés par vous",
+        },
+      },
+      {
+        id: "upcoming",
+        title: "À venir",
+        description: "Événements à venir",
+        value: upcomingCount,
+        trend: {
+          value: upcomingCount > 5 ? 8.7 : upcomingCount > 0 ? 2.1 : 0,
+          isPositive: upcomingCount > 0,
+          label:
+            upcomingCount > 5
+              ? "Beaucoup à venir"
+              : upcomingCount > 0
+              ? "Préparez-vous"
+              : "Aucun à venir",
+        },
+        footer: {
+          primary: upcomingCount === 1 ? "événement" : "événements",
+          secondary: "à venir",
+        },
+      },
+      {
+        id: "ongoing",
+        title: "En cours",
+        description: "Événements en cours",
+        value: ongoingCount,
+        trend: {
+          value: ongoingCount > 2 ? 5.4 : ongoingCount > 0 ? 1.2 : 0,
+          isPositive: ongoingCount > 0,
+          label:
+            ongoingCount > 2
+              ? "Très actif"
+              : ongoingCount > 0
+              ? "En direct"
+              : "Aucun en cours",
+        },
+        footer: {
+          primary: ongoingCount === 1 ? "événement" : "événements",
+          secondary: "en cours",
+        },
+      },
+      {
+        id: "completed",
+        title: "Terminés",
+        description: "Événements terminés",
+        value: completedCount,
+        trend: {
+          value: completedCount > 2 ? 4.2 : completedCount > 0 ? 1.1 : 0,
+          isPositive: completedCount > 0,
+          label:
+            completedCount > 2
+              ? "Bravo !"
+              : completedCount > 0
+              ? "Quelques succès"
+              : "Aucun terminé",
+        },
+        footer: {
+          primary: completedCount === 1 ? "événement" : "événements",
+          secondary: "terminés",
+        },
+      },
+    ],
+    [totalEvents, upcomingCount, ongoingCount, completedCount]
+  );
+
+  // Vérifier si le lien HAL est disponible (cas spécifique aux liens HAL)
+  if (!userEventsUrl) {
+    return null;
+  }
 
   // Loading state
   if (isLoading) {
@@ -165,109 +292,27 @@ export default function MyEventsPage() {
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Erreur lors du chargement de vos événements. Veuillez réessayer.
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                Erreur lors du chargement de vos événements.
+                {!userEventsUrl &&
+                  " Impossible de récupérer le lien vers vos événements."}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                className="ml-4"
+              >
+                <AlertCircle className="h-4 w-4 mr-2" />
+                Réessayer
+              </Button>
             </AlertDescription>
           </Alert>
         </div>
       </>
     );
   }
-
-  // Statistiques pour SectionCards (exemple simple)
-  const totalEvents = events.length;
-  const upcomingCount = events.filter(
-    (e: Event) => e.status === "NOT_STARTED"
-  ).length;
-  const ongoingCount = events.filter(
-    (e: Event) => e.status === "ONGOING"
-  ).length;
-  const completedCount = events.filter(
-    (e: Event) => e.status === "COMPLETED"
-  ).length;
-
-  const cardsData: CardData[] = [
-    {
-      id: "total",
-      title: "Total événements",
-      description: "Nombre total d'événements organisés",
-      value: totalEvents,
-      trend: {
-        value: totalEvents > 10 ? 12.5 : totalEvents > 0 ? 3.2 : 0,
-        isPositive: totalEvents > 0,
-        label:
-          totalEvents > 10
-            ? "Organisateur actif"
-            : totalEvents > 0
-            ? "Quelques événements"
-            : "Aucun événement",
-      },
-      footer: {
-        primary: totalEvents === 1 ? "événement" : "événements",
-        secondary: "organisés par vous",
-      },
-    },
-    {
-      id: "upcoming",
-      title: "À venir",
-      description: "Événements à venir",
-      value: upcomingCount,
-      trend: {
-        value: upcomingCount > 5 ? 8.7 : upcomingCount > 0 ? 2.1 : 0,
-        isPositive: upcomingCount > 0,
-        label:
-          upcomingCount > 5
-            ? "Beaucoup à venir"
-            : upcomingCount > 0
-            ? "Préparez-vous"
-            : "Aucun à venir",
-      },
-      footer: {
-        primary: upcomingCount === 1 ? "événement" : "événements",
-        secondary: "à venir",
-      },
-    },
-    {
-      id: "ongoing",
-      title: "En cours",
-      description: "Événements en cours",
-      value: ongoingCount,
-      trend: {
-        value: ongoingCount > 2 ? 5.4 : ongoingCount > 0 ? 1.2 : 0,
-        isPositive: ongoingCount > 0,
-        label:
-          ongoingCount > 2
-            ? "Très actif"
-            : ongoingCount > 0
-            ? "En direct"
-            : "Aucun en cours",
-      },
-      footer: {
-        primary: ongoingCount === 1 ? "événement" : "événements",
-        secondary: "en cours",
-      },
-    },
-    {
-      id: "completed",
-      title: "Terminés",
-      description: "Événements terminés",
-      value: completedCount,
-      trend: {
-        value: completedCount > 2 ? 4.2 : completedCount > 0 ? 1.1 : 0,
-        isPositive: completedCount > 0,
-        label:
-          completedCount > 2
-            ? "Bravo !"
-            : completedCount > 0
-            ? "Quelques succès"
-            : "Aucun terminé",
-      },
-      footer: {
-        primary: completedCount === 1 ? "événement" : "événements",
-        secondary: "terminés",
-      },
-    },
-  ];
 
   return (
     <>
@@ -284,7 +329,9 @@ export default function MyEventsPage() {
                   Retrouvez ici tous les événements que vous organisez
                 </p>
               </div>
-              <CreateEventDialog />
+              <div className="flex items-center gap-2">
+                <CreateEventDialog />
+              </div>
             </div>
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
             <div className="px-4 lg:px-6">
@@ -302,7 +349,7 @@ export default function MyEventsPage() {
                       type="text"
                       placeholder="Rechercher..."
                       value={search}
-                      onChange={(e) => setSearch(e.target.value)}
+                      onChange={handleSearchChange}
                       className="pl-10"
                     />
                   </div>
@@ -320,7 +367,7 @@ export default function MyEventsPage() {
                         {search}"
                       </>
                     ) : (
-                      <>Tous vos événements</>
+                      <>Tous vos événements avec leurs détails et statuts</>
                     )}
                   </CardDescription>
                 </CardHeader>
@@ -330,12 +377,15 @@ export default function MyEventsPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Nom</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Ville</TableHead>
+                          <TableHead>Date/Heure</TableHead>
                           <TableHead>Lieu</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Statut</TableHead>
-                          <TableHead>Actions</TableHead>
+                          <TableHead>Catégories</TableHead>
+                          <TableHead className="text-center">
+                            Participants
+                          </TableHead>
+                          <TableHead className="text-center">Prix</TableHead>
+                          <TableHead className="text-center">Statut</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -344,36 +394,72 @@ export default function MyEventsPage() {
                           return (
                             <TableRow key={`event-${event.id}-${index}`}>
                               <TableCell className="font-medium">
-                                {event.name}
+                                <div className="flex flex-col">
+                                  <span>{event.name}</span>
+                                  {event.isTrending && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="w-fit text-xs mt-1"
+                                    >
+                                      Tendance
+                                    </Badge>
+                                  )}
+                                </div>
                               </TableCell>
-                              <TableCell className="max-w-xs truncate">
-                                {event.description}
+                              <TableCell className="text-muted-foreground">
+                                <div className="flex flex-col text-sm">
+                                  <span>{date}</span>
+                                  <span className="text-xs">{time}</span>
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <span className="flex items-center gap-1">
+                                <div className="flex items-center gap-2">
                                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                                  {event.cityName}
-                                </span>
+                                  <div className="flex flex-col text-sm">
+                                    <span>{event.placeName}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {event.cityName}
+                                    </span>
+                                  </div>
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <span className="flex items-center gap-1">
-                                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                                  {event.placeName}
-                                </span>
+                                <div className="flex flex-wrap gap-1">
+                                  {event.categories.map((category, index) => (
+                                    <Badge
+                                      key={index}
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {category.name}
+                                    </Badge>
+                                  ))}
+                                </div>
                               </TableCell>
-                              <TableCell>
-                                <span className="flex flex-col">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                    {date}
+                              <TableCell className="text-center">
+                                <div className="flex flex-col text-sm">
+                                  <span className="font-medium">
+                                    {event.currentParticipants}/
+                                    {event.maxCustomers}
                                   </span>
-                                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <CalendarClock className="h-3 w-3" />
-                                    {time}
+                                  <span className="text-xs text-muted-foreground">
+                                    {Math.round(
+                                      (event.currentParticipants /
+                                        event.maxCustomers) *
+                                        100
+                                    )}
+                                    %
                                   </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className="font-medium">
+                                  {event.price === 0
+                                    ? "Gratuit"
+                                    : `${event.price}€`}
                                 </span>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 {getStatusBadge(event.status)}
                               </TableCell>
                               <TableCell className="text-right">
@@ -398,12 +484,9 @@ export default function MyEventsPage() {
                             Aucun événement ne correspond à votre recherche "
                             {search}"
                           </p>
-                          <button
-                            className="border rounded px-4 py-2 text-sm"
-                            onClick={() => setSearch("")}
-                          >
+                          <Button variant="outline" onClick={handleClearSearch}>
                             Effacer la recherche
-                          </button>
+                          </Button>
                         </>
                       ) : (
                         <>

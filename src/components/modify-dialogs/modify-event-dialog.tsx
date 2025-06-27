@@ -169,7 +169,8 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         : undefined;
       await modifyEvent(patchUrl, payload, token);
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Événement modifié avec succès !");
+      queryClient.invalidateQueries({ queryKey: ["my-events"] });
+      toast.success("Événement modifié avec succès");
       setOpen(false);
     } catch (err: any) {
       setError(err.message);

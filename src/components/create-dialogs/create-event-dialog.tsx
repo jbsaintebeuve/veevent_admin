@@ -317,9 +317,10 @@ export function CreateEventDialog({
         };
         await createEvent(payload, getToken() || undefined);
         queryClient.invalidateQueries({ queryKey: ["events"] });
-        toast.success("Événement créé avec succès !");
+        queryClient.invalidateQueries({ queryKey: ["my-events"] });
+        toast.success("Événement créé avec succès");
         setOpen(false);
-        resetForm();
+        setForm(initialForm);
       } catch (err: any) {
         setError(err.message);
         toast.error(err.message);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { checkAuthWithRoles } from "@/lib/fetch-user";
+import { useAuth } from "@/hooks/use-auth";
 import { routePermissions } from "@/lib/route-permissions";
 
 interface ProtectedRouteProps {
@@ -11,61 +11,36 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { user, loading, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = document.cookie
-          .split(";")
-          .find((row) => row.trim().startsWith("token="))
-          ?.split("=")[1];
-
-        if (!token) {
-          return redirectToLogin("No token found");
-        }
-
-        const { user } = await checkAuthWithRoles(token);
-
-        // Trouver la règle la plus spécifique pour la route courante
-        const matched = Object.entries(routePermissions).find(([prefix]) =>
-          pathname.startsWith(prefix)
-        );
-        const allowedRoles = matched ? matched[1] : [];
-
-        if (!allowedRoles.includes(user.role.toLowerCase())) {
-          clearAuthData();
-          return router.replace("/auth/login?error=insufficient-permissions");
-        }
-
-        setIsAuthenticated(true);
-      } catch (error) {
-        clearAuthData();
-        redirectToLogin("Auth check failed");
-      }
-    };
-
-    const clearAuthData = () => {
+    if (loading) return;
+    if (!isAuthenticated || !user) {
+      router.replace(
+        `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`
+      );
+      return;
+    }
+    // Vérifier les permissions pour la route courante
+    const matched = Object.entries(routePermissions).find(([prefix]) =>
+      pathname.startsWith(prefix)
+    );
+    const allowedRoles = matched ? matched[1] : [];
+    if (!allowedRoles.includes(user.role.toLowerCase())) {
       document.cookie =
         "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
       localStorage.removeItem("user");
       localStorage.clear();
-    };
+      router.replace("/auth/login?error=insufficient-permissions");
+      return;
+    }
+    setIsAuthorized(true);
+  }, [user, loading, isAuthenticated, router, pathname]);
 
-    const redirectToLogin = (reason: string) => {
-      setIsAuthenticated(false);
-      router.replace(
-        `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`
-      );
-    };
-
-    checkAuth();
-  }, [router, pathname]);
-
-  // Chargement
-  if (isAuthenticated === null) {
+  if (loading || isAuthorized === null) {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">
@@ -79,10 +54,6 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       )
     );
   }
-
-  // Pas authentifié = redirection en cours
-  if (!isAuthenticated) return null;
-
-  // Authentifié = afficher le contenu
+  if (!isAuthorized) return null;
   return <>{children}</>;
 }

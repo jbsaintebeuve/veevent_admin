@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
 import { Button } from "@/components/ui/button";
@@ -79,25 +79,26 @@ export default function EventsPage() {
     },
   });
 
-  const handleDelete = (deleteUrl: string, name: string) => {
-    deleteMutation.mutate(deleteUrl);
-  };
+  // ✅ Filtrage des événements avec recherche - optimisé avec useMemo
+  const filteredEvents = useMemo(() => {
+    if (!Array.isArray(events)) return [];
 
-  // ✅ Filtrage des événements avec recherche
-  const filteredEvents = Array.isArray(events)
-    ? events.filter(
-        (event) =>
-          event.name.toLowerCase().includes(search.toLowerCase()) ||
-          event.description.toLowerCase().includes(search.toLowerCase()) ||
-          event.cityName.toLowerCase().includes(search.toLowerCase()) ||
-          event.placeName.toLowerCase().includes(search.toLowerCase()) ||
-          event.categories.some((cat) =>
-            cat.name.toLowerCase().includes(search.toLowerCase())
-          )
-      )
-    : [];
+    if (!search.trim()) return events;
 
-  const getStatusBadge = (status: string) => {
+    const searchLower = search.toLowerCase();
+    return events.filter(
+      (event) =>
+        event.name.toLowerCase().includes(searchLower) ||
+        event.description.toLowerCase().includes(searchLower) ||
+        event.cityName.toLowerCase().includes(searchLower) ||
+        event.placeName.toLowerCase().includes(searchLower) ||
+        event.categories.some((cat) =>
+          cat.name.toLowerCase().includes(searchLower)
+        )
+    );
+  }, [events, search]);
+
+  const getStatusBadge = useCallback((status: string) => {
     switch (status) {
       case "NOT_STARTED":
         return <Badge variant="default">À venir</Badge>;
@@ -110,9 +111,9 @@ export default function EventsPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  };
+  }, []);
 
-  const formatDateTime = (dateStr: string) => {
+  const formatDateTime = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
     return {
       date: date.toLocaleDateString("fr-FR"),
@@ -122,7 +123,211 @@ export default function EventsPage() {
         hour12: false,
       }),
     };
-  };
+  }, []);
+
+  const handleDelete = useCallback(
+    (deleteUrl: string, name: string) => {
+      deleteMutation.mutate(deleteUrl);
+    },
+    [deleteMutation]
+  );
+
+  // Calculs des statistiques optimisés avec useMemo - une seule boucle au lieu de 4
+  const { upcomingEvents, ongoingEvents, completedEvents, totalParticipants } =
+    useMemo(() => {
+      const stats = {
+        upcomingEvents: 0,
+        ongoingEvents: 0,
+        completedEvents: 0,
+        totalParticipants: 0,
+      };
+
+      events.forEach((event) => {
+        switch (event.status) {
+          case "NOT_STARTED":
+            stats.upcomingEvents++;
+            break;
+          case "ONGOING":
+            stats.ongoingEvents++;
+            break;
+          case "COMPLETED":
+            stats.completedEvents++;
+            break;
+        }
+        stats.totalParticipants += event.currentParticipants;
+      });
+
+      return stats;
+    }, [events]);
+
+  // ✅ Données pour SectionCards optimisées avec useMemo
+  const cardsData: CardData[] = useMemo(
+    () => [
+      {
+        id: "total",
+        title: "Total événements",
+        description: "Tous les événements",
+        value: events?.length || 0,
+        trend: {
+          value:
+            events && events.length > 50
+              ? 18.5
+              : events && events.length > 20
+              ? 12.3
+              : events && events.length > 5
+              ? 6.8
+              : events && events.length > 0
+              ? 2.1
+              : 0,
+          isPositive: !!(events && events.length > 0),
+          label:
+            events && events.length > 50
+              ? "Plateforme très active"
+              : events && events.length > 20
+              ? "Bonne activité"
+              : events && events.length > 5
+              ? "Activité modérée"
+              : events && events.length > 0
+              ? "Démarrage"
+              : "Aucun événement",
+        },
+        footer: {
+          primary:
+            events && events.length > 50
+              ? "Plateforme très active"
+              : events && events.length > 20
+              ? "Bonne activité"
+              : events && events.length > 5
+              ? "Activité modérée"
+              : events && events.length > 0
+              ? "Démarrage"
+              : "Aucun événement",
+          secondary: "événements créés",
+        },
+      },
+      {
+        id: "upcoming",
+        title: "À venir",
+        description: "Événements programmés",
+        value: upcomingEvents,
+        trend: {
+          value:
+            upcomingEvents > 20
+              ? 25.4
+              : upcomingEvents > 10
+              ? 15.7
+              : upcomingEvents > 3
+              ? 8.2
+              : upcomingEvents > 0
+              ? 3.1
+              : 0,
+          isPositive: upcomingEvents > 0,
+          label:
+            upcomingEvents > 20
+              ? "Calendrier très chargé"
+              : upcomingEvents > 10
+              ? "Planning rempli"
+              : upcomingEvents > 3
+              ? "Prochains événements"
+              : upcomingEvents > 0
+              ? "Quelques événements"
+              : "Aucun événement prévu",
+        },
+        footer: {
+          primary:
+            upcomingEvents > 20
+              ? "Calendrier très chargé"
+              : upcomingEvents > 10
+              ? "Planning rempli"
+              : upcomingEvents > 3
+              ? "Prochains événements"
+              : upcomingEvents > 0
+              ? "Quelques événements"
+              : "Aucun événement prévu",
+          secondary: "événements programmés",
+        },
+      },
+      {
+        id: "ongoing",
+        title: "En cours",
+        description: "Événements actifs",
+        value: ongoingEvents,
+        trend: {
+          value:
+            ongoingEvents > 5
+              ? 30.2
+              : ongoingEvents > 2
+              ? 20.1
+              : ongoingEvents > 0
+              ? 10.5
+              : 0,
+          isPositive: ongoingEvents > 0,
+          label:
+            ongoingEvents > 5
+              ? "Très actif"
+              : ongoingEvents > 2
+              ? "Bonne activité"
+              : ongoingEvents > 0
+              ? "En cours"
+              : "Aucun événement actif",
+        },
+        footer: {
+          primary:
+            ongoingEvents > 5
+              ? "Très actif"
+              : ongoingEvents > 2
+              ? "Bonne activité"
+              : ongoingEvents > 0
+              ? "En cours"
+              : "Aucun événement actif",
+          secondary: "événements actifs",
+        },
+      },
+      {
+        id: "participants",
+        title: "Participants",
+        description: "Total des inscriptions",
+        value: totalParticipants,
+        trend: {
+          value:
+            totalParticipants > 1000
+              ? 22.8
+              : totalParticipants > 500
+              ? 16.4
+              : totalParticipants > 100
+              ? 9.7
+              : totalParticipants > 0
+              ? 4.3
+              : 0,
+          isPositive: totalParticipants > 0,
+          label:
+            totalParticipants > 1000
+              ? "Très populaire"
+              : totalParticipants > 500
+              ? "Bonne affluence"
+              : totalParticipants > 100
+              ? "Participation correcte"
+              : totalParticipants > 0
+              ? "Quelques participants"
+              : "Aucun participant",
+        },
+        footer: {
+          primary:
+            totalParticipants > 1000
+              ? "Très populaire"
+              : totalParticipants > 500
+              ? "Bonne affluence"
+              : totalParticipants > 100
+              ? "Participation correcte"
+              : totalParticipants > 0
+              ? "Quelques participants"
+              : "Aucun participant",
+          secondary: "participants inscrits",
+        },
+      },
+    ],
+    [events, upcomingEvents, ongoingEvents, totalParticipants]
+  );
 
   // Loading state
   if (isLoading) {
@@ -195,182 +400,6 @@ export default function EventsPage() {
       </>
     );
   }
-
-  // Calculs des statistiques mis à jour
-  const upcomingEvents =
-    events?.filter((e) => e.status === "NOT_STARTED").length || 0;
-  const ongoingEvents =
-    events?.filter((e) => e.status === "ONGOING").length || 0;
-  const completedEvents =
-    events?.filter((e) => e.status === "COMPLETED").length || 0;
-  const totalParticipants =
-    events?.reduce((sum, event) => sum + event.currentParticipants, 0) || 0;
-
-  // ✅ Données pour SectionCards
-  const cardsData: CardData[] = [
-    {
-      id: "total",
-      title: "Total événements",
-      description: "Tous les événements",
-      value: events?.length || 0,
-      trend: {
-        value:
-          events && events.length > 50
-            ? 18.5
-            : events && events.length > 20
-            ? 12.3
-            : events && events.length > 5
-            ? 6.8
-            : events && events.length > 0
-            ? 2.1
-            : 0,
-        isPositive: !!(events && events.length > 0),
-        label:
-          events && events.length > 50
-            ? "Plateforme très active"
-            : events && events.length > 20
-            ? "Bonne activité"
-            : events && events.length > 5
-            ? "Activité modérée"
-            : events && events.length > 0
-            ? "Démarrage"
-            : "Aucun événement",
-      },
-      footer: {
-        primary:
-          events && events.length > 50
-            ? "Plateforme très active"
-            : events && events.length > 20
-            ? "Bonne activité"
-            : events && events.length > 5
-            ? "Activité modérée"
-            : events && events.length > 0
-            ? "Démarrage"
-            : "Aucun événement",
-        secondary: "événements créés",
-      },
-    },
-    {
-      id: "upcoming",
-      title: "À venir",
-      description: "Événements programmés",
-      value: upcomingEvents,
-      trend: {
-        value:
-          upcomingEvents > 20
-            ? 25.4
-            : upcomingEvents > 10
-            ? 15.7
-            : upcomingEvents > 3
-            ? 8.2
-            : upcomingEvents > 0
-            ? 3.1
-            : 0,
-        isPositive: upcomingEvents > 0,
-        label:
-          upcomingEvents > 20
-            ? "Calendrier très chargé"
-            : upcomingEvents > 10
-            ? "Planning rempli"
-            : upcomingEvents > 3
-            ? "Prochains événements"
-            : upcomingEvents > 0
-            ? "Quelques événements"
-            : "Aucun événement prévu",
-      },
-      footer: {
-        primary:
-          upcomingEvents > 20
-            ? "Calendrier très chargé"
-            : upcomingEvents > 10
-            ? "Planning rempli"
-            : upcomingEvents > 3
-            ? "Prochains événements"
-            : upcomingEvents > 0
-            ? "Quelques événements"
-            : "Aucun événement prévu",
-        secondary: "événements programmés",
-      },
-    },
-    {
-      id: "ongoing",
-      title: "En cours",
-      description: "Événements actifs",
-      value: ongoingEvents,
-      trend: {
-        value:
-          ongoingEvents > 5
-            ? 30.2
-            : ongoingEvents > 2
-            ? 20.1
-            : ongoingEvents > 0
-            ? 10.5
-            : 0,
-        isPositive: ongoingEvents > 0,
-        label:
-          ongoingEvents > 5
-            ? "Très actif"
-            : ongoingEvents > 2
-            ? "Bonne activité"
-            : ongoingEvents > 0
-            ? "En cours"
-            : "Aucun événement actif",
-      },
-      footer: {
-        primary:
-          ongoingEvents > 5
-            ? "Très actif"
-            : ongoingEvents > 2
-            ? "Bonne activité"
-            : ongoingEvents > 0
-            ? "En cours"
-            : "Aucun événement actif",
-        secondary: "événements actifs",
-      },
-    },
-    {
-      id: "participants",
-      title: "Participants",
-      description: "Total des inscriptions",
-      value: totalParticipants,
-      trend: {
-        value:
-          totalParticipants > 1000
-            ? 22.8
-            : totalParticipants > 500
-            ? 16.4
-            : totalParticipants > 100
-            ? 9.7
-            : totalParticipants > 0
-            ? 4.3
-            : 0,
-        isPositive: totalParticipants > 0,
-        label:
-          totalParticipants > 1000
-            ? "Très populaire"
-            : totalParticipants > 500
-            ? "Bonne affluence"
-            : totalParticipants > 100
-            ? "Participation correcte"
-            : totalParticipants > 0
-            ? "Quelques participants"
-            : "Aucun participant",
-      },
-      footer: {
-        primary:
-          totalParticipants > 1000
-            ? "Très populaire"
-            : totalParticipants > 500
-            ? "Bonne affluence"
-            : totalParticipants > 100
-            ? "Participation correcte"
-            : totalParticipants > 0
-            ? "Quelques participants"
-            : "Aucun participant",
-        secondary: "participants inscrits",
-      },
-    },
-  ];
 
   return (
     <>

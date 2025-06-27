@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
 import { Button } from "@/components/ui/button";
@@ -67,10 +67,6 @@ export default function CategoriesPage() {
 
   const categories = categoriesResponse?._embedded?.categories || [];
 
-  console.log("Catégories reçues dans le composant :", categories);
-  console.log("Structure complète de la réponse :", categoriesResponse);
-  console.log("Première catégorie avec liens :", categories[0]);
-
   const deleteMutation = useMutation({
     mutationFn: (deleteUrl: string) =>
       deleteCategory(deleteUrl, getToken() || ""),
@@ -84,20 +80,28 @@ export default function CategoriesPage() {
     },
   });
 
-  const handleDelete = (deleteUrl: string, name: string) => {
-    deleteMutation.mutate(deleteUrl);
-  };
-
-  // Désactivation temporaire du filtrage pour diagnostic
-  const filteredCategories = Array.isArray(categories) ? categories : [];
-  console.log(
-    "categories:",
-    categories,
-    "filteredCategories:",
-    filteredCategories
+  const handleDelete = useCallback(
+    (deleteUrl: string, name: string) => {
+      deleteMutation.mutate(deleteUrl);
+    },
+    [deleteMutation]
   );
 
-  const getTrendingBadge = (trending: boolean) => {
+  // Filtrage optimisé avec useMemo
+  const filteredCategories = useMemo(() => {
+    if (!Array.isArray(categories)) return [];
+
+    if (!search.trim()) return categories;
+
+    const searchLower = search.toLowerCase();
+    return categories.filter(
+      (category) =>
+        category.name.toLowerCase().includes(searchLower) ||
+        category.description.toLowerCase().includes(searchLower)
+    );
+  }, [categories, search]);
+
+  const getTrendingBadge = useCallback((trending: boolean) => {
     return trending ? (
       <Badge variant="default" className="gap-1">
         <TrendingUp className="h-3 w-3" />
@@ -106,7 +110,135 @@ export default function CategoriesPage() {
     ) : (
       <Badge variant="secondary">Standard</Badge>
     );
-  };
+  }, []);
+
+  // Statistiques optimisées avec useMemo
+  const { trendingCount, standardCount } = useMemo(() => {
+    const trending = categories?.filter((c) => c.trending).length || 0;
+    const standard = (categories?.length || 0) - trending;
+    return { trendingCount: trending, standardCount: standard };
+  }, [categories]);
+
+  // Données pour SectionCards optimisées avec useMemo
+  const cardsData: CardData[] = useMemo(
+    () => [
+      {
+        id: "categories",
+        title: "Total catégories",
+        description: "Total catégories",
+        value: categories?.length || 0,
+        trend: {
+          value:
+            categories && categories.length > 15
+              ? 15.2
+              : categories && categories.length > 8
+              ? 8.7
+              : categories && categories.length > 3
+              ? 3.4
+              : categories && categories.length > 0
+              ? 1.2
+              : 0,
+          isPositive: !!(categories && categories.length > 0),
+          label:
+            categories && categories.length > 15
+              ? "Très diversifié"
+              : categories && categories.length > 8
+              ? "Bonne variété"
+              : categories && categories.length > 3
+              ? "Quelques catégories"
+              : categories && categories.length > 0
+              ? "Démarrage"
+              : "Aucune catégorie",
+        },
+        footer: {
+          primary:
+            categories && categories.length > 15
+              ? "Très diversifié"
+              : categories && categories.length > 8
+              ? "Bonne variété"
+              : categories && categories.length > 3
+              ? "Quelques catégories"
+              : categories && categories.length > 0
+              ? "Démarrage"
+              : "Aucune catégorie",
+          secondary: "catégories créées",
+        },
+      },
+      {
+        id: "trending",
+        title: "Tendances",
+        description: "Catégories populaires",
+        value: trendingCount,
+        trend: {
+          value:
+            trendingCount > 5
+              ? 12.8
+              : trendingCount > 2
+              ? 7.4
+              : trendingCount > 0
+              ? 3.1
+              : 0,
+          isPositive: trendingCount > 0,
+          label:
+            trendingCount > 5
+              ? "Très populaire"
+              : trendingCount > 2
+              ? "Populaire"
+              : trendingCount > 0
+              ? "Quelques tendances"
+              : "Aucune tendance",
+        },
+        footer: {
+          primary:
+            trendingCount > 5
+              ? "Très populaire"
+              : trendingCount > 2
+              ? "Populaire"
+              : trendingCount > 0
+              ? "Quelques tendances"
+              : "Aucune tendance",
+          secondary: "catégories tendance",
+        },
+      },
+      {
+        id: "standard",
+        title: "Standard",
+        description: "Catégories classiques",
+        value: standardCount,
+        trend: {
+          value:
+            standardCount > 10
+              ? 8.9
+              : standardCount > 5
+              ? 5.2
+              : standardCount > 0
+              ? 2.1
+              : 0,
+          isPositive: standardCount > 0,
+          label:
+            standardCount > 10
+              ? "Bien établi"
+              : standardCount > 5
+              ? "Établi"
+              : standardCount > 0
+              ? "Quelques standards"
+              : "Aucun standard",
+        },
+        footer: {
+          primary:
+            standardCount > 10
+              ? "Bien établi"
+              : standardCount > 5
+              ? "Établi"
+              : standardCount > 0
+              ? "Quelques standards"
+              : "Aucun standard",
+          secondary: "catégories standard",
+        },
+      },
+    ],
+    [categories, trendingCount, standardCount]
+  );
 
   // Loading state
   if (isLoading) {
@@ -179,124 +311,6 @@ export default function CategoriesPage() {
       </>
     );
   }
-
-  const trendingCount = categories?.filter((c) => c.trending).length || 0;
-  const standardCount = (categories?.length || 0) - trendingCount;
-
-  // ✅ Données pour SectionCards
-  const cardsData: CardData[] = [
-    {
-      id: "categories",
-      title: "Total catégories",
-      description: "Total catégories",
-      value: categories?.length || 0,
-      trend: {
-        value:
-          categories && categories.length > 15
-            ? 15.2
-            : categories && categories.length > 8
-            ? 8.7
-            : categories && categories.length > 3
-            ? 3.4
-            : -1.2,
-        isPositive: !!(categories && categories.length > 3),
-        label:
-          categories && categories.length > 15
-            ? "Excellent catalogue"
-            : categories && categories.length > 8
-            ? "Bon catalogue"
-            : categories && categories.length > 3
-            ? "En développement"
-            : "Catalogue à enrichir",
-      },
-      footer: {
-        primary:
-          categories && categories.length > 15
-            ? "Excellent catalogue"
-            : categories && categories.length > 8
-            ? "Bon catalogue"
-            : categories && categories.length > 3
-            ? "En développement"
-            : "Catalogue à enrichir",
-        secondary:
-          categories?.length === 1
-            ? "catégorie disponible"
-            : "catégories disponibles",
-      },
-    },
-    {
-      id: "trending",
-      title: "En tendance",
-      description: "Catégories populaires",
-      value: trendingCount,
-      trend: {
-        value:
-          trendingCount > 5
-            ? 22.3
-            : trendingCount > 2
-            ? 12.5
-            : trendingCount > 0
-            ? 5.1
-            : 0,
-        isPositive: trendingCount > 0,
-        label:
-          trendingCount > 5
-            ? "Forte attraction"
-            : trendingCount > 2
-            ? "Bonne popularité"
-            : trendingCount > 0
-            ? "Émergent"
-            : "Aucune tendance",
-      },
-      footer: {
-        primary:
-          trendingCount > 5
-            ? "Forte attraction"
-            : trendingCount > 2
-            ? "Bonne popularité"
-            : trendingCount > 0
-            ? "Émergent"
-            : "Aucune tendance",
-        secondary: "catégories populaires",
-      },
-    },
-    {
-      id: "standard",
-      title: "Standards",
-      description: "Catégories standard",
-      value: standardCount,
-      trend: {
-        value:
-          standardCount > 10
-            ? 8.9
-            : standardCount > 5
-            ? 4.2
-            : standardCount > 0
-            ? 1.8
-            : 0,
-        isPositive: standardCount > 0,
-        label:
-          standardCount > 10
-            ? "Base solide"
-            : standardCount > 5
-            ? "Fondation stable"
-            : standardCount > 0
-            ? "Base établie"
-            : "Aucune base",
-      },
-      footer: {
-        primary:
-          standardCount > 10
-            ? "Base solide"
-            : standardCount > 5
-            ? "Fondation stable"
-            : standardCount > 0
-            ? "Base établie"
-            : "Aucune base",
-        secondary: "catégories standard",
-      },
-    },
-  ];
 
   return (
     <>

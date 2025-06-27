@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
 import { Button } from "@/components/ui/button";
@@ -67,19 +67,24 @@ export default function UsersPage() {
     queryFn: fetchUsersWithToken,
   });
 
-  // ✅ Filtrage des utilisateurs avec recherche
-  const filteredUsers = Array.isArray(users)
-    ? users.filter(
-        (user) =>
-          user.lastName.toLowerCase().includes(search.toLowerCase()) ||
-          user.firstName.toLowerCase().includes(search.toLowerCase()) ||
-          user.pseudo.toLowerCase().includes(search.toLowerCase()) ||
-          user.email.toLowerCase().includes(search.toLowerCase()) ||
-          user.role.toLowerCase().includes(search.toLowerCase())
-      )
-    : [];
+  // ✅ Filtrage des utilisateurs avec recherche - optimisé avec useMemo
+  const filteredUsers = useMemo(() => {
+    if (!Array.isArray(users)) return [];
 
-  const getRoleBadge = (role: string) => {
+    if (!search.trim()) return users;
+
+    const searchLower = search.toLowerCase();
+    return users.filter(
+      (user) =>
+        user.lastName.toLowerCase().includes(searchLower) ||
+        user.firstName.toLowerCase().includes(searchLower) ||
+        user.pseudo.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower) ||
+        user.role.toLowerCase().includes(searchLower)
+    );
+  }, [users, search]);
+
+  const getRoleBadge = useCallback((role: string) => {
     switch (role.toUpperCase()) {
       case "ADMIN":
         return <Badge variant="destructive">Admin</Badge>;
@@ -92,11 +97,222 @@ export default function UsersPage() {
       default:
         return <Badge variant="outline">{role}</Badge>;
     }
-  };
+  }, []);
 
-  const getInitials = (firstName: string, lastName: string) => {
+  const getInitials = useCallback((firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
+  }, []);
+
+  // Statistiques optimisées avec useMemo - une seule boucle au lieu de 4
+  const { adminCount, organizerCount, userCount, authServiceCount } =
+    useMemo(() => {
+      const stats = {
+        adminCount: 0,
+        organizerCount: 0,
+        userCount: 0,
+        authServiceCount: 0,
+      };
+
+      users?.forEach((user) => {
+        switch (user.role.toUpperCase()) {
+          case "ADMIN":
+            stats.adminCount++;
+            break;
+          case "ORGANIZER":
+            stats.organizerCount++;
+            break;
+          case "USER":
+            stats.userCount++;
+            break;
+          case "AUTHSERVICE":
+            stats.authServiceCount++;
+            break;
+        }
+      });
+
+      return stats;
+    }, [users]);
+
+  // ✅ Données pour SectionCards optimisées avec useMemo
+  const cardsData: CardData[] = useMemo(
+    () => [
+      {
+        id: "total",
+        title: "Total utilisateurs",
+        description: "Tous les utilisateurs",
+        value: users?.length || 0,
+        trend: {
+          value:
+            users && users.length > 100
+              ? 24.5
+              : users && users.length > 50
+              ? 18.2
+              : users && users.length > 20
+              ? 12.1
+              : users && users.length > 5
+              ? 6.8
+              : users && users.length > 0
+              ? 2.1
+              : 0,
+          isPositive: !!(users && users.length > 0),
+          label:
+            users && users.length > 100
+              ? "Très grande communauté"
+              : users && users.length > 50
+              ? "Grande communauté"
+              : users && users.length > 20
+              ? "Communauté active"
+              : users && users.length > 5
+              ? "Petite communauté"
+              : users && users.length > 0
+              ? "Premiers utilisateurs"
+              : "Aucun utilisateur",
+        },
+        footer: {
+          primary:
+            users && users.length > 100
+              ? "Très grande communauté"
+              : users && users.length > 50
+              ? "Grande communauté"
+              : users && users.length > 20
+              ? "Communauté active"
+              : users && users.length > 5
+              ? "Petite communauté"
+              : users && users.length > 0
+              ? "Premiers utilisateurs"
+              : "Aucun utilisateur",
+          secondary: users?.length === 1 ? "utilisateur" : "utilisateurs",
+        },
+      },
+      {
+        id: "admins",
+        title: "Administrateurs",
+        description: "Utilisateurs admin",
+        value: adminCount,
+        trend: {
+          value:
+            adminCount > 5
+              ? 15.7
+              : adminCount > 2
+              ? 8.4
+              : adminCount > 0
+              ? 3.2
+              : 0,
+          isPositive: adminCount > 0,
+          label:
+            adminCount > 5
+              ? "Équipe complète"
+              : adminCount > 2
+              ? "Plusieurs admins"
+              : adminCount > 0
+              ? "Un admin"
+              : "Aucun admin",
+        },
+        footer: {
+          primary:
+            adminCount > 5
+              ? "Équipe complète"
+              : adminCount > 2
+              ? "Plusieurs admins"
+              : adminCount > 0
+              ? "Un admin"
+              : "Aucun admin",
+          secondary: adminCount === 1 ? "administrateur" : "administrateurs",
+        },
+      },
+      {
+        id: "organizers",
+        title: "Organisateurs",
+        description: "Utilisateurs organisateurs",
+        value: organizerCount,
+        trend: {
+          value:
+            organizerCount > 20
+              ? 22.3
+              : organizerCount > 10
+              ? 15.8
+              : organizerCount > 5
+              ? 9.2
+              : organizerCount > 0
+              ? 4.1
+              : 0,
+          isPositive: organizerCount > 0,
+          label:
+            organizerCount > 20
+              ? "Très actif"
+              : organizerCount > 10
+              ? "Bonne activité"
+              : organizerCount > 5
+              ? "Activité modérée"
+              : organizerCount > 0
+              ? "Quelques organisateurs"
+              : "Aucun organisateur",
+        },
+        footer: {
+          primary:
+            organizerCount > 20
+              ? "Très actif"
+              : organizerCount > 10
+              ? "Bonne activité"
+              : organizerCount > 5
+              ? "Activité modérée"
+              : organizerCount > 0
+              ? "Quelques organisateurs"
+              : "Aucun organisateur",
+          secondary: organizerCount === 1 ? "organisateur" : "organisateurs",
+        },
+      },
+      {
+        id: "users",
+        title: "Utilisateurs",
+        description: "Utilisateurs standard",
+        value: userCount,
+        trend: {
+          value:
+            userCount > 100
+              ? 28.9
+              : userCount > 50
+              ? 20.1
+              : userCount > 20
+              ? 12.7
+              : userCount > 5
+              ? 6.3
+              : userCount > 0
+              ? 2.8
+              : 0,
+          isPositive: userCount > 0,
+          label:
+            userCount > 100
+              ? "Très populaire"
+              : userCount > 50
+              ? "Populaire"
+              : userCount > 20
+              ? "Bonne adoption"
+              : userCount > 5
+              ? "Adoption modérée"
+              : userCount > 0
+              ? "Premiers utilisateurs"
+              : "Aucun utilisateur",
+        },
+        footer: {
+          primary:
+            userCount > 100
+              ? "Très populaire"
+              : userCount > 50
+              ? "Populaire"
+              : userCount > 20
+              ? "Bonne adoption"
+              : userCount > 5
+              ? "Adoption modérée"
+              : userCount > 0
+              ? "Premiers utilisateurs"
+              : "Aucun utilisateur",
+          secondary: userCount === 1 ? "utilisateur" : "utilisateurs",
+        },
+      },
+    ],
+    [users, adminCount, organizerCount, userCount]
+  );
 
   // Loading state
   if (isLoading) {
@@ -170,193 +386,6 @@ export default function UsersPage() {
       </>
     );
   }
-
-  const adminCount =
-    users?.filter((u) => u.role.toUpperCase() === "ADMIN").length || 0;
-  const organizerCount =
-    users?.filter((u) => u.role.toUpperCase() === "ORGANIZER").length || 0;
-  const userCount =
-    users?.filter((u) => u.role.toUpperCase() === "USER").length || 0;
-  const authServiceCount =
-    users?.filter((u) => u.role.toUpperCase() === "AUTHSERVICE").length || 0;
-
-  // ✅ Données pour SectionCards
-  const cardsData: CardData[] = [
-    {
-      id: "total",
-      title: "Total utilisateurs",
-      description: "Tous les utilisateurs",
-      value: users?.length || 0,
-      trend: {
-        value:
-          users && users.length > 100
-            ? 24.5
-            : users && users.length > 50
-            ? 18.2
-            : users && users.length > 20
-            ? 12.1
-            : users && users.length > 5
-            ? 6.8
-            : users && users.length > 0
-            ? 2.3
-            : 0,
-        isPositive: !!(users && users.length > 0),
-        label:
-          users && users.length > 100
-            ? "Communauté large"
-            : users && users.length > 50
-            ? "Bonne communauté"
-            : users && users.length > 20
-            ? "Communauté active"
-            : users && users.length > 5
-            ? "Démarrage prometteur"
-            : users && users.length > 0
-            ? "Premiers utilisateurs"
-            : "Aucun utilisateur",
-      },
-      footer: {
-        primary:
-          users && users.length > 100
-            ? "Communauté large"
-            : users && users.length > 50
-            ? "Bonne communauté"
-            : users && users.length > 20
-            ? "Communauté active"
-            : users && users.length > 5
-            ? "Démarrage prometteur"
-            : users && users.length > 0
-            ? "Premiers utilisateurs"
-            : "Aucun utilisateur",
-        secondary: "utilisateurs inscrits",
-      },
-    },
-    {
-      id: "admins",
-      title: "Administrateurs",
-      description: "Comptes admin",
-      value: adminCount,
-      trend: {
-        value:
-          adminCount > 5
-            ? 15.3
-            : adminCount > 2
-            ? 8.7
-            : adminCount > 0
-            ? 4.2
-            : 0,
-        isPositive: adminCount > 0,
-        label:
-          adminCount > 5
-            ? "Équipe admin large"
-            : adminCount > 2
-            ? "Équipe admin solide"
-            : adminCount > 0
-            ? "Administration présente"
-            : "Aucun administrateur",
-      },
-      footer: {
-        primary:
-          adminCount > 5
-            ? "Équipe admin large"
-            : adminCount > 2
-            ? "Équipe admin solide"
-            : adminCount > 0
-            ? "Administration présente"
-            : "Aucun administrateur",
-        secondary: "comptes administrateur",
-      },
-    },
-    {
-      id: "organizers",
-      title: "Organisateurs",
-      description: "Créateurs d'événements",
-      value: organizerCount,
-      trend: {
-        value:
-          organizerCount > 20
-            ? 22.1
-            : organizerCount > 10
-            ? 16.4
-            : organizerCount > 3
-            ? 9.8
-            : organizerCount > 0
-            ? 5.1
-            : 0,
-        isPositive: organizerCount > 0,
-        label:
-          organizerCount > 20
-            ? "Très actif"
-            : organizerCount > 10
-            ? "Bonne activité"
-            : organizerCount > 3
-            ? "Activité modérée"
-            : organizerCount > 0
-            ? "Quelques organisateurs"
-            : "Aucun organisateur",
-      },
-      footer: {
-        primary:
-          organizerCount > 20
-            ? "Très actif"
-            : organizerCount > 10
-            ? "Bonne activité"
-            : organizerCount > 3
-            ? "Activité modérée"
-            : organizerCount > 0
-            ? "Quelques organisateurs"
-            : "Aucun organisateur",
-        secondary: "organisateurs d'événements",
-      },
-    },
-    {
-      id: "users",
-      title: "Utilisateurs",
-      description: "Participants standard",
-      value: userCount,
-      trend: {
-        value:
-          userCount > 100
-            ? 28.7
-            : userCount > 50
-            ? 19.3
-            : userCount > 20
-            ? 11.6
-            : userCount > 5
-            ? 7.2
-            : userCount > 0
-            ? 3.4
-            : 0,
-        isPositive: userCount > 0,
-        label:
-          userCount > 100
-            ? "Base utilisateur large"
-            : userCount > 50
-            ? "Bonne base utilisateur"
-            : userCount > 20
-            ? "Base solide"
-            : userCount > 5
-            ? "Base en construction"
-            : userCount > 0
-            ? "Premiers utilisateurs"
-            : "Aucun utilisateur",
-      },
-      footer: {
-        primary:
-          userCount > 100
-            ? "Base utilisateur large"
-            : userCount > 50
-            ? "Bonne base utilisateur"
-            : userCount > 20
-            ? "Base solide"
-            : userCount > 5
-            ? "Base en construction"
-            : userCount > 0
-            ? "Premiers utilisateurs"
-            : "Aucun utilisateur",
-        secondary: "utilisateurs standards",
-      },
-    },
-  ];
 
   return (
     <>
