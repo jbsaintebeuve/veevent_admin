@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { User } from "@/types/user";
 import { isRoleAllowed } from "@/lib/auth-roles";
 import { fetchUserMe } from "@/lib/fetch-user";
+import { clearLocalStoragePreservingTheme } from "@/lib/utils";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -34,7 +35,7 @@ export function useAuth() {
         document.cookie =
           "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
         localStorage.removeItem("user");
-        localStorage.clear();
+        clearLocalStoragePreservingTheme();
         sessionStorage.clear();
       }
     } catch (error) {
