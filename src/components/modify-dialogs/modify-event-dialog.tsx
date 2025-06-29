@@ -46,6 +46,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyEventDialogProps {
   event: Event;
@@ -55,6 +56,8 @@ interface ModifyEventDialogProps {
 export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
   const [open, setOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const initialForm = {
     name: "",
     description: "",
@@ -116,6 +119,25 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const url = URL.createObjectURL(file);
+      setImagePreviewUrl(url);
+      setForm((prev) => ({ ...prev, imageUrl: url }));
+    }
+  };
+
+  const handleImageRemove = () => {
+    setImageFile(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImagePreviewUrl(null);
+    setForm((prev) => ({ ...prev, imageUrl: "" }));
   };
 
   const isFormValid = useMemo(() => {
@@ -183,6 +205,13 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen && event) {
+      // Clean up image states
+      setImageFile(null);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setImagePreviewUrl(null);
+
       const eventDate = event.date ? new Date(event.date) : undefined;
       const eventTime = eventDate
         ? eventDate.toLocaleTimeString("fr-FR", {
@@ -207,7 +236,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         status: event.status || "NOT_STARTED",
         contentHtml: "",
       });
-      setError("");
     }
   };
 
@@ -346,16 +374,17 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                 />
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="imageUrl">Image (URL)</Label>
-              <Input
-                id="imageUrl"
-                name="imageUrl"
-                value={form.imageUrl}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </div>
+
+            <ImageUpload
+              id="imageUrl"
+              label="Image"
+              file={imageFile}
+              previewUrl={imagePreviewUrl}
+              currentImageUrl={event.imageUrl}
+              onFileChange={handleImageChange}
+              onRemove={handleImageRemove}
+              disabled={loading}
+            />
             <div className="grid gap-2">
               <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
               <Textarea

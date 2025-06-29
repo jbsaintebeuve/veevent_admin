@@ -30,6 +30,7 @@ import { City, CitiesApiResponse } from "@/types/city";
 import { fetchCities } from "@/lib/fetch-cities";
 import { modifyPlace } from "@/lib/fetch-places";
 import { useAuth } from "@/hooks/use-auth";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyPlaceDialogProps {
   place: Place;
@@ -49,10 +50,14 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     bannerUrl: "",
     imageUrl: "",
     content: "",
+    bannerFile: null as File | null,
+    imageFile: null as File | null,
   });
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const { data: citiesResponse, isLoading: citiesLoading } =
     useQuery<CitiesApiResponse>({
@@ -84,6 +89,8 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
         bannerUrl: place.bannerUrl || "",
         imageUrl: place.imageUrl || "",
         content: place.content || "",
+        bannerFile: null,
+        imageFile: null,
       });
     }
   }, [place, citiesResponse]);
@@ -122,11 +129,56 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     );
   }, [form]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    const file = files?.[0] || null;
+    setForm((prev) => ({ ...prev, [name]: file }));
+    if (name === "bannerFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewBannerUrl(url);
+      } else {
+        setPreviewBannerUrl(null);
+      }
+    }
+    if (name === "imageFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewImageUrl(url);
+      } else {
+        setPreviewImageUrl(null);
+      }
+    }
+  };
+
+  const handleRemoveImage = (type: "banner" | "image") => {
+    if (type === "banner") {
+      setForm((prev) => ({ ...prev, bannerFile: null }));
+      setPreviewBannerUrl(null);
+    } else {
+      setForm((prev) => ({ ...prev, imageFile: null }));
+      setPreviewImageUrl(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      let bannerUrl = form.bannerUrl;
+      let imageUrl = form.imageUrl;
+
+      // Upload des nouvelles images si elles existent
+      if (form.bannerFile) {
+        const { uploadImage } = await import("@/lib/upload-image");
+        bannerUrl = await uploadImage(form.bannerFile);
+      }
+      if (form.imageFile) {
+        const { uploadImage } = await import("@/lib/upload-image");
+        imageUrl = await uploadImage(form.imageFile);
+      }
+
       const payload: PlaceUpdateRequest = {
         name: form.name.trim(),
         description: form.content.trim() || undefined,
@@ -136,8 +188,8 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
         type: form.type || null,
         latitude: form.latitude ? parseFloat(form.latitude) : null,
         longitude: form.longitude ? parseFloat(form.longitude) : null,
-        bannerUrl: form.bannerUrl.trim() || null,
-        imageUrl: form.imageUrl.trim() || null,
+        bannerUrl: bannerUrl?.trim() || null,
+        imageUrl: imageUrl?.trim() || null,
         content: form.content.trim() || null,
       };
 
@@ -169,8 +221,30 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen && place) {
+      setForm({
+        name: place.name || "",
+        address: place.address || "",
+        type: place.type || "",
+        latitude: place.location?.latitude?.toString() || "",
+        longitude: place.location?.longitude?.toString() || "",
+        cityId: findCityIdByName(place.cityName),
+        cityName: place.cityName || "",
+        bannerUrl: place.bannerUrl || "",
+        imageUrl: place.imageUrl || "",
+        content: place.content || "",
+        bannerFile: null,
+        imageFile: null,
+      });
+      setPreviewBannerUrl(null);
+      setPreviewImageUrl(null);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || (
           <Button variant="outline" size="sm">
@@ -293,30 +367,29 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="imageUrl">Image (URL)</Label>
-                <Input
-                  id="imageUrl"
-                  name="imageUrl"
-                  value={form.imageUrl}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="bannerUrl">Bannière (URL)</Label>
-                <Input
-                  id="bannerUrl"
-                  name="bannerUrl"
-                  value={form.bannerUrl}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ImageUpload
+                id="bannerFile"
+                label="Bannière"
+                file={form.bannerFile}
+                previewUrl={previewBannerUrl}
+                currentImageUrl={form.bannerUrl}
+                onFileChange={handleFileChange}
+                onRemove={() => handleRemoveImage("banner")}
+                disabled={loading}
+              />
+              <ImageUpload
+                id="imageFile"
+                label="Image principale"
+                file={form.imageFile}
+                previewUrl={previewImageUrl}
+                currentImageUrl={form.imageUrl}
+                onFileChange={handleFileChange}
+                onRemove={() => handleRemoveImage("image")}
+                disabled={loading}
+              />
             </div>
 
-            {/* ✅ Une seule description basée sur content */}
             <div className="grid gap-2">
               <Label htmlFor="content">Description</Label>
               <Textarea

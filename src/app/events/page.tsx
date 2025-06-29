@@ -1,55 +1,19 @@
 "use client";
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import Link from "next/link";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import {
-  Search,
-  Edit,
-  Trash2,
-  MapPin,
-  AlertCircle,
-  CalendarDays,
-} from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AlertCircle } from "lucide-react";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { fetchEvents, deleteEvent } from "@/lib/fetch-events";
 import { useAuth } from "@/hooks/use-auth";
 import { EventsApiResponse } from "@/types/event";
-import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
+import { EventsTable } from "@/components/tables/events-table";
 
 export default function EventsPage() {
   const [search, setSearch] = useState("");
@@ -97,21 +61,6 @@ export default function EventsPage() {
         )
     );
   }, [events, search]);
-
-  const getStatusBadge = useCallback((status: string) => {
-    switch (status) {
-      case "NOT_STARTED":
-        return <Badge variant="default">À venir</Badge>;
-      case "ONGOING":
-        return <Badge variant="secondary">En cours</Badge>;
-      case "COMPLETED":
-        return <Badge variant="outline">Terminé</Badge>;
-      case "CANCELLED":
-        return <Badge variant="destructive">Annulé</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  }, []);
 
   const formatDateTime = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
@@ -423,235 +372,13 @@ export default function EventsPage() {
             {/* ✅ SectionCards au lieu des cards manuelles */}
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
-            {/* ✅ Search Section */}
-            <div className="px-4 lg:px-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Rechercher des événements</CardTitle>
-                  <CardDescription>
-                    Filtrez par nom, description, ville, lieu ou catégorie
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Rechercher par nom, lieu, catégorie..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* ✅ Data Table - Mise à jour avec les nouveaux champs */}
-            <div className="px-4 lg:px-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Liste des événements</CardTitle>
-                  <CardDescription>
-                    {search ? (
-                      <>
-                        {filteredEvents.length} résultat(s) trouvé(s) pour "
-                        {search}"
-                      </>
-                    ) : (
-                      <>Tous vos événements avec leurs détails et statuts</>
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {filteredEvents && filteredEvents.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nom</TableHead>
-                          <TableHead>Date/Heure</TableHead>
-                          <TableHead>Lieu</TableHead>
-                          <TableHead>Catégories</TableHead>
-                          <TableHead className="text-center">
-                            Participants
-                          </TableHead>
-                          <TableHead className="text-center">Prix</TableHead>
-                          <TableHead className="text-center">Statut</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredEvents.map((event) => {
-                          const { date, time } = formatDateTime(event.date);
-                          return (
-                            <TableRow key={event.id}>
-                              <TableCell className="font-medium">
-                                <div className="flex flex-col">
-                                  <span>{event.name}</span>
-                                  {event.isTrending && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="w-fit text-xs mt-1"
-                                    >
-                                      Tendance
-                                    </Badge>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">
-                                <div className="flex flex-col text-sm">
-                                  <span>{date}</span>
-                                  <span className="text-xs">{time}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                                  <div className="flex flex-col text-sm">
-                                    <span>{event.placeName}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {event.cityName}
-                                    </span>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                  {event.categories.map((category, index) => (
-                                    <Badge
-                                      key={index}
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {category.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <div className="flex flex-col text-sm">
-                                  <span className="font-medium">
-                                    {event.currentParticipants}/
-                                    {event.maxCustomers}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {Math.round(
-                                      (event.currentParticipants /
-                                        event.maxCustomers) *
-                                        100
-                                    )}
-                                    %
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <span className="font-medium">
-                                  {event.price === 0
-                                    ? "Gratuit"
-                                    : `${event.price}€`}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {getStatusBadge(event.status)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <ModifyEventDialog event={event} />
-
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-destructive hover:text-destructive"
-                                        disabled={deleteMutation.isPending}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">
-                                          Supprimer
-                                        </span>
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                          Supprimer l'événement
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Êtes-vous sûr de vouloir supprimer "
-                                          {event.name}" ? Cette action est
-                                          irréversible.
-                                          {event.currentParticipants > 0 && (
-                                            <span className="block mt-2 text-destructive font-medium">
-                                              ⚠️ Cet événement a{" "}
-                                              {event.currentParticipants}{" "}
-                                              participant(s) inscrit(s).
-                                            </span>
-                                          )}
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>
-                                          Annuler
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() =>
-                                            handleDelete(
-                                              event._links?.self?.href,
-                                              event.name
-                                            )
-                                          }
-                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        >
-                                          Supprimer
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-center py-8">
-                      {search ? (
-                        <>
-                          <Search className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <h3 className="mt-4 text-lg font-semibold">
-                            Aucun résultat trouvé
-                          </h3>
-                          <p className="text-muted-foreground mb-4">
-                            Aucun événement ne correspond à votre recherche "
-                            {search}
-                            ".
-                          </p>
-                          <Button
-                            variant="outline"
-                            onClick={() => setSearch("")}
-                          >
-                            Effacer la recherche
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <CalendarDays className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <h3 className="mt-4 text-lg font-semibold">
-                            Aucun événement
-                          </h3>
-                          <p className="text-muted-foreground mb-4">
-                            Commencez par créer votre premier événement.
-                          </p>
-                          <CreateEventDialog />
-                        </>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <EventsTable
+              data={events}
+              search={search}
+              onSearchChange={setSearch}
+              onDelete={handleDelete}
+              deleteLoading={deleteMutation.isPending}
+            />
           </div>
         </div>
       </div>

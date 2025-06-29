@@ -21,9 +21,11 @@ import { toast } from "sonner";
 import { Plus, Loader2, AlertCircle, MapPin, Globe } from "lucide-react";
 import { City } from "@/types/city";
 import { createCity } from "@/lib/fetch-cities";
+import { uploadImage } from "@/lib/upload-image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { CityCreateRequest } from "@/types/city";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 const initialForm = {
   name: "",
@@ -31,8 +33,8 @@ const initialForm = {
   region: "",
   postalCode: "",
   country: "France",
-  bannerUrl: "",
-  imageUrl: "",
+  bannerFile: null as File | null,
+  imageFile: null as File | null,
   content: "",
   nearestCities: [] as number[],
 };
@@ -44,6 +46,8 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const allCities = cities || [];
 
@@ -66,6 +70,38 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
       });
     } else {
       setForm({ ...form, [name]: value });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    const file = files?.[0] || null;
+    setForm((prev) => ({ ...prev, [name]: file }));
+    if (name === "bannerFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewBannerUrl(url);
+      } else {
+        setPreviewBannerUrl(null);
+      }
+    }
+    if (name === "imageFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewImageUrl(url);
+      } else {
+        setPreviewImageUrl(null);
+      }
+    }
+  };
+
+  const handleRemoveImage = (type: "banner" | "image") => {
+    if (type === "banner") {
+      setForm((prev) => ({ ...prev, bannerFile: null }));
+      setPreviewBannerUrl(null);
+    } else {
+      setForm((prev) => ({ ...prev, imageFile: null }));
+      setPreviewImageUrl(null);
     }
   };
 
@@ -92,6 +128,8 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   const resetForm = () => {
     setForm(initialForm);
     setError("");
+    setPreviewBannerUrl(null);
+    setPreviewImageUrl(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,6 +138,18 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
     setError("");
 
     try {
+      // Upload des images si elles existent
+      let bannerUrl = null;
+      let imageUrl = null;
+
+      if (form.bannerFile) {
+        bannerUrl = await uploadImage(form.bannerFile);
+      }
+
+      if (form.imageFile) {
+        imageUrl = await uploadImage(form.imageFile);
+      }
+
       const payload = {
         name: form.name.trim(),
         latitude: form.location.latitude,
@@ -107,8 +157,8 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
         region: form.region.trim(),
         postalCode: form.postalCode.trim(),
         country: form.country.trim(),
-        bannerUrl: form.bannerUrl?.trim() || null,
-        imageUrl: form.imageUrl?.trim() || null,
+        bannerUrl: bannerUrl,
+        imageUrl: imageUrl,
         content: form.content?.trim() || null,
         nearestCities: form.nearestCities,
       } as CityCreateRequest;
@@ -244,25 +294,23 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="bannerUrl">Bannière (URL)</Label>
-              <Input
-                id="bannerUrl"
-                name="bannerUrl"
-                value={form.bannerUrl ?? ""}
-                onChange={handleChange}
-                placeholder="https://..."
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ImageUpload
+                id="bannerFile"
+                label="Bannière"
+                file={form.bannerFile}
+                previewUrl={previewBannerUrl}
+                onFileChange={handleFileChange}
+                onRemove={() => handleRemoveImage("banner")}
                 disabled={loading}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="imageUrl">Image (URL)</Label>
-              <Input
-                id="imageUrl"
-                name="imageUrl"
-                value={form.imageUrl ?? ""}
-                onChange={handleChange}
-                placeholder="https://..."
+              <ImageUpload
+                id="imageFile"
+                label="Image principale"
+                file={form.imageFile}
+                previewUrl={previewImageUrl}
+                onFileChange={handleFileChange}
+                onRemove={() => handleRemoveImage("image")}
                 disabled={loading}
               />
             </div>

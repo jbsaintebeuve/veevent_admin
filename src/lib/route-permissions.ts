@@ -6,6 +6,7 @@ export const routePermissions: Record<string, string[]> = {
   "/events": ["admin", "authservice"],
   "/places": ["admin", "authservice"],
   "/users": ["admin", "authservice"],
+  "/reports": ["admin", "authservice"],
   "/profile": ["admin", "authservice", "organizer"],
   "/settings": ["admin", "authservice", "organizer"],
   // Pour plus tard :

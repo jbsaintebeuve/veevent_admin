@@ -32,10 +32,12 @@ import { PlaceCreateRequest } from "@/types/place";
 import { CitiesApiResponse } from "@/types/city";
 import { fetchCities } from "@/lib/fetch-cities";
 import { createPlace } from "@/lib/fetch-places";
+import { uploadImage } from "@/lib/upload-image";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 export function CreatePlaceDialog() {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const initialForm = {
     name: "",
     address: "",
     type: "",
@@ -43,14 +45,17 @@ export function CreatePlaceDialog() {
     longitude: "",
     cityId: "",
     cityName: "",
-    bannerUrl: "",
-    imageUrl: "",
+    bannerFile: null as File | null,
+    imageFile: null as File | null,
     description: "",
-  });
+  };
+  const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const {
     data: citiesResponse,
@@ -107,19 +112,10 @@ export function CreatePlaceDialog() {
   }, [form]);
 
   const resetForm = () => {
-    setForm({
-      name: "",
-      address: "",
-      type: "",
-      latitude: "",
-      longitude: "",
-      cityId: "",
-      cityName: "",
-      bannerUrl: "",
-      imageUrl: "",
-      description: "",
-    });
+    setForm(initialForm);
     setError("");
+    setPreviewBannerUrl(null);
+    setPreviewImageUrl(null);
   };
 
   const validateForm = () => {
@@ -152,6 +148,38 @@ export function CreatePlaceDialog() {
     return true;
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    const file = files?.[0] || null;
+    setForm((prev) => ({ ...prev, [name]: file }));
+    if (name === "bannerFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewBannerUrl(url);
+      } else {
+        setPreviewBannerUrl(null);
+      }
+    }
+    if (name === "imageFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewImageUrl(url);
+      } else {
+        setPreviewImageUrl(null);
+      }
+    }
+  };
+
+  const handleRemoveImage = (type: "banner" | "image") => {
+    if (type === "banner") {
+      setForm((prev) => ({ ...prev, bannerFile: null }));
+      setPreviewBannerUrl(null);
+    } else {
+      setForm((prev) => ({ ...prev, imageFile: null }));
+      setPreviewImageUrl(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -163,6 +191,14 @@ export function CreatePlaceDialog() {
     }
 
     try {
+      let bannerUrl = null;
+      let imageUrl = null;
+      if (form.bannerFile) {
+        bannerUrl = await uploadImage(form.bannerFile);
+      }
+      if (form.imageFile) {
+        imageUrl = await uploadImage(form.imageFile);
+      }
       const payload: PlaceCreateRequest = {
         name: form.name.trim(),
         description: form.description.trim(),
@@ -172,12 +208,10 @@ export function CreatePlaceDialog() {
         type: form.type || null,
         latitude: form.latitude ? parseFloat(form.latitude) : null,
         longitude: form.longitude ? parseFloat(form.longitude) : null,
-        bannerUrl: form.bannerUrl.trim() || null,
-        imageUrl: form.imageUrl.trim() || null,
+        bannerUrl: bannerUrl,
+        imageUrl: imageUrl,
       };
-
       await createPlace(payload, getToken() || undefined);
-
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu créé avec succès !");
       setOpen(false);
@@ -345,29 +379,25 @@ export function CreatePlaceDialog() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="imageUrl">Image principale (URL)</Label>
-                <Input
-                  id="imageUrl"
-                  name="imageUrl"
-                  value={form.imageUrl}
-                  onChange={handleChange}
-                  placeholder="https://exemple.com/image.jpg"
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="bannerUrl">Bannière (URL)</Label>
-                <Input
-                  id="bannerUrl"
-                  name="bannerUrl"
-                  value={form.bannerUrl}
-                  onChange={handleChange}
-                  placeholder="https://exemple.com/banner.jpg"
-                  disabled={loading}
-                />
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ImageUpload
+                id="bannerFile"
+                label="Bannière"
+                file={form.bannerFile}
+                previewUrl={previewBannerUrl}
+                onFileChange={handleFileChange}
+                onRemove={() => handleRemoveImage("banner")}
+                disabled={loading}
+              />
+              <ImageUpload
+                id="imageFile"
+                label="Image principale"
+                file={form.imageFile}
+                previewUrl={previewImageUrl}
+                onFileChange={handleFileChange}
+                onRemove={() => handleRemoveImage("image")}
+                disabled={loading}
+              />
             </div>
 
             {/* Description */}

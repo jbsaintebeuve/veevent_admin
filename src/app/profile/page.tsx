@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
@@ -34,10 +34,14 @@ import {
   Globe,
   Plus,
   X,
+  Camera,
+  Edit,
 } from "lucide-react";
 import { fetchCategories } from "@/lib/fetch-categories";
 import { fetchUserProfile, updateUserProfile } from "@/lib/fetch-user";
 import { Category as CategoryType } from "@/types/category";
+import { uploadImage } from "@/lib/upload-image";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface Social {
   name: string;
@@ -59,6 +63,8 @@ export default function ProfilePage() {
     bannerUrl: "",
     note: 0,
     categoryKeys: [] as string[],
+    imageFile: null as File | null,
+    bannerFile: null as File | null,
   });
   const [socials, setSocials] = useState<Social[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +79,9 @@ export default function ProfilePage() {
   });
 
   const categories = categoriesResponse?._embedded?.categories || [];
+
+  const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchUserProfileData() {
@@ -99,16 +108,28 @@ export default function ProfilePage() {
           bannerUrl: profileData.bannerUrl || "",
           note: profileData.note || 0,
           categoryKeys: profileData.categoryKeys || [],
+          imageFile: null,
+          bannerFile: null,
         });
 
         // ✅ Parser les réseaux sociaux
+        console.log("🔍 Socials from API:", profileData.socials);
         if (profileData.socials) {
           try {
-            const parsedSocials = JSON.parse(profileData.socials);
-            setSocials(Array.isArray(parsedSocials) ? parsedSocials : []);
+            // Si c'est déjà un tableau, l'utiliser directement
+            if (Array.isArray(profileData.socials)) {
+              setSocials(profileData.socials);
+            } else {
+              // Sinon, essayer de parser comme JSON string
+              const parsedSocials = JSON.parse(profileData.socials);
+              setSocials(Array.isArray(parsedSocials) ? parsedSocials : []);
+            }
           } catch {
+            console.warn("⚠️ Erreur parsing socials:", profileData.socials);
             setSocials([]);
           }
+        } else {
+          setSocials([]);
         }
       } catch (err: any) {
         setError(err.message);
@@ -174,6 +195,17 @@ export default function ProfilePage() {
     setError("");
 
     try {
+      let imageUrl = form.imageUrl;
+      let bannerUrl = form.bannerUrl;
+
+      // Upload des nouvelles images si elles existent
+      if (form.imageFile) {
+        imageUrl = await uploadImage(form.imageFile);
+      }
+      if (form.bannerFile) {
+        bannerUrl = await uploadImage(form.bannerFile);
+      }
+
       const payload = {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
@@ -181,8 +213,8 @@ export default function ProfilePage() {
         email: form.email.trim(),
         description: form.description.trim() || null,
         phone: form.phone.trim() || null,
-        imageUrl: form.imageUrl.trim() || null,
-        bannerUrl: form.bannerUrl.trim() || null,
+        imageUrl: imageUrl?.trim() || null,
+        bannerUrl: bannerUrl?.trim() || null,
         note: form.note || null,
         socials: socials.length > 0 ? JSON.stringify(socials) : null,
         categoryKeys: form.categoryKeys,
@@ -191,17 +223,52 @@ export default function ProfilePage() {
       console.log("Payload envoyé:", payload); // Debug
 
       const token = getToken();
-
       await updateUserProfile(user.id, payload, token || undefined);
 
       toast.success("Profil mis à jour avec succès !");
+      router.push("/dashboard");
     } catch (err: any) {
-      console.error("Erreur:", err);
       setError(err.message);
-      toast.error("Erreur lors de la sauvegarde");
+      toast.error("Erreur lors de la mise à jour du profil");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    const file = files?.[0] || null;
+    setForm((prev) => ({ ...prev, [name]: file }));
+    if (name === "bannerFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewBannerUrl(url);
+      } else {
+        setPreviewBannerUrl(null);
+      }
+    }
+    if (name === "imageFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewImageUrl(url);
+      } else {
+        setPreviewImageUrl(null);
+      }
+    }
+  };
+
+  const handleRemoveImage = (type: "banner" | "image") => {
+    if (type === "banner") {
+      setForm((prev) => ({ ...prev, bannerFile: null }));
+      setPreviewBannerUrl(null);
+    } else {
+      setForm((prev) => ({ ...prev, imageFile: null }));
+      setPreviewImageUrl(null);
+    }
+  };
+
+  const triggerImageUpload = () => {
+    document.getElementById("imageFile")?.click();
   };
 
   if (authLoading || loading) {
@@ -215,7 +282,7 @@ export default function ProfilePage() {
                 <Skeleton className="h-8 w-48 mb-2" />
                 <Skeleton className="h-4 w-64" />
               </div>
-              <Card>
+              <Card className="shadow-xs">
                 <CardHeader>
                   <Skeleton className="h-6 w-32" />
                   <Skeleton className="h-4 w-48" />
@@ -283,18 +350,39 @@ export default function ProfilePage() {
           </div>
 
           {/* Profile Preview Card */}
-          <Card className="mb-6">
+          <Card className="mb-6 shadow-xs">
             <CardHeader>
               <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage
-                    src={form.imageUrl}
-                    alt={`${form.firstName} ${form.lastName}`}
+                <div className="relative group cursor-pointer">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage
+                      src={previewImageUrl || form.imageUrl}
+                      alt={`${form.firstName} ${form.lastName}`}
+                    />
+                    <AvatarFallback className="text-lg">
+                      {getInitials() || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    onClick={triggerImageUpload}
+                    disabled={saving}
+                  >
+                    <Camera className="h-3 w-3" />
+                  </Button>
+                  <input
+                    id="imageFile"
+                    name="imageFile"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    disabled={saving}
+                    className="hidden"
                   />
-                  <AvatarFallback className="text-lg">
-                    {getInitials() || "?"}
-                  </AvatarFallback>
-                </Avatar>
+                </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-xl font-semibold">
@@ -318,7 +406,7 @@ export default function ProfilePage() {
           </Card>
 
           {/* Profile Form */}
-          <Card>
+          <Card className="shadow-xs">
             <CardHeader>
               <CardTitle>Informations du profil</CardTitle>
               <CardDescription>
@@ -419,42 +507,22 @@ export default function ProfilePage() {
                         max="5"
                         step="0.1"
                         value={form.note}
-                        onChange={handleChange}
-                        disabled={saving}
+                        readOnly
+                        className="bg-muted"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="imageUrl">
-                        <ImageIcon className="inline mr-1 h-4 w-4" />
-                        URL de l'avatar
-                      </Label>
-                      <Input
-                        id="imageUrl"
-                        name="imageUrl"
-                        value={form.imageUrl}
-                        onChange={handleChange}
-                        placeholder="https://exemple.com/avatar.jpg"
-                        disabled={saving}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="bannerUrl">
-                        <ImageIcon className="inline mr-1 h-4 w-4" />
-                        URL de la bannière
-                      </Label>
-                      <Input
-                        id="bannerUrl"
-                        name="bannerUrl"
-                        value={form.bannerUrl}
-                        onChange={handleChange}
-                        placeholder="https://exemple.com/banner.jpg"
-                        disabled={saving}
-                      />
-                    </div>
-                  </div>
+                  <ImageUpload
+                    id="bannerFile"
+                    label="Bannière"
+                    file={form.bannerFile}
+                    previewUrl={previewBannerUrl}
+                    currentImageUrl={form.bannerUrl}
+                    onFileChange={handleFileChange}
+                    onRemove={() => handleRemoveImage("banner")}
+                    disabled={saving}
+                  />
                 </div>
 
                 <Separator />
@@ -462,10 +530,10 @@ export default function ProfilePage() {
                 {/* Réseaux sociaux */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">
+                    <Label className="text-sm font-medium">
                       <Globe className="inline mr-1 h-4 w-4" />
                       Réseaux sociaux
-                    </h4>
+                    </Label>
                     <Button
                       type="button"
                       variant="outline"

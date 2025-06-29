@@ -73,7 +73,7 @@ interface UserProfileData {
   imageUrl?: string | null;
   bannerUrl?: string | null;
   note?: number | null;
-  socials?: string | null; // JSON string
+  socials?: string | Array<{ name: string; url: string }> | null; // JSON string ou tableau d'objets
   categoryKeys?: string[];
 }
 

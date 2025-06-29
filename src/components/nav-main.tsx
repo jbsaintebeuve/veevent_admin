@@ -35,6 +35,13 @@ export function NavMain({
     setOpenMobile(false);
   };
 
+  const handleMailClick = () => {
+    // Fermer la sidebar mobile
+    setOpenMobile(false);
+    // Ouvrir l'application de mail avec l'adresse admin@veevent.fr
+    window.open("mailto:admin@veevent.fr", "_blank");
+  };
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -50,12 +57,15 @@ export function NavMain({
               </SidebarMenuButton>
             </CreateEventDialog>
             <Button
+              type="button"
               size="icon"
               className="size-8 group-data-[collapsible=icon]:opacity-0"
               variant="outline"
+              onClick={handleMailClick}
+              title="Contacter l'administrateur"
             >
               <Mail className="h-4 w-4" />
-              <span className="sr-only">Inbox</span>
+              <span className="sr-only">Contacter l'administrateur</span>
             </Button>
           </SidebarMenuItem>
         </SidebarMenu>

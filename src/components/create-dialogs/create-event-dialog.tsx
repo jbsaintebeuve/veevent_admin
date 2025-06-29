@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useState, useCallback, useMemo, memo } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { toast } from "sonner";
 import {
   Plus,
@@ -147,6 +149,8 @@ export function CreateEventDialog({
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
@@ -235,6 +239,28 @@ export function CreateEventDialog({
     []
   );
 
+  const handleImageChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        setImageFile(file);
+        const url = URL.createObjectURL(file);
+        setImagePreviewUrl(url);
+        setForm((prev) => ({ ...prev, imageUrl: url }));
+      }
+    },
+    []
+  );
+
+  const handleImageRemove = useCallback(() => {
+    setImageFile(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImagePreviewUrl(null);
+    setForm((prev) => ({ ...prev, imageUrl: "" }));
+  }, [imagePreviewUrl]);
+
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
@@ -254,7 +280,13 @@ export function CreateEventDialog({
   const resetForm = useCallback(() => {
     setForm(initialForm);
     setError("");
-  }, []);
+    // Clean up image states
+    setImageFile(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImagePreviewUrl(null);
+  }, [imagePreviewUrl]);
 
   const validateForm = useCallback(() => {
     const required = [
@@ -424,19 +456,6 @@ export function CreateEventDialog({
             </div>
 
             <InputField
-              label="Prix (€)"
-              name="price"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="20.00"
-              value={form.price}
-              onChange={handleChange}
-              disabled={loading}
-              required
-            />
-
-            <InputField
               label="Adresse"
               name="address"
               placeholder="Parc Central, Avenue des Arts"
@@ -448,6 +467,18 @@ export function CreateEventDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <InputField
+                label="Prix (€)"
+                name="price"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="20.00"
+                value={form.price}
+                onChange={handleChange}
+                disabled={loading}
+                required
+              />
+              <InputField
                 label="Participants maximum"
                 name="maxCustomers"
                 type="number"
@@ -458,15 +489,17 @@ export function CreateEventDialog({
                 disabled={loading}
                 required
               />
-              <InputField
-                label="Image (URL)"
-                name="imageUrl"
-                placeholder="https://example.com/image.jpg"
-                value={form.imageUrl}
-                onChange={handleChange}
-                disabled={loading}
-              />
             </div>
+
+            <ImageUpload
+              id="imageUrl"
+              label="Image"
+              file={imageFile}
+              previewUrl={imagePreviewUrl}
+              onFileChange={handleImageChange}
+              onRemove={handleImageRemove}
+              disabled={loading}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">

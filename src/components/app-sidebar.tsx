@@ -11,6 +11,7 @@ import {
   Settings,
   User,
   PlaneTakeoff,
+  Shield,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -55,6 +56,11 @@ const data = {
       title: "Utilisateurs",
       url: "/users",
       icon: Users,
+    },
+    {
+      title: "Signalements",
+      url: "/reports",
+      icon: Shield,
     },
     {
       title: "Catégories",

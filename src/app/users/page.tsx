@@ -1,59 +1,21 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "sonner";
-import {
-  Users,
-  User as UserIcon,
-  Mail,
-  Search,
-  Trash2,
-  Edit,
-  AlertCircle,
-} from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AvatarGroup } from "@/components/ui/avatar-group";
+import { AlertCircle } from "lucide-react";
 import { fetchUsers } from "@/lib/fetch-users";
 import { User } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
+import { UsersTable } from "@/components/tables/users-table";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
-  const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
   const fetchUsersWithToken = () => fetchUsers(getToken() || undefined);
@@ -84,23 +46,9 @@ export default function UsersPage() {
     );
   }, [users, search]);
 
-  const getRoleBadge = useCallback((role: string) => {
-    switch (role.toUpperCase()) {
-      case "ADMIN":
-        return <Badge variant="destructive">Admin</Badge>;
-      case "ORGANIZER":
-        return <Badge variant="default">Organisateur</Badge>;
-      case "USER":
-        return <Badge variant="secondary">Utilisateur</Badge>;
-      case "AUTHSERVICE":
-        return <Badge variant="outline">Auth Service</Badge>;
-      default:
-        return <Badge variant="outline">{role}</Badge>;
-    }
-  }, []);
-
-  const getInitials = useCallback((firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const handleDelete = useCallback((deleteUrl: string, name: string) => {
+    // TODO: Implémenter la suppression d'utilisateur
+    console.log("Supprimer utilisateur:", name, deleteUrl);
   }, []);
 
   // Statistiques optimisées avec useMemo - une seule boucle au lieu de 4
@@ -327,7 +275,6 @@ export default function UsersPage() {
                   <Skeleton className="h-8 w-32 mb-2" />
                   <Skeleton className="h-4 w-64" />
                 </div>
-                <Skeleton className="h-10 w-32" />
               </div>
 
               {/* Stats Cards Skeleton */}
@@ -408,148 +355,47 @@ export default function UsersPage() {
             {/* ✅ SectionCards au lieu des cards manuelles */}
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
-            {/* ✅ Search Section */}
+            {/* ✅ Team Overview avec groupe d'avatars */}
             <div className="px-4 lg:px-6">
-              <Card>
+              <Card className="shadow-xs">
                 <CardHeader>
-                  <CardTitle>Rechercher des utilisateurs</CardTitle>
-                  <CardDescription>
-                    Filtrez par nom, prénom, pseudo, email ou rôle
-                  </CardDescription>
+                  <h3 className="text-lg font-semibold">
+                    Profils utilisateurs
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Découvrez les membres de votre plateforme d'événements
+                  </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Rechercher par nom, prénom, pseudo, email ou rôle..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="pl-10"
+                  <div className="flex items-center gap-4">
+                    {/* Groupe d'avatars qui se chevauchent */}
+                    <AvatarGroup
+                      users={filteredUsers}
+                      maxDisplay={5}
+                      size="lg"
+                      showOverflow={true}
                     />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">
+                        Membres de la plateforme
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {filteredUsers.length} profil(s) utilisateur(s)
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* ✅ Data Table */}
-            <div className="px-4 lg:px-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Liste des utilisateurs</CardTitle>
-                  <CardDescription>
-                    {search ? (
-                      <>
-                        {filteredUsers.length} résultat(s) trouvé(s) pour "
-                        {search}"
-                      </>
-                    ) : (
-                      <>Tous les utilisateurs de votre plateforme</>
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {filteredUsers && filteredUsers.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Utilisateur</TableHead>
-                          <TableHead>Pseudo</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead className="text-center">Rôle</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredUsers.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage
-                                    src={user.imageUrl || undefined}
-                                    alt={`${user.firstName} ${user.lastName}`}
-                                  />
-                                  <AvatarFallback>
-                                    {getInitials(user.firstName, user.lastName)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex flex-col">
-                                  <span className="font-medium">
-                                    {user.firstName} {user.lastName}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    ID: {user.id}
-                                  </span>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <UserIcon className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-mono text-sm">
-                                  @{user.pseudo}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm">{user.email}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {getRoleBadge(user.role)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button variant="outline" size="sm" asChild>
-                                  <Link href={`/users/${user.id}/edit`}>
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Modifier</span>
-                                  </Link>
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-center py-8">
-                      {search ? (
-                        <>
-                          <Search className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <h3 className="mt-4 text-lg font-semibold">
-                            Aucun résultat trouvé
-                          </h3>
-                          <p className="text-muted-foreground mb-4">
-                            Aucun utilisateur ne correspond à votre recherche "
-                            {search}".
-                          </p>
-                          <Button
-                            variant="outline"
-                            onClick={() => setSearch("")}
-                          >
-                            Effacer la recherche
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <h3 className="mt-4 text-lg font-semibold">
-                            Aucun utilisateur
-                          </h3>
-                          <p className="text-muted-foreground mb-4">
-                            Commencez par créer votre premier utilisateur.
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            {/* ✅ Nouveau tableau */}
+            <UsersTable
+              data={users || []}
+              search={search}
+              onSearchChange={setSearch}
+              onDelete={handleDelete}
+              deleteLoading={false}
+            />
           </div>
         </div>
       </div>

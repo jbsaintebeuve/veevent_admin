@@ -23,6 +23,8 @@ import { City, CityUpdateRequest } from "@/types/city";
 import { modifyCity } from "@/lib/fetch-cities";
 import { useAuth } from "@/hooks/use-auth";
 import { Checkbox } from "@/components/ui/checkbox";
+import { uploadImage } from "@/lib/upload-image";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyCityDialogProps {
   city: City;
@@ -47,6 +49,8 @@ export function ModifyCityDialog({
     country: "France",
     bannerUrl: "",
     imageUrl: "",
+    bannerFile: null as File | null,
+    imageFile: null as File | null,
     content: "",
     nearestCities: [] as number[],
   });
@@ -54,6 +58,8 @@ export function ModifyCityDialog({
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const allCities = cities || [];
 
@@ -70,6 +76,8 @@ export function ModifyCityDialog({
         country: city.country || "France",
         bannerUrl: city.bannerUrl || "",
         imageUrl: city.imageUrl || "",
+        bannerFile: null,
+        imageFile: null,
         content: city.content || "",
         nearestCities: city.nearestCities?.map((c) => c.id) || [],
       });
@@ -113,6 +121,38 @@ export function ModifyCityDialog({
     );
   }, [form]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    const file = files?.[0] || null;
+    setForm((prev) => ({ ...prev, [name]: file }));
+    if (name === "bannerFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewBannerUrl(url);
+      } else {
+        setPreviewBannerUrl(null);
+      }
+    }
+    if (name === "imageFile") {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewImageUrl(url);
+      } else {
+        setPreviewImageUrl(null);
+      }
+    }
+  };
+
+  const handleRemoveImage = (type: "banner" | "image") => {
+    if (type === "banner") {
+      setForm((prev) => ({ ...prev, bannerFile: null }));
+      setPreviewBannerUrl(null);
+    } else {
+      setForm((prev) => ({ ...prev, imageFile: null }));
+      setPreviewImageUrl(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -122,6 +162,15 @@ export function ModifyCityDialog({
       const patchUrl = city._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
 
+      let bannerUrl = form.bannerUrl;
+      let imageUrl = form.imageUrl;
+      if (form.bannerFile) {
+        bannerUrl = await uploadImage(form.bannerFile);
+      }
+      if (form.imageFile) {
+        imageUrl = await uploadImage(form.imageFile);
+      }
+
       const payload = {
         name: form.name.trim(),
         latitude: form.location.latitude,
@@ -129,8 +178,8 @@ export function ModifyCityDialog({
         region: form.region.trim(),
         postalCode: form.postalCode.trim(),
         country: form.country.trim(),
-        bannerUrl: form.bannerUrl?.trim() || null,
-        imageUrl: form.imageUrl?.trim() || null,
+        bannerUrl: bannerUrl?.trim() || null,
+        imageUrl: imageUrl?.trim() || null,
         content: form.content?.trim() || null,
         nearestCities: form.nearestCities,
       } as CityUpdateRequest;
@@ -161,10 +210,14 @@ export function ModifyCityDialog({
         country: city.country || "France",
         bannerUrl: city.bannerUrl || "",
         imageUrl: city.imageUrl || "",
+        bannerFile: null,
+        imageFile: null,
         content: city.content || "",
         nearestCities: city.nearestCities?.map((c) => c.id) || [],
       });
       setError("");
+      setPreviewBannerUrl(null);
+      setPreviewImageUrl(null);
     }
   };
 
@@ -276,25 +329,25 @@ export function ModifyCityDialog({
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="bannerUrl">Bannière (URL)</Label>
-              <Input
-                id="bannerUrl"
-                name="bannerUrl"
-                value={form.bannerUrl ?? ""}
-                onChange={handleChange}
-                placeholder="https://..."
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ImageUpload
+                id="bannerFile"
+                label="Bannière"
+                file={form.bannerFile}
+                previewUrl={previewBannerUrl}
+                currentImageUrl={form.bannerUrl}
+                onFileChange={handleFileChange}
+                onRemove={() => handleRemoveImage("banner")}
                 disabled={loading}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="imageUrl">Image (URL)</Label>
-              <Input
-                id="imageUrl"
-                name="imageUrl"
-                value={form.imageUrl ?? ""}
-                onChange={handleChange}
-                placeholder="https://..."
+              <ImageUpload
+                id="imageFile"
+                label="Image principale"
+                file={form.imageFile}
+                previewUrl={previewImageUrl}
+                currentImageUrl={form.imageUrl}
+                onFileChange={handleFileChange}
+                onRemove={() => handleRemoveImage("image")}
                 disabled={loading}
               />
             </div>

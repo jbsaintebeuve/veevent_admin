@@ -4,52 +4,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Search,
-  Trash2,
-  Tag,
-  TrendingUp,
-  Hash,
-  AlertCircle,
-  FileText,
-} from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
 import { fetchCategories, deleteCategory } from "@/lib/fetch-categories";
 import { useAuth } from "@/hooks/use-auth";
 import { CategoriesApiResponse } from "@/types/category";
-import { ModifyCategoryDialog } from "@/components/modify-dialogs/modify-category-dialog";
+import { CategoriesTable } from "@/components/tables/categories-table";
 
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
@@ -86,31 +49,6 @@ export default function CategoriesPage() {
     },
     [deleteMutation]
   );
-
-  // Filtrage optimisé avec useMemo
-  const filteredCategories = useMemo(() => {
-    if (!Array.isArray(categories)) return [];
-
-    if (!search.trim()) return categories;
-
-    const searchLower = search.toLowerCase();
-    return categories.filter(
-      (category) =>
-        category.name.toLowerCase().includes(searchLower) ||
-        category.description.toLowerCase().includes(searchLower)
-    );
-  }, [categories, search]);
-
-  const getTrendingBadge = useCallback((trending: boolean) => {
-    return trending ? (
-      <Badge variant="default" className="gap-1">
-        <TrendingUp className="h-3 w-3" />
-        Tendance
-      </Badge>
-    ) : (
-      <Badge variant="secondary">Standard</Badge>
-    );
-  }, []);
 
   // Statistiques optimisées avec useMemo
   const { trendingCount, standardCount } = useMemo(() => {
@@ -259,34 +197,26 @@ export default function CategoriesPage() {
               {/* Stats Cards Skeleton */}
               <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
                 {[...Array(3)].map((_, i) => (
-                  <Card key={i} className="@container/card">
-                    <CardHeader>
-                      <Skeleton className="h-4 w-24 mb-2" />
-                      <Skeleton className="h-8 w-16 mb-4" />
-                      <Skeleton className="h-6 w-20" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-4 w-32 mb-1" />
-                      <Skeleton className="h-3 w-24" />
-                    </CardContent>
-                  </Card>
+                  <div key={i} className="bg-card rounded-lg border p-6">
+                    <Skeleton className="h-4 w-24 mb-2" />
+                    <Skeleton className="h-8 w-16 mb-4" />
+                    <Skeleton className="h-6 w-20" />
+                  </div>
                 ))}
               </div>
 
               <div className="px-4 lg:px-6">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-3">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="flex items-center space-x-4">
-                          <Skeleton className="h-4 flex-1" />
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-8 w-16" />
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="bg-card rounded-lg border p-6">
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <Skeleton className="h-4 flex-1" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -318,7 +248,7 @@ export default function CategoriesPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* ✅ Header Section */}
+            {/* Header Section */}
             <div className="flex items-center justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
@@ -331,186 +261,17 @@ export default function CategoriesPage() {
               <CreateCategoryDialog />
             </div>
 
-            {/* ✅ SectionCards au lieu des cards manuelles */}
+            {/* SectionCards */}
             <SectionCards cards={cardsData} gridCols={3} className="mb-2" />
 
-            {/* Search Section */}
-            <div className="px-4 lg:px-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Rechercher des catégories</CardTitle>
-                  <CardDescription>
-                    Filtrez par nom, description ou clé
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Rechercher par nom, description ou clé..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* ✅ Data Table */}
-            <div className="px-4 lg:px-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Liste des catégories</CardTitle>
-                  <CardDescription>
-                    {search ? (
-                      <>
-                        {filteredCategories.length} résultat(s) trouvé(s) pour "
-                        {search}"
-                      </>
-                    ) : (
-                      <>Toutes les catégories d'événements</>
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {filteredCategories && filteredCategories.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Catégorie</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Clé</TableHead>
-                          <TableHead className="text-center">Statut</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredCategories.map((category, index) => (
-                          <TableRow key={`category-${category.key}-${index}`}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-                                  <Tag className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="font-medium">
-                                    {category.name}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    Catégorie #{category.key}
-                                  </span>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm max-w-xs truncate">
-                                  {category.description || "Aucune description"}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Hash className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-mono text-sm">
-                                  {category.key}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {getTrendingBadge(category.trending)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <ModifyCategoryDialog category={category} />
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-destructive hover:text-destructive"
-                                      disabled={deleteMutation.isPending}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                      <span className="sr-only">Supprimer</span>
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Supprimer la catégorie
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Êtes-vous sûr de vouloir supprimer la
-                                        catégorie "{category.name}" ? Cette
-                                        action est irréversible et pourrait
-                                        affecter les événements associés.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Annuler
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() =>
-                                          handleDelete(
-                                            category._links?.self?.href,
-                                            category.name
-                                          )
-                                        }
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                      >
-                                        Supprimer
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-center py-8">
-                      {search ? (
-                        <>
-                          <Search className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <h3 className="mt-4 text-lg font-semibold">
-                            Aucun résultat trouvé
-                          </h3>
-                          <p className="text-muted-foreground mb-4">
-                            Aucune catégorie ne correspond à votre recherche "
-                            {search}
-                            ".
-                          </p>
-                          <Button
-                            variant="outline"
-                            onClick={() => setSearch("")}
-                          >
-                            Effacer la recherche
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Tag className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <h3 className="mt-4 text-lg font-semibold">
-                            Aucune catégorie
-                          </h3>
-                          <p className="text-muted-foreground mb-4">
-                            Commencez par créer votre première catégorie.
-                          </p>
-                          <CreateCategoryDialog />
-                        </>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            {/* Nouveau tableau */}
+            <CategoriesTable
+              data={categories}
+              search={search}
+              onSearchChange={setSearch}
+              onDelete={handleDelete}
+              deleteLoading={deleteMutation.isPending}
+            />
           </div>
         </div>
       </div>
