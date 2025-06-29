@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { routePermissions } from "@/lib/route-permissions";
+import { clearLocalStoragePreservingTheme } from "@/lib/utils";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -33,7 +34,8 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       document.cookie =
         "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
       localStorage.removeItem("user");
-      localStorage.clear();
+      clearLocalStoragePreservingTheme();
+
       router.replace("/auth/login?error=insufficient-permissions");
       return;
     }

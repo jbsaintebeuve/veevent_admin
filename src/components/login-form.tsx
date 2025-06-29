@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, clearLocalStoragePreservingTheme } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,7 +52,7 @@ export function LoginForm({
   const clearAuth = () => {
     document.cookie =
       "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
-    localStorage.clear();
+    clearLocalStoragePreservingTheme();
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
