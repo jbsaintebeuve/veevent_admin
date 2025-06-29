@@ -6,12 +6,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { fetchUserInvitations } from "@/lib/fetch-invitations";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { InvitationsTable } from "@/components/tables/invitations-table";
 import { Button } from "@/components/ui/button";
 import { Invitation } from "@/types/invitation";
+import { PageSkeleton } from "@/components/page-skeleton";
 
 export default function InvitationsPage() {
   const [search, setSearch] = useState("");
@@ -157,33 +159,14 @@ export default function InvitationsPage() {
   // Loading state
   if (isLoading) {
     return (
-      <>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="flex items-center justify-between px-4 lg:px-6">
-                <div>
-                  <Skeleton className="h-8 w-32 mb-2" />
-                  <Skeleton className="h-4 w-64" />
-                </div>
-              </div>
-              <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="@container/card">
-                    <Skeleton className="h-4 w-24 mb-2" />
-                    <Skeleton className="h-8 w-16 mb-4" />
-                    <Skeleton className="h-6 w-20" />
-                  </div>
-                ))}
-              </div>
-              <div className="px-4 lg:px-6">
-                <Skeleton className="h-96 w-full" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
+      <PageSkeleton
+        cardsCount={4}
+        tableRowsCount={5}
+        tableColumnsCount={6}
+        showSearchBar={true}
+        showTableActions={true}
+        showActionButton={false}
+      />
     );
   }
 

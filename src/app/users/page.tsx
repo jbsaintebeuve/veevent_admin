@@ -13,6 +13,7 @@ import { fetchUsers } from "@/lib/fetch-users";
 import { User } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
 import { UsersTable } from "@/components/tables/users-table";
+import { PageSkeleton } from "@/components/page-skeleton";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
@@ -265,55 +266,15 @@ export default function UsersPage() {
   // Loading state
   if (isLoading) {
     return (
-      <>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="flex items-center justify-between px-4 lg:px-6">
-                <div>
-                  <Skeleton className="h-8 w-32 mb-2" />
-                  <Skeleton className="h-4 w-64" />
-                </div>
-              </div>
-
-              {/* Stats Cards Skeleton */}
-              <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                  <Card key={i} className="@container/card">
-                    <CardHeader>
-                      <Skeleton className="h-4 w-24 mb-2" />
-                      <Skeleton className="h-8 w-16 mb-4" />
-                      <Skeleton className="h-6 w-20" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-4 w-32 mb-1" />
-                      <Skeleton className="h-3 w-24" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <div className="px-4 lg:px-6">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-3">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="flex items-center space-x-4">
-                          <Skeleton className="h-10 w-10 rounded-full" />
-                          <Skeleton className="h-4 flex-1" />
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-8 w-16" />
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
+      <PageSkeleton
+        cardsCount={4}
+        tableRowsCount={5}
+        tableColumnsCount={6}
+        showSearchBar={true}
+        showTableActions={true}
+        showAvatars={true}
+        showActionButton={false}
+      />
     );
   }
 
