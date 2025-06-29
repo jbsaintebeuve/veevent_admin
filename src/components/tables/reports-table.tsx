@@ -161,9 +161,6 @@ export function ReportsTable({
                   );
               }
             })()}
-            <span className="text-xs text-muted-foreground">
-              Signalement #{row.index + 1}
-            </span>
           </div>
         </div>
       ),
