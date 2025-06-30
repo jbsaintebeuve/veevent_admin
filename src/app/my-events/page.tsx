@@ -44,29 +44,28 @@ export default function MyEventsPage() {
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
 
   // Statistiques optimisées avec useMemo - une seule boucle au lieu de 4
-  const { totalEvents, upcomingCount, ongoingCount, completedCount } =
+  const { totalEvents, upcomingCount, completedCount, averageParticipants } =
     useMemo(() => {
       const stats = {
         totalEvents: events.length,
         upcomingCount: 0,
-        ongoingCount: 0,
         completedCount: 0,
+        averageParticipants: 0,
       };
-
+      let totalParticipants = 0;
       events.forEach((event) => {
         switch (event.status) {
           case "NOT_STARTED":
             stats.upcomingCount++;
             break;
-          case "ONGOING":
-            stats.ongoingCount++;
-            break;
           case "COMPLETED":
             stats.completedCount++;
             break;
         }
+        totalParticipants += event.currentParticipants;
       });
-
+      stats.averageParticipants =
+        events.length > 0 ? Math.round(totalParticipants / events.length) : 0;
       return stats;
     }, [events]);
 
@@ -113,23 +112,27 @@ export default function MyEventsPage() {
         },
       },
       {
-        id: "ongoing",
-        title: "En cours",
-        description: "Événements en cours",
-        value: ongoingCount,
+        id: "average-participants",
+        title: "Participants moyens",
+        description: "Moyenne de participants par événement",
+        value: averageParticipants,
         trend: {
-          value: ongoingCount > 2 ? 5.4 : ongoingCount > 0 ? 1.2 : 0,
-          isPositive: ongoingCount > 0,
+          value: averageParticipants,
+          isPositive: averageParticipants > 0,
           label:
-            ongoingCount > 2
-              ? "Très actif"
-              : ongoingCount > 0
-              ? "En direct"
-              : "Aucun en cours",
+            averageParticipants > 100
+              ? "Très populaire"
+              : averageParticipants > 50
+              ? "Bonne affluence"
+              : averageParticipants > 10
+              ? "Participation correcte"
+              : averageParticipants > 0
+              ? "Quelques participants"
+              : "Aucun participant",
         },
         footer: {
-          primary: ongoingCount === 1 ? "événement" : "événements",
-          secondary: "en cours",
+          primary: averageParticipants === 1 ? "participant" : "participants",
+          secondary: "par événement",
         },
       },
       {
@@ -153,7 +156,7 @@ export default function MyEventsPage() {
         },
       },
     ],
-    [totalEvents, upcomingCount, ongoingCount, completedCount]
+    [totalEvents, upcomingCount, completedCount, averageParticipants]
   );
 
   const handleDelete = (deleteUrl: string, name: string) => {

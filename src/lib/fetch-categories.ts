@@ -80,3 +80,16 @@ export async function deleteCategory(deleteUrl: string, token?: string) {
   });
   if (!res.ok) throw new Error("Erreur lors de la suppression");
 }
+
+export async function fetchCategoriesCounts(
+  token?: string
+): Promise<Record<string, number>> {
+  const res = await fetch(`${API_URL}/categories/counts`, {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!res.ok)
+    throw new Error("Erreur lors du chargement des comptes de catégories");
+  return await res.json();
+}

@@ -10,7 +10,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
-import { fetchCategories, deleteCategory } from "@/lib/fetch-categories";
+import {
+  fetchCategories,
+  deleteCategory,
+  fetchCategoriesCounts,
+} from "@/lib/fetch-categories";
 import { useAuth } from "@/hooks/use-auth";
 import { CategoriesApiResponse } from "@/types/category";
 import { CategoriesTable } from "@/components/tables/categories-table";
@@ -28,6 +32,15 @@ export default function CategoriesPage() {
   } = useQuery<CategoriesApiResponse>({
     queryKey: ["categories"],
     queryFn: () => fetchCategories(getToken() || undefined),
+  });
+
+  const {
+    data: categoriesCounts,
+    isLoading: isLoadingCounts,
+    error: errorCounts,
+  } = useQuery<Record<string, number>>({
+    queryKey: ["categories-counts"],
+    queryFn: () => fetchCategoriesCounts(getToken() || undefined),
   });
 
   const categories = categoriesResponse?._embedded?.categories || [];
@@ -181,7 +194,7 @@ export default function CategoriesPage() {
   );
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || isLoadingCounts) {
     return (
       <PageSkeleton
         cardsCount={3}
@@ -194,7 +207,7 @@ export default function CategoriesPage() {
   }
 
   // Error state
-  if (error) {
+  if (error || errorCounts) {
     return (
       <>
         <SiteHeader />
@@ -239,6 +252,7 @@ export default function CategoriesPage() {
               onSearchChange={setSearch}
               onDelete={handleDelete}
               deleteLoading={deleteMutation.isPending}
+              eventCounts={categoriesCounts}
             />
           </div>
         </div>

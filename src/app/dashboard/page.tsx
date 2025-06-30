@@ -1,94 +1,358 @@
+"use client";
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { DataTable } from "@/components/data-table";
-import { SectionCards, type CardData } from "@/components/section-cards"; // ✅ Import du type
+import { SectionCards, type CardData } from "@/components/section-cards";
 import { SiteHeader } from "@/components/site-header";
-
-import data from "./data.json";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { fetchEvents, fetchUserEvents } from "@/lib/fetch-events";
+import { fetchUsers } from "@/lib/fetch-users";
+import { fetchReports } from "@/lib/fetch-reports";
+import { PageSkeleton } from "@/components/page-skeleton";
+import { fetchUserInvitations } from "@/lib/fetch-invitations";
 
 export default function Page() {
-  // ✅ Fausses données pour le dashboard
-  const dashboardCardsData: CardData[] = [
-    {
-      id: "total-revenue",
-      title: "Revenus totaux",
-      description: "Revenus totaux",
-      value: "€45,231.89",
-      trend: {
-        value: 20.1,
-        isPositive: true,
-        label: "Croissance mensuelle",
-      },
-      footer: {
-        primary: "Croissance mensuelle",
-        secondary: "par rapport au mois dernier",
-      },
-    },
-    {
-      id: "total-users",
-      title: "Utilisateurs",
-      description: "Utilisateurs totaux",
-      value: 2350,
-      trend: {
-        value: 15.3,
-        isPositive: true,
-        label: "Nouveaux utilisateurs",
-      },
-      footer: {
-        primary: "Nouveaux utilisateurs",
-        secondary: "utilisateurs enregistrés",
-      },
-    },
-    {
-      id: "total-events",
-      title: "Événements",
-      description: "Événements totaux",
-      value: 156,
-      trend: {
-        value: 8.7,
-        isPositive: true,
-        label: "Événements actifs",
-      },
-      footer: {
-        primary: "Événements actifs",
-        secondary: "événements programmés",
-      },
-    },
-    {
-      id: "conversion-rate",
-      title: "Taux de conversion",
-      description: "Taux de conversion",
-      value: "12.5%",
-      trend: {
-        value: -2.4,
-        isPositive: false,
-        label: "Optimisation nécessaire",
-      },
-      footer: {
-        primary: "Optimisation nécessaire",
-        secondary: "visiteurs convertis en clients",
-      },
-    },
-  ];
+  const { getToken } = useAuth();
+  const token = getToken() || undefined;
+  const user = useAuth().user;
+  const role = user?.role?.toUpperCase();
 
-  return (
-    <>
-      <SiteHeader />
-      <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col gap-2">
-          <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* ✅ SectionCards avec les données */}
-            <SectionCards
-              cards={dashboardCardsData}
-              gridCols={4}
-              className="mb-2"
-            />
-            <div className="px-4 lg:px-6">
-              <ChartAreaInteractive />
+  // ADMIN & AUTHSERVICE DASHBOARD
+  const isAdminLike = role === "ADMIN" || role === "AUTHSERVICE";
+
+  const {
+    data: eventsResponse,
+    isLoading: isLoadingEvents,
+    error: errorEvents,
+  } = useQuery({
+    queryKey: ["dashboard-events"],
+    queryFn: () => fetchEvents(token),
+    enabled: isAdminLike,
+  });
+
+  const {
+    data: users,
+    isLoading: isLoadingUsers,
+    error: errorUsers,
+  } = useQuery({
+    queryKey: ["dashboard-users"],
+    queryFn: () => fetchUsers(token),
+    enabled: isAdminLike,
+  });
+
+  const {
+    data: reports,
+    isLoading: isLoadingReports,
+    error: errorReports,
+  } = useQuery({
+    queryKey: ["dashboard-reports"],
+    queryFn: () => fetchReports(token),
+    enabled: isAdminLike,
+  });
+
+  // ORGANIZER DASHBOARD
+  const userEventsUrl = user?._links?.events?.href;
+  const userInvitationsUrl = user?._links?.invitations?.href;
+
+  const {
+    data: myEventsResponse,
+    isLoading: isLoadingMyEvents,
+    error: errorMyEvents,
+  } = useQuery({
+    queryKey: ["dashboard-my-events", user?.id],
+    queryFn: () => fetchUserEvents(userEventsUrl, token),
+    enabled: !!user?.id && !!userEventsUrl && role === "ORGANIZER",
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  const {
+    data: myInvitationsResponse,
+    isLoading: isLoadingMyInvitations,
+    error: errorMyInvitations,
+  } = useQuery({
+    queryKey: ["dashboard-my-invitations", user?.id],
+    queryFn: () => fetchUserInvitations(token),
+    enabled:
+      !!token && !!user?.id && !!userInvitationsUrl && role === "ORGANIZER",
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  const isLoadingAdmin =
+    isAdminLike && (isLoadingEvents || isLoadingUsers || isLoadingReports);
+  const isErrorAdmin =
+    isAdminLike && (errorEvents || errorUsers || errorReports);
+  const isLoadingOrganizer =
+    role === "ORGANIZER" && (isLoadingMyEvents || isLoadingMyInvitations);
+  const isErrorOrganizer =
+    role === "ORGANIZER" && (errorMyEvents || errorMyInvitations);
+
+  if (
+    isLoadingAdmin ||
+    isErrorAdmin ||
+    isLoadingOrganizer ||
+    isErrorOrganizer
+  ) {
+    return (
+      <PageSkeleton
+        cardsCount={4}
+        tableRowsCount={0}
+        tableColumnsCount={0}
+        showSearchBar={false}
+        showTableActions={false}
+        showActionButton={false}
+        title="Dashboard"
+        description="Chargement des statistiques..."
+      />
+    );
+  }
+
+  // Calculs
+  const events = eventsResponse?._embedded?.eventSummaryResponses || [];
+  const totalEvents = events.length;
+  const totalParticipants = events.reduce(
+    (sum, e) => sum + (e.currentParticipants || 0),
+    0
+  );
+  const averageParticipants =
+    totalEvents > 0 ? Math.round(totalParticipants / totalEvents) : 0;
+
+  const totalUsers = users?.length || 0;
+  const totalReports = Array.isArray(reports) ? reports.length : 0;
+
+  // ADMIN & AUTHSERVICE CARDS
+  if (isAdminLike) {
+    // Cards dashboard
+    const dashboardCardsData: CardData[] = [
+      {
+        id: "total-events",
+        title: "Événements",
+        description: "Événements totaux",
+        value: totalEvents,
+        trend: {
+          value: totalEvents,
+          isPositive: totalEvents > 0,
+          label: totalEvents > 0 ? "Plateforme active" : "Aucun événement",
+        },
+        footer: {
+          primary: totalEvents === 1 ? "événement" : "événements",
+          secondary: "programmés",
+        },
+      },
+      {
+        id: "average-participants",
+        title: "Participants moyens",
+        description: "Moyenne de participants par événement",
+        value: averageParticipants,
+        trend: {
+          value: averageParticipants,
+          isPositive: averageParticipants > 0,
+          label:
+            averageParticipants > 100
+              ? "Très populaire"
+              : averageParticipants > 50
+              ? "Bonne affluence"
+              : averageParticipants > 10
+              ? "Participation correcte"
+              : averageParticipants > 0
+              ? "Quelques participants"
+              : "Aucun participant",
+        },
+        footer: {
+          primary: averageParticipants === 1 ? "participant" : "participants",
+          secondary: "par événement",
+        },
+      },
+      {
+        id: "total-users",
+        title: "Utilisateurs",
+        description: "Utilisateurs inscrits",
+        value: totalUsers,
+        trend: {
+          value: totalUsers,
+          isPositive: totalUsers > 0,
+          label:
+            totalUsers > 100
+              ? "Grande communauté"
+              : totalUsers > 20
+              ? "Communauté active"
+              : totalUsers > 0
+              ? "Premiers utilisateurs"
+              : "Aucun utilisateur",
+        },
+        footer: {
+          primary: totalUsers === 1 ? "utilisateur" : "utilisateurs",
+          secondary: "inscrits",
+        },
+      },
+      {
+        id: "total-reports",
+        title: "Signalements",
+        description: "Signalements reçus",
+        value: totalReports,
+        trend: {
+          value: totalReports,
+          isPositive: totalReports === 0,
+          label:
+            totalReports === 0
+              ? "Plateforme saine"
+              : totalReports < 5
+              ? "Peu de signalements"
+              : totalReports < 20
+              ? "À surveiller"
+              : "Modération nécessaire",
+        },
+        footer: {
+          primary: totalReports === 1 ? "signalement" : "signalements",
+          secondary: "reçus",
+        },
+      },
+    ];
+
+    return (
+      <>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              {/* ✅ SectionCards avec les données */}
+              <SectionCards
+                cards={dashboardCardsData}
+                gridCols={4}
+                className="mb-2"
+              />
+              <div className="px-4 lg:px-6">
+                <ChartAreaInteractive />
+              </div>
             </div>
-            <DataTable data={data} />
           </div>
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  }
+
+  // ORGANIZER CARDS
+  if (role === "ORGANIZER") {
+    const events = myEventsResponse?._embedded?.eventSummaryResponses || [];
+    const totalEvents = events.length;
+    const totalParticipants = events.reduce(
+      (sum, e) => sum + (e.currentParticipants || 0),
+      0
+    );
+    const averageParticipants =
+      totalEvents > 0 ? Math.round(totalParticipants / totalEvents) : 0;
+    let upcomingCount = 0;
+    events.forEach((event) => {
+      if (event.status === "NOT_STARTED") upcomingCount++;
+    });
+    const invitations = myInvitationsResponse?._embedded?.invitations || [];
+    const pendingInvitations = invitations.filter(
+      (inv) => inv.status === "PENDING"
+    ).length;
+    const dashboardCardsData: CardData[] = [
+      {
+        id: "total-my-events",
+        title: "Mes événements",
+        description: "Total organisés",
+        value: totalEvents,
+        trend: {
+          value: totalEvents,
+          isPositive: totalEvents > 0,
+          label:
+            totalEvents > 10
+              ? "Organisateur actif"
+              : totalEvents > 0
+              ? "Quelques événements"
+              : "Aucun événement",
+        },
+        footer: {
+          primary: totalEvents === 1 ? "événement" : "événements",
+          secondary: "organisés par vous",
+        },
+      },
+      {
+        id: "upcoming-my-events",
+        title: "À venir",
+        description: "Événements à venir",
+        value: upcomingCount,
+        trend: {
+          value: upcomingCount,
+          isPositive: upcomingCount > 0,
+          label:
+            upcomingCount > 5
+              ? "Beaucoup à venir"
+              : upcomingCount > 0
+              ? "Préparez-vous"
+              : "Aucun à venir",
+        },
+        footer: {
+          primary: upcomingCount === 1 ? "événement" : "événements",
+          secondary: "à venir",
+        },
+      },
+      {
+        id: "average-participants-my-events",
+        title: "Participants moyens",
+        description: "Par événement organisé",
+        value: averageParticipants,
+        trend: {
+          value: averageParticipants,
+          isPositive: averageParticipants > 0,
+          label:
+            averageParticipants > 100
+              ? "Très populaire"
+              : averageParticipants > 50
+              ? "Bonne affluence"
+              : averageParticipants > 10
+              ? "Participation correcte"
+              : averageParticipants > 0
+              ? "Quelques participants"
+              : "Aucun participant",
+        },
+        footer: {
+          primary: averageParticipants === 1 ? "participant" : "participants",
+          secondary: "par événement",
+        },
+      },
+      {
+        id: "pending-invitations",
+        title: "Invitations en attente",
+        description: "Invitations à traiter",
+        value: pendingInvitations,
+        trend: {
+          value: pendingInvitations,
+          isPositive: pendingInvitations > 0,
+          label:
+            pendingInvitations > 5
+              ? "Très sollicité"
+              : pendingInvitations > 0
+              ? "À traiter"
+              : "Aucune en attente",
+        },
+        footer: {
+          primary: pendingInvitations === 1 ? "invitation" : "invitations",
+          secondary: "en attente",
+        },
+      },
+    ];
+    return (
+      <>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <SectionCards
+                cards={dashboardCardsData}
+                gridCols={4}
+                className="mb-2"
+              />
+              <div className="px-4 lg:px-6">
+                <ChartAreaInteractive />
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 }

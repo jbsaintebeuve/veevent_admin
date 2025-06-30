@@ -165,3 +165,38 @@ export async function updateUserProfile(
 
   console.log("✅ Profil mis à jour avec succès");
 }
+
+export async function banOrUnbanUser(
+  userId: number,
+  role: string,
+  token?: string
+): Promise<void> {
+  // Récupérer l'utilisateur pour obtenir le HAL link
+  const userRes = await fetch(`${API_URL}/users/${userId}`, {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!userRes.ok) {
+    throw new Error(
+      `Erreur lors de la récupération de l'utilisateur (${userRes.status})`
+    );
+  }
+  const userData = await userRes.json();
+  const patchUrl = userData._links?.self?.href;
+  if (!patchUrl) {
+    throw new Error("Lien de modification HAL manquant");
+  }
+  const res = await fetch(patchUrl, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Erreur ${res.status}: ${errorText}`);
+  }
+}

@@ -83,32 +83,35 @@ export default function EventsPage() {
   );
 
   // Calculs des statistiques optimisés avec useMemo - une seule boucle au lieu de 4
-  const { upcomingEvents, ongoingEvents, completedEvents, totalParticipants } =
-    useMemo(() => {
-      const stats = {
-        upcomingEvents: 0,
-        ongoingEvents: 0,
-        completedEvents: 0,
-        totalParticipants: 0,
-      };
-
-      events.forEach((event) => {
-        switch (event.status) {
-          case "NOT_STARTED":
-            stats.upcomingEvents++;
-            break;
-          case "ONGOING":
-            stats.ongoingEvents++;
-            break;
-          case "COMPLETED":
-            stats.completedEvents++;
-            break;
-        }
-        stats.totalParticipants += event.currentParticipants;
-      });
-
-      return stats;
-    }, [events]);
+  const {
+    upcomingEvents,
+    completedEvents,
+    totalParticipants,
+    averageParticipants,
+  } = useMemo(() => {
+    const stats = {
+      upcomingEvents: 0,
+      completedEvents: 0,
+      totalParticipants: 0,
+      averageParticipants: 0,
+    };
+    let eventCount = 0;
+    events.forEach((event) => {
+      switch (event.status) {
+        case "NOT_STARTED":
+          stats.upcomingEvents++;
+          break;
+        case "COMPLETED":
+          stats.completedEvents++;
+          break;
+      }
+      stats.totalParticipants += event.currentParticipants;
+      eventCount++;
+    });
+    stats.averageParticipants =
+      eventCount > 0 ? Math.round(stats.totalParticipants / eventCount) : 0;
+    return stats;
+  }, [events]);
 
   // ✅ Données pour SectionCards optimisées avec useMemo
   const cardsData: CardData[] = useMemo(
@@ -198,39 +201,27 @@ export default function EventsPage() {
         },
       },
       {
-        id: "ongoing",
-        title: "En cours",
-        description: "Événements actifs",
-        value: ongoingEvents,
+        id: "average-participants",
+        title: "Participants moyens",
+        description: "Moyenne de participants par événement",
+        value: averageParticipants,
         trend: {
-          value:
-            ongoingEvents > 5
-              ? 30.2
-              : ongoingEvents > 2
-              ? 20.1
-              : ongoingEvents > 0
-              ? 10.5
-              : 0,
-          isPositive: ongoingEvents > 0,
+          value: averageParticipants,
+          isPositive: averageParticipants > 0,
           label:
-            ongoingEvents > 5
-              ? "Très actif"
-              : ongoingEvents > 2
-              ? "Bonne activité"
-              : ongoingEvents > 0
-              ? "En cours"
-              : "Aucun événement actif",
+            averageParticipants > 100
+              ? "Très populaire"
+              : averageParticipants > 50
+              ? "Bonne affluence"
+              : averageParticipants > 10
+              ? "Participation correcte"
+              : averageParticipants > 0
+              ? "Quelques participants"
+              : "Aucun participant",
         },
         footer: {
-          primary:
-            ongoingEvents > 5
-              ? "Très actif"
-              : ongoingEvents > 2
-              ? "Bonne activité"
-              : ongoingEvents > 0
-              ? "En cours"
-              : "Aucun événement actif",
-          secondary: "événements actifs",
+          primary: averageParticipants === 1 ? "participant" : "participants",
+          secondary: "par événement",
         },
       },
       {
@@ -276,7 +267,7 @@ export default function EventsPage() {
         },
       },
     ],
-    [events, upcomingEvents, ongoingEvents, totalParticipants]
+    [events, upcomingEvents, totalParticipants, averageParticipants]
   );
 
   // Loading state

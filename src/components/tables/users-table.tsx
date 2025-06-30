@@ -77,6 +77,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Trash2, Check, Ban } from "lucide-react";
+import { banOrUnbanUser } from "@/lib/fetch-user";
+import { useAuth } from "@/hooks/use-auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 function DragHandle({ id }: { id: number }) {
   const { attributes, listeners } = useSortable({ id });
@@ -110,12 +114,14 @@ export function UsersTable({
   onSearchChange,
   onDelete,
   deleteLoading,
+  onBanToggle,
 }: {
   data: User[];
   search: string;
   onSearchChange: (v: string) => void;
   onDelete: (deleteUrl: string, name: string) => void;
   deleteLoading: boolean;
+  onBanToggle: (user: User) => void;
 }) {
   const columns: ColumnDef<User>[] = [
     {
@@ -219,6 +225,57 @@ export function UsersTable({
           {row.original.phone || "Non renseigné"}
         </span>
       ),
+    },
+    {
+      id: "actions",
+      header: () => <div className="w-full text-right"></div>,
+      cell: ({ row }) => {
+        const user = row.original;
+        const isBanned = (user.role ?? "").toLowerCase() === "banned";
+        const isAdmin = (user.role ?? "").toLowerCase() === "admin";
+        if (isAdmin) {
+          return null;
+        }
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              >
+                <IconDotsVertical />
+                <span className="sr-only">Ouvrir le menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onBanToggle(user);
+                }}
+                className={
+                  isBanned
+                    ? "text-green-600"
+                    : "text-red-600 focus:text-red-600"
+                }
+              >
+                {isBanned ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Débannir
+                  </>
+                ) : (
+                  <>
+                    <Ban className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Bannir
+                  </>
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
     },
   ];
 

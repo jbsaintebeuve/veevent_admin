@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
@@ -14,10 +14,26 @@ import { User } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
 import { UsersTable } from "@/components/tables/users-table";
 import { PageSkeleton } from "@/components/page-skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { banOrUnbanUser } from "@/lib/fetch-user";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
   const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [banTargetUser, setBanTargetUser] = useState<User | null>(null);
+  const [banLoading, setBanLoading] = useState(false);
+  const [banError, setBanError] = useState<string | null>(null);
 
   const fetchUsersWithToken = () => fetchUsers(getToken() || undefined);
 
@@ -263,6 +279,34 @@ export default function UsersPage() {
     [users, adminCount, organizerCount, userCount]
   );
 
+  const handleBanToggle = (user: User) => {
+    setBanTargetUser(user);
+    setBanDialogOpen(true);
+    setBanError(null);
+  };
+
+  const confirmBanToggle = async () => {
+    if (!banTargetUser) return;
+    setBanLoading(true);
+    setBanError(null);
+    try {
+      const token = getToken() || undefined;
+      const isBanned = (banTargetUser.role ?? "").toLowerCase() === "banned";
+      await banOrUnbanUser(
+        banTargetUser.id,
+        isBanned ? "User" : "Banned",
+        token
+      );
+      await queryClient.invalidateQueries({ queryKey: ["users"] });
+      setBanDialogOpen(false);
+      setBanTargetUser(null);
+    } catch (e: any) {
+      setBanError(e.message || "Erreur inconnue");
+    } finally {
+      setBanLoading(false);
+    }
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -356,10 +400,56 @@ export default function UsersPage() {
               onSearchChange={setSearch}
               onDelete={handleDelete}
               deleteLoading={false}
+              onBanToggle={handleBanToggle}
             />
           </div>
         </div>
       </div>
+      {/* Dialog Bannir/Débannir */}
+      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {banTargetUser &&
+              (banTargetUser.role ?? "").toLowerCase() === "banned"
+                ? "Débannir l'utilisateur"
+                : "Bannir l'utilisateur"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {banTargetUser &&
+              (banTargetUser.role ?? "").toLowerCase() === "banned"
+                ? `Voulez-vous vraiment débannir l'utilisateur "${banTargetUser.firstName} ${banTargetUser.lastName}" ? Il pourra à nouveau accéder à la plateforme.`
+                : `Voulez-vous vraiment bannir l'utilisateur "${banTargetUser?.firstName} ${banTargetUser?.lastName}" ? Il ne pourra plus se connecter.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={banLoading}
+              onClick={() => setBanDialogOpen(false)}
+            >
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBanToggle}
+              className={
+                banTargetUser &&
+                (banTargetUser.role ?? "").toLowerCase() === "banned"
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              }
+              disabled={banLoading}
+            >
+              {banTargetUser &&
+              (banTargetUser.role ?? "").toLowerCase() === "banned"
+                ? "Débannir"
+                : "Bannir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+          {banError && (
+            <div className="text-xs text-red-600 mt-2">{banError}</div>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

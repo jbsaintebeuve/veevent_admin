@@ -117,12 +117,14 @@ export function CategoriesTable({
   onSearchChange,
   onDelete,
   deleteLoading,
+  eventCounts,
 }: {
   data: Category[];
   search: string;
   onSearchChange: (v: string) => void;
   onDelete: (deleteUrl: string, name: string) => void;
   deleteLoading: boolean;
+  eventCounts?: Record<string, number>;
 }) {
   const columns: ColumnDef<Category>[] = [
     {
@@ -186,6 +188,16 @@ export function CategoriesTable({
           )}
         </div>
       ),
+    },
+    {
+      accessorKey: "eventCount",
+      header: "Nombre d'événements",
+      cell: ({ row }) => (
+        <span className="text-center">
+          {eventCounts?.[row.original.key] ?? 0}
+        </span>
+      ),
+      enableHiding: false,
     },
     {
       id: "actions",
