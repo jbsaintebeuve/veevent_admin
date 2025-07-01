@@ -622,7 +622,9 @@ export function CreateEventDialog({
               <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
               <NovelEditor
                 value={form.contentHtml}
-                onChange={(value) => setForm(prev => ({ ...prev, contentHtml: value }))}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, contentHtml: value }))
+                }
                 placeholder="Écrivez votre description détaillée ici. Utilisez '/' pour accéder aux commandes..."
                 className="min-h-[300px]"
               />

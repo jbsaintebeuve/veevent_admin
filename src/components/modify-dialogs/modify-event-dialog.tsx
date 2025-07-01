@@ -93,7 +93,9 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
 
   useEffect(() => {
     if (eventDetails) {
-      const eventDate = eventDetails.date ? new Date(eventDetails.date) : undefined;
+      const eventDate = eventDetails.date
+        ? new Date(eventDetails.date)
+        : undefined;
       const eventTime = eventDate
         ? eventDate.toLocaleTimeString("fr-FR", {
             hour: "2-digit",
@@ -111,7 +113,10 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         price: eventDetails.price?.toString() || "",
         maxCustomers: eventDetails.maxCustomers?.toString() || "",
         imageUrl: eventDetails.imageUrl || "",
-        categoryKeys: eventDetails.categories?.map((cat: { name: string; key: string }) => cat.key) || [],
+        categoryKeys:
+          eventDetails.categories?.map(
+            (cat: { name: string; key: string }) => cat.key
+          ) || [],
         isTrending: eventDetails.isTrending || false,
         status: eventDetails.status || "NOT_STARTED",
         contentHtml: eventDetails.contentHtml || "",
@@ -176,14 +181,14 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
 
       // Extraire les IDs depuis les liens HAL de l'événement original
       const extractIdFromUrl = (url: string) => {
-        const parts = url.split('/');
+        const parts = url.split("/");
         return parseInt(parts[parts.length - 1]);
       };
 
-      const cityId = eventDetails?._links?.city?.href 
+      const cityId = eventDetails?._links?.city?.href
         ? extractIdFromUrl(eventDetails._links.city.href)
         : 0;
-      const placeId = eventDetails?._links?.places?.href 
+      const placeId = eventDetails?._links?.places?.href
         ? extractIdFromUrl(eventDetails._links.places.href)
         : 0;
 
@@ -294,7 +299,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                 disabled={loading}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="description">Description *</Label>
               <Input
@@ -383,9 +388,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="maxCustomers">
-                  Participants maximum *
-                </Label>
+                <Label htmlFor="maxCustomers">Participants maximum *</Label>
                 <Input
                   id="maxCustomers"
                   name="maxCustomers"
@@ -414,7 +417,9 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
               <div className="grid gap-2">
                 <Label>Ville</Label>
                 <Input
-                  value={eventDetails?.cityName || event.cityName || "Non renseignée"}
+                  value={
+                    eventDetails?.cityName || event.cityName || "Non renseignée"
+                  }
                   disabled
                   className="bg-muted text-muted-foreground"
                 />
@@ -423,7 +428,11 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
               <div className="grid gap-2">
                 <Label>Lieu</Label>
                 <Input
-                  value={eventDetails?.placeName || event.placeName || "Non renseigné"}
+                  value={
+                    eventDetails?.placeName ||
+                    event.placeName ||
+                    "Non renseigné"
+                  }
                   disabled
                   className="bg-muted text-muted-foreground"
                 />
@@ -476,7 +485,9 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
               <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
               <NovelEditor
                 value={form.contentHtml}
-                onChange={(value) => setForm(prev => ({ ...prev, contentHtml: value }))}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, contentHtml: value }))
+                }
                 placeholder="Écrivez votre description détaillée ici. Utilisez '/' pour accéder aux commandes..."
                 className="min-h-[300px]"
               />

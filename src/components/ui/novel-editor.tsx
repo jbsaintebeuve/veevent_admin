@@ -138,7 +138,12 @@ export function NovelEditor({
 
   if (!editor) {
     return (
-      <div className={cn("border rounded-lg bg-background animate-pulse", className)}>
+      <div
+        className={cn(
+          "border rounded-lg bg-background animate-pulse",
+          className
+        )}
+      >
         <div className="h-12 bg-muted/50 border-b"></div>
         <div className="h-48 p-4">
           <div className="h-4 bg-muted/50 rounded w-3/4 mb-2"></div>
@@ -149,7 +154,12 @@ export function NovelEditor({
   }
 
   return (
-    <div className={cn("border rounded-lg bg-background overflow-hidden", className)}>
+    <div
+      className={cn(
+        "border rounded-lg bg-background overflow-hidden",
+        className
+      )}
+    >
       {/* Toolbar simplifiée */}
       <div className="border-b bg-muted/30 p-2">
         <div className="flex flex-wrap items-center gap-1">
@@ -158,7 +168,9 @@ export function NovelEditor({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={(e) => handleToolbarClick(e, () => editor.chain().focus().undo().run())}
+            onClick={(e) =>
+              handleToolbarClick(e, () => editor.chain().focus().undo().run())
+            }
             disabled={!editor.can().undo()}
             className="h-8 w-8"
           >
@@ -168,7 +180,9 @@ export function NovelEditor({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={(e) => handleToolbarClick(e, () => editor.chain().focus().redo().run())}
+            onClick={(e) =>
+              handleToolbarClick(e, () => editor.chain().focus().redo().run())
+            }
             disabled={!editor.can().redo()}
             className="h-8 w-8"
           >
@@ -180,18 +194,30 @@ export function NovelEditor({
           {/* Titres */}
           <Button
             type="button"
-            variant={editor.isActive("heading", { level: 1 }) ? "default" : "ghost"}
+            variant={
+              editor.isActive("heading", { level: 1 }) ? "default" : "ghost"
+            }
             size="sm"
-            onClick={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleHeading({ level: 1 }).run())}
+            onClick={(e) =>
+              handleToolbarClick(e, () =>
+                editor.chain().focus().toggleHeading({ level: 1 }).run()
+              )
+            }
             className="h-8 px-2"
           >
             <Heading1 className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant={editor.isActive("heading", { level: 2 }) ? "default" : "ghost"}
+            variant={
+              editor.isActive("heading", { level: 2 }) ? "default" : "ghost"
+            }
             size="sm"
-            onClick={(e) => handleToolbarClick(e, () => editor.chain().focus().toggleHeading({ level: 2 }).run())}
+            onClick={(e) =>
+              handleToolbarClick(e, () =>
+                editor.chain().focus().toggleHeading({ level: 2 }).run()
+              )
+            }
             className="h-8 px-2"
           >
             <Heading2 className="h-4 w-4" />
@@ -359,7 +385,7 @@ export function NovelEditor({
       {editor && (
         <BubbleMenu
           editor={editor}
-          tippyOptions={{ 
+          tippyOptions={{
             duration: 100,
             placement: "top-start",
           }}
@@ -384,7 +410,9 @@ export function NovelEditor({
           <Toggle
             size="sm"
             pressed={editor.isActive("underline")}
-            onPressedChange={() => editor.chain().focus().toggleUnderline().run()}
+            onPressedChange={() =>
+              editor.chain().focus().toggleUnderline().run()
+            }
             className="h-8 w-8"
           >
             <UnderlineIcon className="h-3 w-3" />
@@ -404,10 +432,7 @@ export function NovelEditor({
 
       {/* Zone d'édition */}
       <div className="relative">
-        <EditorContent
-          editor={editor}
-          className="outline-none"
-        />
+        <EditorContent editor={editor} className="outline-none" />
       </div>
     </div>
   );

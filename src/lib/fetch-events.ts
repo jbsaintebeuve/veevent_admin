@@ -69,13 +69,17 @@ export async function modifyEvent(
   }
 }
 
-export async function fetchEventDetails(eventId: number, token?: string): Promise<any> {
+export async function fetchEventDetails(
+  eventId: number,
+  token?: string
+): Promise<any> {
   const res = await fetch(`${API_URL}/events/${eventId}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
-  if (!res.ok) throw new Error("Erreur lors du chargement des détails de l'événement");
+  if (!res.ok)
+    throw new Error("Erreur lors du chargement des détails de l'événement");
   return await res.json();
 }
 
