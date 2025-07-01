@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { NovelEditor } from "@/components/ui/novel-editor";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
@@ -24,10 +24,11 @@ import {
   AlertCircle,
   CalendarIcon,
   ClockIcon,
-  ChevronDownIcon,
+  ChevronDown,
 } from "lucide-react";
-import { Event, EventUpdateRequest } from "@/types/event";
-import { modifyEvent } from "@/lib/fetch-events";
+import { Event, EventUpdateRequest, EventDetails } from "@/types/event";
+import { modifyEvent, fetchEventDetails } from "@/lib/fetch-events";
+import { fetchCategories } from "@/lib/fetch-categories";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -36,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchCategories } from "@/lib/fetch-categories";
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -67,8 +67,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
     price: "",
     maxCustomers: "",
     imageUrl: "",
-    cityId: "",
-    placeId: "",
     categoryKeys: [] as string[],
     isTrending: false,
     status: "NOT_STARTED",
@@ -86,9 +84,16 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
   });
   const categories = categoriesResponse?._embedded?.categories || [];
 
+  // Récupération des détails complets de l'événement
+  const { data: eventDetails, isLoading: eventDetailsLoading } = useQuery({
+    queryKey: ["eventDetails", event.id],
+    queryFn: () => fetchEventDetails(event.id, getToken() || undefined),
+    enabled: open && !!event.id,
+  });
+
   useEffect(() => {
-    if (event) {
-      const eventDate = event.date ? new Date(event.date) : undefined;
+    if (eventDetails) {
+      const eventDate = eventDetails.date ? new Date(eventDetails.date) : undefined;
       const eventTime = eventDate
         ? eventDate.toLocaleTimeString("fr-FR", {
             hour: "2-digit",
@@ -96,24 +101,23 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
             hour12: false,
           })
         : "";
+
       setForm({
-        name: event.name || "",
-        description: event.description || "",
+        name: eventDetails.name || "",
+        description: eventDetails.description || "",
         date: eventDate,
         time: eventTime,
-        address: event.address || "",
-        price: event.price?.toString() || "",
-        maxCustomers: event.maxCustomers?.toString() || "",
-        imageUrl: event.imageUrl || "",
-        cityId: "",
-        placeId: "",
-        categoryKeys: event.categories?.map((cat) => cat.key) || [],
-        isTrending: event.isTrending || false,
-        status: event.status || "NOT_STARTED",
-        contentHtml: "",
+        address: eventDetails.address || "",
+        price: eventDetails.price?.toString() || "",
+        maxCustomers: eventDetails.maxCustomers?.toString() || "",
+        imageUrl: eventDetails.imageUrl || "",
+        categoryKeys: eventDetails.categories?.map((cat: { name: string; key: string }) => cat.key) || [],
+        isTrending: eventDetails.isTrending || false,
+        status: eventDetails.status || "NOT_STARTED",
+        contentHtml: eventDetails.contentHtml || "",
       });
     }
-  }, [event]);
+  }, [eventDetails]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -149,7 +153,8 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
       form.price.trim() !== "" &&
       parseFloat(form.price) >= 0 &&
       form.maxCustomers.trim() !== "" &&
-      parseInt(form.maxCustomers) > 0
+      parseInt(form.maxCustomers) > 0 &&
+      form.categoryKeys.length > 0
     );
   }, [form]);
 
@@ -169,6 +174,19 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         ).toISOString();
       };
 
+      // Extraire les IDs depuis les liens HAL de l'événement original
+      const extractIdFromUrl = (url: string) => {
+        const parts = url.split('/');
+        return parseInt(parts[parts.length - 1]);
+      };
+
+      const cityId = eventDetails?._links?.city?.href 
+        ? extractIdFromUrl(eventDetails._links.city.href)
+        : 0;
+      const placeId = eventDetails?._links?.places?.href 
+        ? extractIdFromUrl(eventDetails._links.places.href)
+        : 0;
+
       const payload: EventUpdateRequest = {
         name: form.name.trim(),
         description: form.description.trim(),
@@ -176,8 +194,8 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         address: form.address.trim(),
         maxCustomers: parseInt(form.maxCustomers),
         price: parseFloat(form.price),
-        cityId: parseInt(form.cityId),
-        placeId: parseInt(form.placeId),
+        cityId,
+        placeId,
         categoryKeys: form.categoryKeys,
         imageUrl: form.imageUrl.trim() || undefined,
         isTrending: form.isTrending,
@@ -229,8 +247,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         price: event.price?.toString() || "",
         maxCustomers: event.maxCustomers?.toString() || "",
         imageUrl: event.imageUrl || "",
-        cityId: "",
-        placeId: "",
         categoryKeys: event.categories?.map((cat) => cat.key) || [],
         isTrending: event.isTrending || false,
         status: event.status || "NOT_STARTED",
@@ -278,17 +294,20 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                 disabled={loading}
               />
             </div>
+            
             <div className="grid gap-2">
               <Label htmlFor="description">Description *</Label>
-              <Textarea
+              <Input
                 id="description"
                 name="description"
                 value={form.description}
                 onChange={handleChange}
                 required
                 disabled={loading}
+                placeholder="Description courte de l'événement"
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Date *</Label>
@@ -302,7 +321,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                       {form.date
                         ? format(form.date, "PPP")
                         : "Choisir une date"}
-                      <ChevronDownIcon className="ml-auto h-4 w-4 opacity-50" />
+                      <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -335,6 +354,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                 </div>
               </div>
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="address">Adresse *</Label>
               <Input
@@ -346,28 +366,32 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                 disabled={loading}
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="maxCustomers">
-                  Nombre max. de participants *
-                </Label>
-                <Input
-                  id="maxCustomers"
-                  name="maxCustomers"
-                  type="number"
-                  value={form.maxCustomers}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                />
-              </div>
               <div className="grid gap-2">
                 <Label htmlFor="price">Prix (€) *</Label>
                 <Input
                   id="price"
                   name="price"
                   type="number"
+                  step="0.01"
+                  min="0"
                   value={form.price}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="maxCustomers">
+                  Participants maximum *
+                </Label>
+                <Input
+                  id="maxCustomers"
+                  name="maxCustomers"
+                  type="number"
+                  min="1"
+                  value={form.maxCustomers}
                   onChange={handleChange}
                   required
                   disabled={loading}
@@ -385,18 +409,27 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
               onRemove={handleImageRemove}
               disabled={loading}
             />
-            <div className="grid gap-2">
-              <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
-              <Textarea
-                id="contentHtml"
-                name="contentHtml"
-                value={form.contentHtml}
-                onChange={handleChange}
-                rows={3}
-                placeholder="<p>Rejoignez-nous...</p>"
-                disabled={loading}
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Ville</Label>
+                <Input
+                  value={eventDetails?.cityName || event.cityName || "Non renseignée"}
+                  disabled
+                  className="bg-muted text-muted-foreground"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Lieu</Label>
+                <Input
+                  value={eventDetails?.placeName || event.placeName || "Non renseigné"}
+                  disabled
+                  className="bg-muted text-muted-foreground"
+                />
+              </div>
             </div>
+
             <div className="grid gap-2">
               <Label>Catégories *</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3">
@@ -438,6 +471,17 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                 )}
               </div>
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
+              <NovelEditor
+                value={form.contentHtml}
+                onChange={(value) => setForm(prev => ({ ...prev, contentHtml: value }))}
+                placeholder="Écrivez votre description détaillée ici. Utilisez '/' pour accéder aux commandes..."
+                className="min-h-[300px]"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
