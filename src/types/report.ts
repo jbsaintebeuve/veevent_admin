@@ -9,4 +9,10 @@ export interface ReportsApiResponse {
     reports: Report[];
   };
   _links: any;
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
 }

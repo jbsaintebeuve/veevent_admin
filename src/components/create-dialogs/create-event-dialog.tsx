@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { NovelEditor } from "@/components/ui/novel-editor";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -620,14 +620,13 @@ export function CreateEventDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="contentHtml">Description détaillée (HTML)</Label>
-              <Textarea
-                id="contentHtml"
-                name="contentHtml"
+              <NovelEditor
                 value={form.contentHtml}
-                onChange={handleChange}
-                rows={3}
-                placeholder="<p>Rejoignez-nous...</p>"
-                disabled={loading}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, contentHtml: value }))
+                }
+                placeholder="Écrivez votre description détaillée ici. Utilisez '/' pour accéder aux commandes..."
+                className="min-h-[300px]"
               />
             </div>
 

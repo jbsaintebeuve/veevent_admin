@@ -10,10 +10,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AvatarGroup } from "@/components/ui/avatar-group";
 import { AlertCircle } from "lucide-react";
 import { fetchUsers } from "@/lib/fetch-users";
-import { User } from "@/types/user";
+import { User, UsersApiResponse } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
 import { UsersTable } from "@/components/tables/users-table";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,8 @@ import { banOrUnbanUser } from "@/lib/fetch-user";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [banDialogOpen, setBanDialogOpen] = useState(false);
@@ -35,16 +38,21 @@ export default function UsersPage() {
   const [banLoading, setBanLoading] = useState(false);
   const [banError, setBanError] = useState<string | null>(null);
 
-  const fetchUsersWithToken = () => fetchUsers(getToken() || undefined);
-
   const {
-    data: users,
+    data: usersResponse,
     isLoading,
     error,
-  } = useQuery<User[]>({
-    queryKey: ["users"],
-    queryFn: fetchUsersWithToken,
+  } = useQuery<UsersApiResponse>({
+    queryKey: ["users", currentPage],
+    queryFn: () =>
+      fetchUsers(getToken() || undefined, currentPage - 1, pageSize),
   });
+
+  const users = usersResponse?._embedded?.userResponses || [];
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   // ✅ Filtrage des utilisateurs avec recherche - optimisé avec useMemo
   const filteredUsers = useMemo(() => {
@@ -105,48 +113,55 @@ export default function UsersPage() {
         id: "total",
         title: "Total utilisateurs",
         description: "Tous les utilisateurs",
-        value: users?.length || 0,
+        value: usersResponse?.page?.totalElements || users?.length || 0,
         trend: {
           value:
-            users && users.length > 100
+            (usersResponse?.page?.totalElements || users?.length || 0) > 100
               ? 24.5
-              : users && users.length > 50
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 50
               ? 18.2
-              : users && users.length > 20
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 20
               ? 12.1
-              : users && users.length > 5
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 5
               ? 6.8
-              : users && users.length > 0
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 0
               ? 2.1
               : 0,
-          isPositive: !!(users && users.length > 0),
+          isPositive: !!(
+            usersResponse?.page?.totalElements ||
+            users?.length ||
+            0
+          ),
           label:
-            users && users.length > 100
+            (usersResponse?.page?.totalElements || users?.length || 0) > 100
               ? "Très grande communauté"
-              : users && users.length > 50
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 50
               ? "Grande communauté"
-              : users && users.length > 20
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 20
               ? "Communauté active"
-              : users && users.length > 5
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 5
               ? "Petite communauté"
-              : users && users.length > 0
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 0
               ? "Premiers utilisateurs"
               : "Aucun utilisateur",
         },
         footer: {
           primary:
-            users && users.length > 100
+            (usersResponse?.page?.totalElements || users?.length || 0) > 100
               ? "Très grande communauté"
-              : users && users.length > 50
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 50
               ? "Grande communauté"
-              : users && users.length > 20
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 20
               ? "Communauté active"
-              : users && users.length > 5
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 5
               ? "Petite communauté"
-              : users && users.length > 0
+              : (usersResponse?.page?.totalElements || users?.length || 0) > 0
               ? "Premiers utilisateurs"
               : "Aucun utilisateur",
-          secondary: users?.length === 1 ? "utilisateur" : "utilisateurs",
+          secondary:
+            (usersResponse?.page?.totalElements || users?.length || 0) === 1
+              ? "utilisateur"
+              : "utilisateurs",
         },
       },
       {
@@ -276,7 +291,13 @@ export default function UsersPage() {
         },
       },
     ],
-    [users, adminCount, organizerCount, userCount]
+    [
+      users,
+      adminCount,
+      organizerCount,
+      userCount,
+      usersResponse?.page?.totalElements,
+    ]
   );
 
   const handleBanToggle = (user: User) => {
@@ -402,6 +423,17 @@ export default function UsersPage() {
               deleteLoading={false}
               onBanToggle={handleBanToggle}
             />
+
+            {/* Pagination */}
+            {usersResponse?.page && usersResponse.page.totalPages > 1 && (
+              <div className="flex justify-center px-4 lg:px-6">
+                <PaginationWrapper
+                  currentPage={currentPage}
+                  totalPages={usersResponse.page.totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

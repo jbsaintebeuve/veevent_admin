@@ -30,7 +30,7 @@ export default function Page() {
   });
 
   const {
-    data: users,
+    data: usersResponse,
     isLoading: isLoadingUsers,
     error: errorUsers,
   } = useQuery({
@@ -40,7 +40,7 @@ export default function Page() {
   });
 
   const {
-    data: reports,
+    data: reportsResponse,
     isLoading: isLoadingReports,
     error: errorReports,
   } = useQuery({
@@ -117,8 +117,11 @@ export default function Page() {
   const averageParticipants =
     totalEvents > 0 ? Math.round(totalParticipants / totalEvents) : 0;
 
-  const totalUsers = users?.length || 0;
-  const totalReports = Array.isArray(reports) ? reports.length : 0;
+  const totalUsers =
+    usersResponse?.page?.totalElements ||
+    usersResponse?._embedded?.userResponses?.length ||
+    0;
+  const totalReports = reportsResponse?.page?.totalElements || 0;
 
   // ADMIN & AUTHSERVICE CARDS
   if (isAdminLike) {

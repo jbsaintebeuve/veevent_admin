@@ -32,7 +32,12 @@ export interface EventsApiResponse {
     eventSummaryResponses: Event[];
   };
   _links: any;
-  page: any;
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
 }
 
 export interface EventRequest {
@@ -53,3 +58,38 @@ export interface EventRequest {
 
 export type EventCreateRequest = EventRequest;
 export type EventUpdateRequest = EventRequest;
+
+export interface EventDetails {
+  id: number;
+  date: string;
+  description: string;
+  name: string;
+  address: string;
+  maxCustomers: number;
+  isTrending: boolean;
+  isInvitationOnly: boolean;
+  price: number;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
+  contentHtml: string;
+  imageUrl: string;
+  currentParticipants: number;
+  organizer: {
+    pseudo: string;
+    lastName: string;
+    firstName: string;
+    imageUrl: string | null;
+    note: number | null;
+  };
+  cityName: string;
+  placeName: string;
+  categories: Array<{
+    name: string;
+    key: string;
+  }>;
+  _links: {
+    self: { href: string };
+    places: { href: string };
+    city: { href: string };
+    [key: string]: any;
+  };
+}

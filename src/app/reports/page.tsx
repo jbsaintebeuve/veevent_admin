@@ -9,25 +9,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { fetchReports } from "@/lib/fetch-reports";
-import { Report } from "@/types/report";
+import { Report, ReportsApiResponse } from "@/types/report";
 import { useAuth } from "@/hooks/use-auth";
 import { ReportsTable } from "@/components/tables/reports-table";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function ReportsPage() {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const { getToken } = useAuth();
 
-  const fetchReportsWithToken = () => fetchReports(getToken() || undefined);
-
   const {
-    data: reports,
+    data: reportsResponse,
     isLoading,
     error,
-  } = useQuery<Report[]>({
-    queryKey: ["reports"],
-    queryFn: fetchReportsWithToken,
+  } = useQuery<ReportsApiResponse>({
+    queryKey: ["reports", currentPage],
+    queryFn: () =>
+      fetchReports(getToken() || undefined, currentPage - 1, pageSize),
   });
+
+  const reports = reportsResponse?._embedded?.reports || [];
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   // Filtrage des signalements avec recherche
   const filteredReports = useMemo(() => {
@@ -297,6 +305,17 @@ export default function ReportsPage() {
               onDelete={handleDelete}
               deleteLoading={false}
             />
+
+            {/* Pagination */}
+            {reportsResponse?.page && reportsResponse.page.totalPages > 1 && (
+              <div className="flex justify-center px-4 lg:px-6">
+                <PaginationWrapper
+                  currentPage={currentPage}
+                  totalPages={reportsResponse.page.totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

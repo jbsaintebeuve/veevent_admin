@@ -1,17 +1,22 @@
-import { User } from "@/types/user";
+import { User, UsersApiResponse } from "@/types/user";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export async function fetchUsers(token?: string): Promise<User[]> {
-  const res = await fetch(`${API_URL}/users`, {
+export async function fetchUsers(
+  token?: string,
+  page = 0,
+  size = 10
+): Promise<UsersApiResponse> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  const res = await fetch(`${API_URL}/users?${params}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
   if (!res.ok) throw new Error("Erreur lors du chargement des utilisateurs");
-  const data = await res.json();
-  if (data._embedded && Array.isArray(data._embedded.userResponses)) {
-    return data._embedded.userResponses;
-  }
-  return [];
+  return await res.json();
 }

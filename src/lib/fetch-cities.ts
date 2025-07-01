@@ -7,8 +7,17 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export async function fetchCities(token?: string): Promise<CitiesApiResponse> {
-  const res = await fetch(`${API_URL}/cities`, {
+export async function fetchCities(
+  token?: string,
+  page = 0,
+  size = 10
+): Promise<CitiesApiResponse> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  const res = await fetch(`${API_URL}/cities?${params}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },

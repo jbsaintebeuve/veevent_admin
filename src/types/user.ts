@@ -23,6 +23,12 @@ export interface UsersApiResponse {
     userResponses: User[];
   };
   _links: any;
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
 }
 
 export interface UserUpdateRequest {

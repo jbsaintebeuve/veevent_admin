@@ -3,8 +3,17 @@ import { PlaceUpdateRequest } from "@/types/place";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export async function fetchPlaces(token?: string): Promise<PlacesApiResponse> {
-  const res = await fetch(`${API_URL}/places`, {
+export async function fetchPlaces(
+  token?: string,
+  page = 0,
+  size = 10
+): Promise<PlacesApiResponse> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  const res = await fetch(`${API_URL}/places?${params}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },

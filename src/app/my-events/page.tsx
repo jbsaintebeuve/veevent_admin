@@ -15,18 +15,27 @@ import { EventsTable } from "@/components/tables/events-table";
 import { Button } from "@/components/ui/button";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function MyEventsPage() {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const { user, getToken } = useAuth();
 
   // Récupérer le lien HAL des événements de l'utilisateur
   const userEventsUrl = user?._links?.events?.href;
 
+  const pageSize = 10;
+
   const emptyEventsApiResponse: EventsApiResponse = {
     _embedded: { eventSummaryResponses: [] },
     _links: {},
-    page: {},
+    page: {
+      size: 10,
+      totalElements: 0,
+      totalPages: 0,
+      number: 0,
+    },
   };
 
   const {
@@ -36,25 +45,59 @@ export default function MyEventsPage() {
     refetch,
   } = useQuery<EventsApiResponse>({
     queryKey: ["my-events", user?.id],
-    queryFn: () => fetchUserEvents(userEventsUrl!, getToken() || undefined),
+    queryFn: () =>
+      fetchUserEvents(userEventsUrl!, getToken() || undefined, 0, 1000), // Récupérer tous les événements
     enabled: !!user?.id && !!userEventsUrl,
     staleTime: 30000, // 30 secondes
     refetchOnWindowFocus: false,
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
+  const pageInfo = eventsResponse?.page;
+
+  // 🔧 Détection si l'API supporte la pagination ou non
+  const apiSupportsPagination =
+    pageInfo && pageInfo.totalElements !== undefined;
+
+  // Si l'API ne supporte pas la pagination, on fait de la pagination côté client
+  const paginatedEvents = useMemo(() => {
+    if (apiSupportsPagination) {
+      return events; // L'API gère déjà la pagination
+    }
+
+    // Pagination côté client
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return events.slice(startIndex, endIndex);
+  }, [events, currentPage, pageSize, apiSupportsPagination]);
+
+  // Calcul des pages pour pagination côté client
+  const clientSidePagination = useMemo(() => {
+    if (apiSupportsPagination) return null;
+
+    const totalPages = Math.ceil(events.length / pageSize);
+    return {
+      totalPages,
+      totalElements: events.length,
+      currentPage,
+    };
+  }, [events.length, pageSize, currentPage, apiSupportsPagination]);
 
   // Statistiques optimisées avec useMemo - une seule boucle au lieu de 4
   const { totalEvents, upcomingCount, completedCount, averageParticipants } =
     useMemo(() => {
+      // Utiliser tous les événements pour les stats, pas seulement la page courante
+      const allEvents = apiSupportsPagination ? events : events;
       const stats = {
-        totalEvents: events.length,
+        totalEvents: apiSupportsPagination
+          ? pageInfo?.totalElements || events.length
+          : events.length,
         upcomingCount: 0,
         completedCount: 0,
         averageParticipants: 0,
       };
       let totalParticipants = 0;
-      events.forEach((event) => {
+      allEvents.forEach((event) => {
         switch (event.status) {
           case "NOT_STARTED":
             stats.upcomingCount++;
@@ -66,9 +109,11 @@ export default function MyEventsPage() {
         totalParticipants += event.currentParticipants;
       });
       stats.averageParticipants =
-        events.length > 0 ? Math.round(totalParticipants / events.length) : 0;
+        allEvents.length > 0
+          ? Math.round(totalParticipants / allEvents.length)
+          : 0;
       return stats;
-    }, [events]);
+    }, [events, pageInfo?.totalElements, apiSupportsPagination]);
 
   const cardsData: CardData[] = useMemo(
     () => [
@@ -165,6 +210,10 @@ export default function MyEventsPage() {
     console.log("Supprimer événement:", name, deleteUrl);
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   // Vérifier si le lien HAL est disponible (cas spécifique aux liens HAL)
   if (!userEventsUrl) {
     return null;
@@ -238,13 +287,41 @@ export default function MyEventsPage() {
 
             {/* ✅ Nouveau tableau */}
             <EventsTable
-              data={events || []}
+              data={paginatedEvents || []}
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
               deleteLoading={false}
               hideDelete={true}
             />
+
+            {/* Pagination adaptative */}
+            {(() => {
+              if (apiSupportsPagination) {
+                // Pagination serveur
+                return pageInfo && pageInfo.totalPages > 1 ? (
+                  <div className="px-4 lg:px-6">
+                    <PaginationWrapper
+                      currentPage={currentPage}
+                      totalPages={pageInfo.totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                ) : null;
+              } else {
+                // Pagination client
+                return clientSidePagination &&
+                  clientSidePagination.totalPages > 1 ? (
+                  <div className="px-4 lg:px-6">
+                    <PaginationWrapper
+                      currentPage={currentPage}
+                      totalPages={clientSidePagination.totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                ) : null;
+              }
+            })()}
           </div>
         </div>
       </div>

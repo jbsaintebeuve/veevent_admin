@@ -15,9 +15,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { EventsApiResponse } from "@/types/event";
 import { EventsTable } from "@/components/tables/events-table";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function EventsPage() {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
@@ -26,8 +29,9 @@ export default function EventsPage() {
     isLoading,
     error,
   } = useQuery<EventsApiResponse>({
-    queryKey: ["events"],
-    queryFn: () => fetchEvents(getToken() || undefined),
+    queryKey: ["events", currentPage],
+    queryFn: () =>
+      fetchEvents(getToken() || undefined, currentPage - 1, pageSize),
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
@@ -43,6 +47,10 @@ export default function EventsPage() {
       console.error(error);
     },
   });
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   // ✅ Filtrage des événements avec recherche - optimisé avec useMemo
   const filteredEvents = useMemo(() => {
@@ -120,39 +128,42 @@ export default function EventsPage() {
         id: "total",
         title: "Total événements",
         description: "Tous les événements",
-        value: events?.length || 0,
+        value: eventsResponse?.page?.totalElements || 0,
         trend: {
           value:
-            events && events.length > 50
+            (eventsResponse?.page?.totalElements || 0) > 50
               ? 18.5
-              : events && events.length > 20
+              : (eventsResponse?.page?.totalElements || 0) > 20
               ? 12.3
-              : events && events.length > 5
+              : (eventsResponse?.page?.totalElements || 0) > 5
               ? 6.8
-              : events && events.length > 0
+              : (eventsResponse?.page?.totalElements || 0) > 0
               ? 2.1
               : 0,
-          isPositive: !!(events && events.length > 0),
+          isPositive: !!(
+            eventsResponse?.page?.totalElements &&
+            eventsResponse.page.totalElements > 0
+          ),
           label:
-            events && events.length > 50
+            (eventsResponse?.page?.totalElements || 0) > 50
               ? "Plateforme très active"
-              : events && events.length > 20
+              : (eventsResponse?.page?.totalElements || 0) > 20
               ? "Bonne activité"
-              : events && events.length > 5
+              : (eventsResponse?.page?.totalElements || 0) > 5
               ? "Activité modérée"
-              : events && events.length > 0
+              : (eventsResponse?.page?.totalElements || 0) > 0
               ? "Démarrage"
               : "Aucun événement",
         },
         footer: {
           primary:
-            events && events.length > 50
+            (eventsResponse?.page?.totalElements || 0) > 50
               ? "Plateforme très active"
-              : events && events.length > 20
+              : (eventsResponse?.page?.totalElements || 0) > 20
               ? "Bonne activité"
-              : events && events.length > 5
+              : (eventsResponse?.page?.totalElements || 0) > 5
               ? "Activité modérée"
-              : events && events.length > 0
+              : (eventsResponse?.page?.totalElements || 0) > 0
               ? "Démarrage"
               : "Aucun événement",
           secondary: "événements créés",
@@ -329,6 +340,17 @@ export default function EventsPage() {
               onDelete={handleDelete}
               deleteLoading={deleteMutation.isPending}
             />
+
+            {/* Pagination */}
+            {eventsResponse?.page && eventsResponse.page.totalPages > 1 && (
+              <div className="flex justify-center px-4 lg:px-6">
+                <PaginationWrapper
+                  currentPage={currentPage}
+                  totalPages={eventsResponse.page.totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
