@@ -48,6 +48,7 @@ export function CreatePlaceDialog() {
     bannerFile: null as File | null,
     imageFile: null as File | null,
     description: "",
+    content: "",
   };
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
@@ -201,7 +202,7 @@ export function CreatePlaceDialog() {
       }
       const payload: PlaceCreateRequest = {
         name: form.name.trim(),
-        description: form.description.trim(),
+        description: form.description.trim() || undefined,
         address: form.address.trim(),
         cityName: form.cityName,
         cityId: parseInt(form.cityId),
@@ -210,6 +211,7 @@ export function CreatePlaceDialog() {
         longitude: form.longitude ? parseFloat(form.longitude) : null,
         bannerUrl: bannerUrl,
         imageUrl: imageUrl,
+        content: form.content.trim() || null,
       };
       await createPlace(payload, getToken() || undefined);
       queryClient.invalidateQueries({ queryKey: ["places"] });
@@ -402,14 +404,26 @@ export function CreatePlaceDialog() {
 
             {/* Description */}
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
+              <Label htmlFor="description">Description courte</Label>
+              <Input
                 id="description"
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                rows={4}
-                placeholder="Description complète du lieu, équipements, historique..."
+                placeholder="Description courte du lieu"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="content">Description détaillée</Label>
+              <Textarea
+                id="content"
+                name="content"
+                value={form.content}
+                onChange={handleChange}
+                placeholder="Description détaillée du lieu, équipements, accès..."
+                rows={3}
                 disabled={loading}
               />
             </div>

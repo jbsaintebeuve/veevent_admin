@@ -50,6 +50,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     bannerUrl: "",
     imageUrl: "",
     content: "",
+    description: "",
     bannerFile: null as File | null,
     imageFile: null as File | null,
   });
@@ -89,6 +90,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
         bannerUrl: place.bannerUrl || "",
         imageUrl: place.imageUrl || "",
         content: place.content || "",
+        description: place.description || "",
         bannerFile: null,
         imageFile: null,
       });
@@ -181,7 +183,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
 
       const payload: PlaceUpdateRequest = {
         name: form.name.trim(),
-        description: form.content.trim() || undefined,
+        description: form.description.trim() || undefined,
         address: form.address.trim(),
         cityName: form.cityName,
         cityId: parseInt(form.cityId),
@@ -235,6 +237,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
         bannerUrl: place.bannerUrl || "",
         imageUrl: place.imageUrl || "",
         content: place.content || "",
+        description: place.description || "",
         bannerFile: null,
         imageFile: null,
       });
@@ -391,14 +394,26 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="content">Description</Label>
+              <Label htmlFor="description">Description courte</Label>
+              <Input
+                id="description"
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Description courte du lieu"
+                disabled={loading}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="content">Description détaillée</Label>
               <Textarea
                 id="content"
                 name="content"
                 value={form.content}
                 onChange={handleChange}
-                rows={4}
-                placeholder="Description complète du lieu, équipements, historique..."
+                placeholder="Description détaillée du lieu, équipements, accès..."
+                rows={3}
                 disabled={loading}
               />
             </div>

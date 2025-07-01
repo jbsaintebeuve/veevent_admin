@@ -160,7 +160,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
         bannerUrl: bannerUrl,
         imageUrl: imageUrl,
         content: form.content?.trim() || null,
-        nearestCities: form.nearestCities,
+        nearestCityIds: form.nearestCities,
       } as CityCreateRequest;
 
       console.log("🔧 handleSubmit - final payload:", payload);
