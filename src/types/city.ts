@@ -14,7 +14,7 @@ export interface City {
   content?: string | null;
   eventsCount: number;
   eventsPastCount: number;
-  nearestCities: City[];
+  nearestCities: number[];
   _links?: any;
 }
 
@@ -36,7 +36,7 @@ export interface CityRequest {
   bannerUrl?: string | null;
   imageUrl?: string | null;
   content?: string | null;
-  nearestCities: number[]; // liste d'IDs
+  nearestCityIds: number[]; // liste d'IDs
 }
 
 export type CityCreateRequest = CityRequest;

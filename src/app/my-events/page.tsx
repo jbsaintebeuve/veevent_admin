@@ -14,6 +14,7 @@ import { EventsApiResponse } from "@/types/event";
 import { EventsTable } from "@/components/tables/events-table";
 import { Button } from "@/components/ui/button";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 
 export default function MyEventsPage() {
   const [search, setSearch] = useState("");
@@ -229,6 +230,7 @@ export default function MyEventsPage() {
                   Retrouvez ici tous les événements que vous organisez
                 </p>
               </div>
+              <CreateEventDialog />
             </div>
 
             {/* ✅ SectionCards */}

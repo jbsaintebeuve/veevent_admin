@@ -79,7 +79,7 @@ export function ModifyCityDialog({
         bannerFile: null,
         imageFile: null,
         content: city.content || "",
-        nearestCities: city.nearestCities?.map((c) => c.id) || [],
+        nearestCities: city.nearestCities || [],
       });
     }
   }, [city]);
@@ -181,7 +181,7 @@ export function ModifyCityDialog({
         bannerUrl: bannerUrl?.trim() || null,
         imageUrl: imageUrl?.trim() || null,
         content: form.content?.trim() || null,
-        nearestCities: form.nearestCities,
+        nearestCityIds: form.nearestCities,
       } as CityUpdateRequest;
 
       await modifyCity(patchUrl, payload, token);
@@ -213,7 +213,7 @@ export function ModifyCityDialog({
         bannerFile: null,
         imageFile: null,
         content: city.content || "",
-        nearestCities: city.nearestCities?.map((c) => c.id) || [],
+        nearestCities: city.nearestCities || [],
       });
       setError("");
       setPreviewBannerUrl(null);
