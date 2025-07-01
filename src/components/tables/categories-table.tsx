@@ -193,9 +193,16 @@ export function CategoriesTable({
       accessorKey: "eventCount",
       header: "Nombre d'événements",
       cell: ({ row }) => (
-        <span className="text-center">
-          {eventCounts?.[row.original.key] ?? 0}
-        </span>
+        <Badge
+          variant={
+            (eventCounts?.[String(row.original.key)] ?? 0) > 0
+              ? "default"
+              : "outline"
+          }
+          className="text-xs min-w-[2rem] justify-center"
+        >
+          {eventCounts?.[String(row.original.key)] ?? 0}
+        </Badge>
       ),
       enableHiding: false,
     },
