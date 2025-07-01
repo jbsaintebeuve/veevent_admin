@@ -9,9 +9,16 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function fetchCategories(
-  token?: string
+  token?: string,
+  page = 0,
+  size = 10
 ): Promise<CategoriesApiResponse> {
-  const res = await fetch(`${API_URL}/categories`, {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  const res = await fetch(`${API_URL}/categories?${params}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },

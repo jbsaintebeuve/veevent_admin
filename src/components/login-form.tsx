@@ -184,10 +184,11 @@ export function LoginForm({
             <div className="text-center text-sm">
               Besoin d'un compte ?{" "}
               <a
-                href="#"
+                target="_blank"
+                href="https://veevent.vercel.app/inscription"
                 className="underline underline-offset-4 hover:text-primary"
               >
-                Contactez l'administrateur
+                Inscrivez-vous
               </a>
             </div>
           </form>

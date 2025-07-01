@@ -32,7 +32,12 @@ export interface EventsApiResponse {
     eventSummaryResponses: Event[];
   };
   _links: any;
-  page: any;
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
 }
 
 export interface EventRequest {

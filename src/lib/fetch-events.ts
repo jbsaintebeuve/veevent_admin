@@ -7,8 +7,17 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export async function fetchEvents(token?: string): Promise<EventsApiResponse> {
-  const res = await fetch(`${API_URL}/events`, {
+export async function fetchEvents(
+  token?: string,
+  page = 0,
+  size = 10
+): Promise<EventsApiResponse> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  const res = await fetch(`${API_URL}/events?${params}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
@@ -95,9 +104,16 @@ export async function deleteEvent(deleteUrl: string, token?: string) {
 
 export async function fetchUserEvents(
   userEventsUrl: string,
-  token?: string
+  token?: string,
+  page = 0,
+  size = 10
 ): Promise<EventsApiResponse> {
-  const res = await fetch(userEventsUrl, {
+  // Ajouter les paramètres de pagination à l'URL
+  const url = new URL(userEventsUrl);
+  url.searchParams.set("page", page.toString());
+  url.searchParams.set("size", size.toString());
+
+  const res = await fetch(url.toString(), {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },

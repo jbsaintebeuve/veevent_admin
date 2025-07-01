@@ -4,9 +4,16 @@ import { fetchUserMe } from "@/lib/fetch-user";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function fetchInvitations(
-  token?: string
+  token?: string,
+  page = 0,
+  size = 10
 ): Promise<InvitationsApiResponse> {
-  const res = await fetch(`${API_URL}/invitations`, {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  const res = await fetch(`${API_URL}/invitations?${params}`, {
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
@@ -16,7 +23,9 @@ export async function fetchInvitations(
 }
 
 export async function fetchUserInvitations(
-  token?: string
+  token?: string,
+  page = 0,
+  size = 10
 ): Promise<InvitationsApiResponse> {
   if (!token)
     throw new Error(
@@ -28,8 +37,14 @@ export async function fetchUserInvitations(
   const invitationsLink = user?._links?.invitations?.href;
   if (!invitationsLink)
     throw new Error("Lien invitations HAL manquant pour l'utilisateur");
-  // 3. Fetch les invitations de l'utilisateur
-  const res = await fetch(invitationsLink, {
+
+  // 3. Ajouter les paramètres de pagination au lien
+  const url = new URL(invitationsLink);
+  url.searchParams.set("page", page.toString());
+  url.searchParams.set("size", size.toString());
+
+  // 4. Fetch les invitations de l'utilisateur avec pagination
+  const res = await fetch(url.toString(), {
     headers: {
       Authorization: `Bearer ${token}`,
     },

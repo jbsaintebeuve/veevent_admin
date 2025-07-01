@@ -16,9 +16,12 @@ import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog
 import { City, CitiesApiResponse } from "@/types/city";
 import { CitiesTable } from "@/components/tables/cities-table";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function CitiesPage() {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
@@ -27,11 +30,16 @@ export default function CitiesPage() {
     isLoading,
     error,
   } = useQuery<CitiesApiResponse>({
-    queryKey: ["cities"],
-    queryFn: () => fetchCities(getToken() || undefined),
+    queryKey: ["cities", currentPage],
+    queryFn: () =>
+      fetchCities(getToken() || undefined, currentPage - 1, pageSize),
   });
 
   const cities = citiesResponse?._embedded?.cityResponses || [];
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   const deleteMutation = useMutation({
     mutationFn: (deleteUrl: string) =>
@@ -86,42 +94,48 @@ export default function CitiesPage() {
         id: "cities",
         title: "Total des villes",
         description: "Toutes les villes disponibles",
-        value: cities?.length || 0,
+        value: citiesResponse?.page?.totalElements || 0,
         trend: {
           value:
-            cities && cities.length > 20
+            (citiesResponse?.page?.totalElements || 0) > 20
               ? 18.7
-              : cities && cities.length > 10
+              : (citiesResponse?.page?.totalElements || 0) > 10
               ? 12.5
-              : cities && cities.length > 5
+              : (citiesResponse?.page?.totalElements || 0) > 5
               ? 5.2
-              : cities && cities.length > 0
+              : (citiesResponse?.page?.totalElements || 0) > 0
               ? 2.1
               : 0,
-          isPositive: !!(cities && cities.length > 0),
+          isPositive: !!(
+            citiesResponse?.page?.totalElements &&
+            citiesResponse.page.totalElements > 0
+          ),
           label:
-            cities && cities.length > 20
+            (citiesResponse?.page?.totalElements || 0) > 20
               ? "Réseau très développé"
-              : cities && cities.length > 10
+              : (citiesResponse?.page?.totalElements || 0) > 10
               ? "Croissance stable"
-              : cities && cities.length > 5
+              : (citiesResponse?.page?.totalElements || 0) > 5
               ? "En développement"
-              : cities && cities.length > 0
+              : (citiesResponse?.page?.totalElements || 0) > 0
               ? "Premières villes"
               : "Aucune ville",
         },
         footer: {
           primary:
-            cities && cities.length > 20
+            (citiesResponse?.page?.totalElements || 0) > 20
               ? "Réseau très développé"
-              : cities && cities.length > 10
+              : (citiesResponse?.page?.totalElements || 0) > 10
               ? "Croissance stable"
-              : cities && cities.length > 5
+              : (citiesResponse?.page?.totalElements || 0) > 5
               ? "En développement"
-              : cities && cities.length > 0
+              : (citiesResponse?.page?.totalElements || 0) > 0
               ? "Premières villes"
               : "Aucune ville",
-          secondary: cities?.length === 1 ? "ville" : "villes",
+          secondary:
+            (citiesResponse?.page?.totalElements || 0) === 1
+              ? "ville"
+              : "villes",
         },
       },
       {
@@ -276,6 +290,17 @@ export default function CitiesPage() {
               onDelete={handleDelete}
               deleteLoading={deleteMutation.isPending}
             />
+
+            {/* Pagination */}
+            {citiesResponse?.page && citiesResponse.page.totalPages > 1 && (
+              <div className="flex justify-center px-4 lg:px-6">
+                <PaginationWrapper
+                  currentPage={currentPage}
+                  totalPages={citiesResponse.page.totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

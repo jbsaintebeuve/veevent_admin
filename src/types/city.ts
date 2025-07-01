@@ -23,7 +23,12 @@ export interface CitiesApiResponse {
     cityResponses: City[];
   };
   _links: any;
-  page?: any;
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
 }
 
 export interface CityRequest {

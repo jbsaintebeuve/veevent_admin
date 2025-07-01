@@ -14,9 +14,11 @@ import { InvitationsTable } from "@/components/tables/invitations-table";
 import { Button } from "@/components/ui/button";
 import { Invitation } from "@/types/invitation";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function InvitationsPage() {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const { user, getToken } = useAuth();
   const token = getToken() || undefined;
 
@@ -24,20 +26,21 @@ export default function InvitationsPage() {
   const userInvitationsUrl = user?._links?.invitations?.href;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["user-invitations", user?.id],
-    queryFn: () => fetchUserInvitations(token),
+    queryKey: ["user-invitations", user?.id, currentPage],
+    queryFn: () => fetchUserInvitations(token, currentPage - 1, 10),
     enabled: !!token && !!user?.id && !!userInvitationsUrl,
     staleTime: 30000, // 30 secondes
     refetchOnWindowFocus: false,
   });
 
   const invitations = data?._embedded?.invitations || [];
+  const pageInfo = data?.page;
 
   // Statistiques optimisées avec useMemo
   const { totalInvitations, pendingCount, acceptedCount, declinedCount } =
     useMemo(() => {
       const stats = {
-        totalInvitations: invitations.length,
+        totalInvitations: pageInfo?.totalElements || invitations.length,
         pendingCount: 0,
         acceptedCount: 0,
         declinedCount: 0,
@@ -58,7 +61,7 @@ export default function InvitationsPage() {
       });
 
       return stats;
-    }, [invitations]);
+    }, [invitations, pageInfo?.totalElements]);
 
   const cardsData: CardData[] = useMemo(
     () => [
@@ -156,6 +159,10 @@ export default function InvitationsPage() {
     console.log("Refuser invitation:", invitation);
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -230,6 +237,17 @@ export default function InvitationsPage() {
               onDecline={handleDecline}
               actionLoading={false}
             />
+
+            {/* Pagination */}
+            {pageInfo && pageInfo.totalPages > 1 && (
+              <div className="px-4 lg:px-6">
+                <PaginationWrapper
+                  currentPage={currentPage}
+                  totalPages={pageInfo.totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

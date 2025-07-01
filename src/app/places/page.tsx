@@ -16,9 +16,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { PlacesApiResponse } from "@/types/place";
 import { PlacesTable } from "@/components/tables/places-table";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function PlacesPage() {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
@@ -27,12 +30,17 @@ export default function PlacesPage() {
     isLoading,
     error,
   } = useQuery<PlacesApiResponse>({
-    queryKey: ["places"],
-    queryFn: () => fetchPlaces(getToken() || undefined),
+    queryKey: ["places", currentPage],
+    queryFn: () =>
+      fetchPlaces(getToken() || undefined, currentPage - 1, pageSize),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const places = placesResponse?._embedded?.placeResponses || [];
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   const deleteMutation = useMutation({
     mutationFn: (deleteUrl: string) => deletePlace(deleteUrl, getToken() || ""),
@@ -68,49 +76,54 @@ export default function PlacesPage() {
         id: "total",
         title: "Total des lieux",
         description: "Tous les lieux disponibles",
-        value: places?.length || 0,
+        value: placesResponse?.page?.totalElements || 0,
         trend: {
           value:
-            places && places.length > 50
+            (placesResponse?.page?.totalElements || 0) > 50
               ? 18.7
-              : places && places.length > 25
+              : (placesResponse?.page?.totalElements || 0) > 25
               ? 12.4
-              : places && places.length > 10
+              : (placesResponse?.page?.totalElements || 0) > 10
               ? 8.1
-              : places && places.length > 3
+              : (placesResponse?.page?.totalElements || 0) > 3
               ? 4.5
-              : places && places.length > 0
+              : (placesResponse?.page?.totalElements || 0) > 0
               ? 2.1
               : 0,
-          isPositive: !!(places && places.length > 0),
+          isPositive: !!(
+            placesResponse?.page?.totalElements &&
+            placesResponse.page.totalElements > 0
+          ),
           label:
-            places && places.length > 50
+            (placesResponse?.page?.totalElements || 0) > 50
               ? "Réseau très développé"
-              : places && places.length > 25
+              : (placesResponse?.page?.totalElements || 0) > 25
               ? "Bon réseau de lieux"
-              : places && places.length > 10
+              : (placesResponse?.page?.totalElements || 0) > 10
               ? "Réseau en croissance"
-              : places && places.length > 3
+              : (placesResponse?.page?.totalElements || 0) > 3
               ? "Base de lieux solide"
-              : places && places.length > 0
+              : (placesResponse?.page?.totalElements || 0) > 0
               ? "Premiers lieux"
               : "Aucun lieu",
         },
         footer: {
           primary:
-            places && places.length > 50
+            (placesResponse?.page?.totalElements || 0) > 50
               ? "Réseau très développé"
-              : places && places.length > 25
+              : (placesResponse?.page?.totalElements || 0) > 25
               ? "Bon réseau de lieux"
-              : places && places.length > 10
+              : (placesResponse?.page?.totalElements || 0) > 10
               ? "Réseau en croissance"
-              : places && places.length > 3
+              : (placesResponse?.page?.totalElements || 0) > 3
               ? "Base de lieux solide"
-              : places && places.length > 0
+              : (placesResponse?.page?.totalElements || 0) > 0
               ? "Premiers lieux"
               : "Aucun lieu",
           secondary:
-            places?.length === 1 ? "lieu disponible" : "lieux disponibles",
+            (placesResponse?.page?.totalElements || 0) === 1
+              ? "lieu disponible"
+              : "lieux disponibles",
         },
       },
       {
@@ -265,6 +278,17 @@ export default function PlacesPage() {
               onDelete={handleDelete}
               deleteLoading={deleteMutation.isPending}
             />
+
+            {/* Pagination */}
+            {placesResponse?.page && placesResponse.page.totalPages > 1 && (
+              <div className="flex justify-center px-4 lg:px-6">
+                <PaginationWrapper
+                  currentPage={currentPage}
+                  totalPages={placesResponse.page.totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -19,9 +19,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { CategoriesApiResponse } from "@/types/category";
 import { CategoriesTable } from "@/components/tables/categories-table";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
@@ -30,8 +33,9 @@ export default function CategoriesPage() {
     isLoading,
     error,
   } = useQuery<CategoriesApiResponse>({
-    queryKey: ["categories"],
-    queryFn: () => fetchCategories(getToken() || undefined),
+    queryKey: ["categories", currentPage],
+    queryFn: () =>
+      fetchCategories(getToken() || undefined, currentPage - 1, pageSize),
   });
 
   const {
@@ -44,6 +48,10 @@ export default function CategoriesPage() {
   });
 
   const categories = categoriesResponse?._embedded?.categories || [];
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   const deleteMutation = useMutation({
     mutationFn: (deleteUrl: string) =>
@@ -79,39 +87,42 @@ export default function CategoriesPage() {
         id: "categories",
         title: "Total catégories",
         description: "Total catégories",
-        value: categories?.length || 0,
+        value: categoriesResponse?.page?.totalElements || 0,
         trend: {
           value:
-            categories && categories.length > 15
+            (categoriesResponse?.page?.totalElements || 0) > 15
               ? 15.2
-              : categories && categories.length > 8
+              : (categoriesResponse?.page?.totalElements || 0) > 8
               ? 8.7
-              : categories && categories.length > 3
+              : (categoriesResponse?.page?.totalElements || 0) > 3
               ? 3.4
-              : categories && categories.length > 0
+              : (categoriesResponse?.page?.totalElements || 0) > 0
               ? 1.2
               : 0,
-          isPositive: !!(categories && categories.length > 0),
+          isPositive: !!(
+            categoriesResponse?.page?.totalElements &&
+            categoriesResponse.page.totalElements > 0
+          ),
           label:
-            categories && categories.length > 15
+            (categoriesResponse?.page?.totalElements || 0) > 15
               ? "Très diversifié"
-              : categories && categories.length > 8
+              : (categoriesResponse?.page?.totalElements || 0) > 8
               ? "Bonne variété"
-              : categories && categories.length > 3
+              : (categoriesResponse?.page?.totalElements || 0) > 3
               ? "Quelques catégories"
-              : categories && categories.length > 0
+              : (categoriesResponse?.page?.totalElements || 0) > 0
               ? "Démarrage"
               : "Aucune catégorie",
         },
         footer: {
           primary:
-            categories && categories.length > 15
+            (categoriesResponse?.page?.totalElements || 0) > 15
               ? "Très diversifié"
-              : categories && categories.length > 8
+              : (categoriesResponse?.page?.totalElements || 0) > 8
               ? "Bonne variété"
-              : categories && categories.length > 3
+              : (categoriesResponse?.page?.totalElements || 0) > 3
               ? "Quelques catégories"
-              : categories && categories.length > 0
+              : (categoriesResponse?.page?.totalElements || 0) > 0
               ? "Démarrage"
               : "Aucune catégorie",
           secondary: "catégories créées",
@@ -254,6 +265,18 @@ export default function CategoriesPage() {
               deleteLoading={deleteMutation.isPending}
               eventCounts={categoriesCounts}
             />
+
+            {/* Pagination */}
+            {categoriesResponse?.page &&
+              categoriesResponse.page.totalPages > 1 && (
+                <div className="flex justify-center px-4 lg:px-6">
+                  <PaginationWrapper
+                    currentPage={currentPage}
+                    totalPages={categoriesResponse.page.totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
           </div>
         </div>
       </div>
