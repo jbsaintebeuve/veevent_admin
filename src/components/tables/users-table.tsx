@@ -255,19 +255,17 @@ export function UsersTable({
                   onBanToggle(user);
                 }}
                 className={
-                  isBanned
-                    ? "text-green-600"
-                    : "text-red-600 focus:text-red-600"
+                  isBanned ? "" : "text-destructive focus:text-destructive"
                 }
               >
                 {isBanned ? (
                   <>
-                    <Check className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <Check className="h-4 w-4 mr-2" />
                     Débannir
                   </>
                 ) : (
                   <>
-                    <Ban className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <Ban className="h-4 w-4 mr-2" />
                     Bannir
                   </>
                 )}
