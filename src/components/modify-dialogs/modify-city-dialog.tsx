@@ -417,13 +417,6 @@ export function ModifyCityDialog({
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={!isFormValid || loading}>
-              {loading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                "Modifier la ville"
-              )}
-            </Button>
             <DialogClose asChild>
               <Button
                 type="button"
@@ -433,6 +426,13 @@ export function ModifyCityDialog({
                 Annuler
               </Button>
             </DialogClose>
+            <Button type="submit" disabled={!isFormValid || loading}>
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                "Modifier la ville"
+              )}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

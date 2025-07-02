@@ -86,10 +86,30 @@ export interface EventDetails {
     name: string;
     key: string;
   }>;
+  _links?: any;
+}
+
+export interface EventParticipant {
+  id: number;
+  pseudo: string;
+  imageUrl?: string | null;
+  _links?: {
+    self: {
+      href: string;
+    };
+  };
+}
+
+export interface EventParticipantsApiResponse {
+  _embedded: {
+    userSummaries: EventParticipant[];
+  };
   _links: {
-    self: { href: string };
-    places: { href: string };
-    city: { href: string };
-    [key: string]: any;
+    self: {
+      href: string;
+    };
+    event: {
+      href: string;
+    };
   };
 }
