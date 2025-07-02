@@ -65,9 +65,10 @@ import { Label } from "@/components/ui/label";
 import { Event } from "@/types/event";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Search, CalendarDays, Edit, Trash2 } from "lucide-react";
+import { Search, CalendarDays, Edit, Trash2, Users } from "lucide-react";
 import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
+import { EventParticipantsDialog } from "@/components/dialogs/event-participants-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -215,6 +216,7 @@ export function EventsTable({
       cell: ({ row }) => {
         const modifyBtnRef = React.useRef<HTMLButtonElement>(null);
         const [openDelete, setOpenDelete] = React.useState(false);
+        const [openParticipants, setOpenParticipants] = React.useState(false);
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -227,7 +229,7 @@ export function EventsTable({
                 <span className="sr-only">Ouvrir le menu</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem
                 onSelect={(e) => {
                   e.preventDefault();
@@ -236,6 +238,15 @@ export function EventsTable({
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Modifier
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setOpenParticipants(true);
+                }}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Voir les participants
               </DropdownMenuItem>
               {!hideDelete && (
                 <DropdownMenuItem
@@ -259,6 +270,13 @@ export function EventsTable({
                 tabIndex={-1}
               />
             </ModifyEventDialog>
+            {/* Dialog Participants */}
+            <EventParticipantsDialog
+              eventSelfLink={row.original._links?.self?.href}
+              eventName={row.original.name}
+              isOpen={openParticipants}
+              onOpenChange={setOpenParticipants}
+            />
             {/* Dialog Supprimer - seulement si hideDelete est false */}
             {!hideDelete && (
               <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>

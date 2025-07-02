@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Event, EventUpdateRequest, EventDetails } from "@/types/event";
 import { modifyEvent, fetchEventDetails } from "@/lib/fetch-events";
+import { uploadImage } from "@/lib/upload-image";
 import { fetchCategories } from "@/lib/fetch-categories";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -192,6 +193,14 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         ? extractIdFromUrl(eventDetails._links.places.href)
         : 0;
 
+      // Upload de l'image vers Cloudinary si un nouveau fichier est sélectionné
+      let cloudinaryImageUrl = form.imageUrl;
+      if (imageFile) {
+        console.log("🔄 Upload de la nouvelle image vers Cloudinary...");
+        cloudinaryImageUrl = await uploadImage(imageFile);
+        console.log("✅ Image uploadée avec succès:", cloudinaryImageUrl);
+      }
+
       const payload: EventUpdateRequest = {
         name: form.name.trim(),
         description: form.description.trim(),
@@ -202,22 +211,26 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         cityId,
         placeId,
         categoryKeys: form.categoryKeys,
-        imageUrl: form.imageUrl.trim() || undefined,
+        imageUrl: cloudinaryImageUrl?.trim() || undefined,
         isTrending: form.isTrending,
         status: form.status,
         contentHtml: form.contentHtml.trim() || undefined,
       };
+
       const patchUrl = event._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
       const token = document.cookie.includes("token=")
         ? document.cookie.split("token=")[1]?.split(";")[0]
         : undefined;
+
+      console.log("📤 Envoi des données de modification au backend:", payload);
       await modifyEvent(patchUrl, payload, token);
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
       toast.success("Événement modifié avec succès");
       setOpen(false);
     } catch (err: any) {
+      console.error("❌ Erreur lors de la modification:", err);
       setError(err.message);
       toast.error(`Erreur: ${err.message}`);
     } finally {

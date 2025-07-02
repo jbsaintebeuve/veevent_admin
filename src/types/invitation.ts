@@ -1,7 +1,8 @@
 export interface Invitation {
+  id?: number;
   description: string;
-  status: string;
-  _links: any;
+  status: "SENT" | "ACCEPTED" | "REJECTED";
+  _links?: any;
 }
 
 export interface InvitationsApiResponse {

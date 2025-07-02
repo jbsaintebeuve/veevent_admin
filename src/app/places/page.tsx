@@ -17,6 +17,7 @@ import { PlacesApiResponse } from "@/types/place";
 import { PlacesTable } from "@/components/tables/places-table";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
+import { getDeleteErrorMessage, EntityTypes } from "@/lib/error-messages";
 
 export default function PlacesPage() {
   const [search, setSearch] = useState("");
@@ -48,13 +49,18 @@ export default function PlacesPage() {
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu supprimé avec succès");
     },
-    onError: (error) => {
-      toast.error("Erreur lors de la suppression");
-      console.error(error);
+    onError: (error: Error) => {
+      console.error("Erreur de suppression:", error);
+      const errorMessage = getDeleteErrorMessage(error, EntityTypes.PLACE);
+      toast.error(errorMessage);
     },
   });
 
   const handleDelete = (deleteUrl: string, name: string) => {
+    console.log(
+      `🗑️ Tentative de suppression du lieu "${name}" via URL:`,
+      deleteUrl
+    );
     deleteMutation.mutate(deleteUrl);
   };
 

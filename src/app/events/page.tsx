@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { EventsApiResponse } from "@/types/event";
 import { EventsTable } from "@/components/tables/events-table";
 import { PageSkeleton } from "@/components/page-skeleton";
+import { getDeleteErrorMessage, EntityTypes } from "@/lib/error-messages";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function EventsPage() {
@@ -42,9 +43,10 @@ export default function EventsPage() {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Événement supprimé avec succès");
     },
-    onError: (error) => {
-      toast.error("Erreur lors de la suppression");
-      console.error(error);
+    onError: (error: Error) => {
+      console.error("Erreur de suppression:", error);
+      const errorMessage = getDeleteErrorMessage(error, EntityTypes.EVENT);
+      toast.error(errorMessage);
     },
   });
 
@@ -85,6 +87,10 @@ export default function EventsPage() {
 
   const handleDelete = useCallback(
     (deleteUrl: string, name: string) => {
+      console.log(
+        `🗑️ Tentative de suppression de l'événement "${name}" via URL:`,
+        deleteUrl
+      );
       deleteMutation.mutate(deleteUrl);
     },
     [deleteMutation]

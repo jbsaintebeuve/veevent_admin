@@ -122,5 +122,19 @@ export async function deletePlace(deleteUrl: string, token?: string) {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
-  if (!res.ok) throw new Error("Erreur lors de la suppression");
+
+  if (!res.ok) {
+    let errorMessage = "Erreur lors de la suppression";
+
+    try {
+      const errorData = await res.text();
+      if (errorData) {
+        errorMessage = `Erreur ${res.status}: ${errorData}`;
+      }
+    } catch {
+      errorMessage = `Erreur ${res.status}: ${res.statusText}`;
+    }
+
+    throw new Error(errorMessage);
+  }
 }

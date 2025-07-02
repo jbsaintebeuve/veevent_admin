@@ -375,6 +375,11 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
           </div>
 
           <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Annuler
+              </Button>
+            </DialogClose>
             <Button type="submit" disabled={!isFormValid || loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -382,11 +387,6 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                 "Créer la ville"
               )}
             </Button>
-            <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={resetForm}>
-                Annuler
-              </Button>
-            </DialogClose>
           </DialogFooter>
         </form>
       </DialogContent>
