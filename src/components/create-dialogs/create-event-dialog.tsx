@@ -41,6 +41,7 @@ import {
 import { fetchCities } from "@/lib/fetch-cities";
 import { fetchPlacesByCity } from "@/lib/fetch-places";
 import { fetchCategories } from "@/lib/fetch-categories";
+import { uploadImage } from "@/lib/upload-image";
 import { createEvent } from "@/lib/fetch-events";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
@@ -332,6 +333,15 @@ export function CreateEventDialog({
 
       try {
         validateForm();
+
+        // Upload de l'image vers Cloudinary si un fichier est sélectionné
+        let cloudinaryImageUrl = form.imageUrl;
+        if (imageFile) {
+          console.log("🔄 Upload de l'image vers Cloudinary...");
+          cloudinaryImageUrl = await uploadImage(imageFile);
+          console.log("✅ Image uploadée avec succès:", cloudinaryImageUrl);
+        }
+
         const payload = {
           name: form.name.trim(),
           description: form.description.trim(),
@@ -341,26 +351,29 @@ export function CreateEventDialog({
           maxCustomers: parseInt(form.maxCustomers, 10),
           isTrending: form.isTrending,
           status: form.status,
-          imageUrl: form.imageUrl.trim() || undefined,
+          imageUrl: cloudinaryImageUrl?.trim() || undefined,
           contentHtml: form.contentHtml.trim() || undefined,
           placeId: parseInt(form.placeId, 10),
           cityId: parseInt(form.cityId, 10),
           categoryKeys: form.categoryIds,
         };
+
+        console.log("📤 Envoi des données au backend:", payload);
         await createEvent(payload, getToken() || undefined);
         queryClient.invalidateQueries({ queryKey: ["events"] });
         queryClient.invalidateQueries({ queryKey: ["my-events"] });
         toast.success("Événement créé avec succès");
         setOpen(false);
-        setForm(initialForm);
+        resetForm();
       } catch (err: any) {
+        console.error("❌ Erreur lors de la création:", err);
         setError(err.message);
         toast.error(err.message);
       } finally {
         setLoading(false);
       }
     },
-    [form, validateForm, queryClient, resetForm, getToken]
+    [form, imageFile, validateForm, queryClient, resetForm, getToken]
   );
 
   return (
