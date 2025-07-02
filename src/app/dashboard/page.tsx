@@ -250,7 +250,7 @@ export default function Page() {
     });
     const invitations = myInvitationsResponse?._embedded?.invitations || [];
     const pendingInvitations = invitations.filter(
-      (inv) => inv.status === "PENDING"
+      (inv) => inv.status === "SENT"
     ).length;
     const dashboardCardsData: CardData[] = [
       {
