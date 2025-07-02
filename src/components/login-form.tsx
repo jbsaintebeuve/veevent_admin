@@ -61,15 +61,58 @@ export function LoginForm({
     setLoading(true);
 
     try {
-      // Authentification
-      const { token } = await authenticateUser({ email, password });
+      // Authentification avec retry
+      let token: string | undefined;
+      let retryCount = 0;
+      const maxRetries = 2;
 
-      // Récupération et vérification du profil
-      const userData = await fetchUserMe(token);
+      while (retryCount <= maxRetries) {
+        try {
+          const authResponse = await authenticateUser({ email, password });
+          token = authResponse.token;
+          break;
+        } catch (authError: any) {
+          retryCount++;
+          if (retryCount > maxRetries) {
+            throw authError;
+          }
+          console.log(
+            `🔄 Tentative d'authentification ${retryCount}/${
+              maxRetries + 1
+            } échouée, nouvelle tentative...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1000)); // Attendre 1s avant de retenter
+        }
+      }
 
-      if (!isRoleAllowed(userData.role)) {
+      // Récupération et vérification du profil avec retry
+      let userData: User | undefined;
+      retryCount = 0;
+
+      while (retryCount <= maxRetries) {
+        try {
+          if (!token) throw new Error("Token manquant");
+          userData = await fetchUserMe(token);
+          break;
+        } catch (profileError: any) {
+          retryCount++;
+          if (retryCount > maxRetries) {
+            throw profileError;
+          }
+          console.log(
+            `🔄 Tentative de récupération du profil ${retryCount}/${
+              maxRetries + 1
+            } échouée, nouvelle tentative...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+
+      if (!userData || !isRoleAllowed(userData.role)) {
         throw new Error(
-          `Accès refusé. Votre rôle "${userData.role}" ne permet pas d'accéder à cette interface.`
+          `Accès refusé. Votre rôle "${
+            userData?.role || "inconnu"
+          }" ne permet pas d'accéder à cette interface.`
         );
       }
 
@@ -84,7 +127,7 @@ export function LoginForm({
       clearAuth();
       const errorMessage =
         err.name === "TypeError" && err.message.includes("fetch")
-          ? "Impossible de contacter le serveur. Vérifiez que l'API backend est démarrée."
+          ? "Impossible de contacter le serveur. Vérifiez que l'API backend est démarrée et redémarrez l'application."
           : err.message || "Une erreur est survenue";
       setError(errorMessage);
       toast.error("Connexion refusée");

@@ -55,12 +55,16 @@ export function useAuth() {
 
   useEffect(() => {
     let didFallbackToCache = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+
     const checkAuth = async () => {
       // Annuler la requête précédente si elle existe
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
+
       try {
         const token = getToken();
         if (!token) {
@@ -69,6 +73,7 @@ export function useAuth() {
           setLoading(false);
           return;
         }
+
         // Lire le cache localStorage
         const userStr = localStorage.getItem("user");
         let userData: User | null = null;
@@ -80,6 +85,7 @@ export function useAuth() {
             userData = null;
           }
         }
+
         // UX instantanée : si cache valide, on l'utilise tout de suite
         if (userData && isRoleAllowed(userData.role)) {
           setUser(userData);
@@ -87,16 +93,19 @@ export function useAuth() {
           setLoading(false);
           didFallbackToCache = true;
         }
-        // Vérification API en arrière-plan (timeout 5s)
-        try {
+
+        // Vérification API en arrière-plan avec retry
+        const attemptApiCall = async (): Promise<User> => {
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Timeout")), 5000);
+            setTimeout(() => reject(new Error("Timeout")), 8000); // Augmenté à 8s
           });
           const apiPromise = fetchUserMe(token);
-          const freshUserData = (await Promise.race([
-            apiPromise,
-            timeoutPromise,
-          ])) as User;
+          return (await Promise.race([apiPromise, timeoutPromise])) as User;
+        };
+
+        try {
+          const freshUserData = await attemptApiCall();
+
           if (!isRoleAllowed(freshUserData.role)) {
             cleanupAuth();
             setUser(null);
@@ -104,28 +113,49 @@ export function useAuth() {
             setLoading(false);
             return;
           }
+
           // Mettre à jour le cache et l'état
           localStorage.setItem("user", JSON.stringify(freshUserData));
           setUser(freshUserData);
           setIsAuthenticated(true);
           setLoading(false);
         } catch (apiError) {
-          // Si l'API échoue mais qu'on a déjà affiché le cache, on ne fait rien (mode dégradé)
+          console.warn(
+            `❌ Tentative API ${retryCount + 1}/${maxRetries} échouée:`,
+            apiError
+          );
+
+          // Si on a déjà affiché le cache, on ne fait rien (mode dégradé)
           if (didFallbackToCache) return;
-          // Sinon, déconnexion
+
+          // Retry si on n'a pas dépassé le nombre max de tentatives
+          if (retryCount < maxRetries - 1) {
+            retryCount++;
+            console.log(
+              `🔄 Nouvelle tentative dans 2 secondes... (${retryCount}/${maxRetries})`
+            );
+            setTimeout(() => checkAuth(), 2000);
+            return;
+          }
+
+          // Si toutes les tentatives ont échoué, déconnexion
+          console.error("❌ Toutes les tentatives API ont échoué, déconnexion");
           cleanupAuth();
           setUser(null);
           setIsAuthenticated(false);
           setLoading(false);
         }
       } catch (error) {
+        console.error("❌ Erreur générale dans checkAuth:", error);
         cleanupAuth();
         setIsAuthenticated(false);
         setUser(null);
         setLoading(false);
       }
     };
+
     checkAuth();
+
     // Cleanup function pour annuler la requête si le hook se démonte
     return () => {
       if (abortControllerRef.current) {

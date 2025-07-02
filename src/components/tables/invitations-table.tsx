@@ -87,6 +87,7 @@ export function InvitationsTable({
       enableHiding: false,
       enableSorting: false,
     },
+
     {
       accessorKey: "description",
       header: COLUMN_LABELS.description,
