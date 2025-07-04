@@ -1,4 +1,5 @@
 import { InvitationsApiResponse, Invitation } from "@/types/invitation";
+import { User } from "@/types/user";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -115,4 +116,17 @@ export async function declineInvitation(
       throw new Error(`Erreur ${res.status}: ${errorText || res.statusText}`);
     }
   }
+}
+
+export async function fetchInvitationParticipant(
+  selfHref: string,
+  token?: string
+): Promise<User> {
+  const res = await fetch(`${selfHref}/user`, {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!res.ok) throw new Error("Erreur lors du chargement du participant");
+  return await res.json();
 }

@@ -72,6 +72,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
     isTrending: false,
     status: "NOT_STARTED",
     contentHtml: "",
+    isInvitationOnly: false,
   };
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
@@ -121,6 +122,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         isTrending: eventDetails.isTrending || false,
         status: eventDetails.status || "NOT_STARTED",
         contentHtml: eventDetails.contentHtml || "",
+        isInvitationOnly: eventDetails.isInvitationOnly || false,
       });
     }
   }, [eventDetails]);
@@ -215,6 +217,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         isTrending: form.isTrending,
         status: form.status,
         contentHtml: form.contentHtml.trim() || undefined,
+        isInvitationOnly: form.isInvitationOnly,
       };
 
       const patchUrl = event._links?.self?.href;
@@ -269,6 +272,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         isTrending: event.isTrending || false,
         status: event.status || "NOT_STARTED",
         contentHtml: "",
+        isInvitationOnly: event.isInvitationOnly || false,
       });
     }
   };
@@ -280,6 +284,11 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         ? [...prev.categoryKeys, categoryKey]
         : prev.categoryKeys.filter((key) => key !== categoryKey),
     }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setForm((prev) => ({ ...prev, [name]: checked }));
   };
 
   return (
@@ -544,6 +553,20 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isInvitationOnly"
+                name="isInvitationOnly"
+                checked={form.isInvitationOnly}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({ ...prev, isInvitationOnly: !!checked }))
+                }
+              />
+              <Label htmlFor="isInvitationOnly">
+                Sur invitation uniquement
+              </Label>
             </div>
           </div>
 

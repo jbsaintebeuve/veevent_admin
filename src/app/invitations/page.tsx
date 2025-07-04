@@ -1,12 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   fetchUserInvitations,
   acceptInvitation,
   declineInvitation,
+  fetchInvitationParticipant,
 } from "@/lib/fetch-invitations";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
@@ -18,6 +19,8 @@ import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { User } from "@/types/user";
+import { useEnrichedInvitations } from "@/hooks/use-enriched-invitations";
 
 export default function InvitationsPage() {
   const [search, setSearch] = useState("");
@@ -66,6 +69,10 @@ export default function InvitationsPage() {
 
   const invitations = data?._embedded?.invitations || [];
   const pageInfo = data?.page;
+
+  // Remplacement : hook pour enrichir les invitations avec participant
+  const { invitations: enrichedInvitations, loading: participantsLoading } =
+    useEnrichedInvitations(invitations, token);
 
   // Statistiques optimisées avec useMemo
   const { totalInvitations, pendingCount, acceptedCount, rejectedCount } =
@@ -252,13 +259,15 @@ export default function InvitationsPage() {
 
             {/* ✅ Tableau des invitations */}
             <InvitationsTable
-              data={invitations || []}
+              data={enrichedInvitations}
               search={search}
               onSearchChange={setSearch}
               onAccept={handleAccept}
               onDecline={handleDecline}
               actionLoading={
-                acceptMutation.isPending || declineMutation.isPending
+                acceptMutation.isPending ||
+                declineMutation.isPending ||
+                participantsLoading
               }
             />
 

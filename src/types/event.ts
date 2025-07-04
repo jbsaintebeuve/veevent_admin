@@ -24,6 +24,7 @@ export interface Event {
     imageUrl: string | null;
     note: number | null;
   };
+  isInvitationOnly?: boolean;
   _links?: any;
 }
 
@@ -54,6 +55,7 @@ export interface EventRequest {
   isTrending?: boolean;
   status?: string;
   contentHtml?: string;
+  isInvitationOnly?: boolean;
 }
 
 export type EventCreateRequest = EventRequest;

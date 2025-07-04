@@ -74,6 +74,7 @@ const initialForm = {
   isTrending: false,
   status: "NOT_STARTED",
   contentHtml: "",
+  isInvitationOnly: false,
 };
 
 const InputField = memo(
@@ -356,6 +357,7 @@ export function CreateEventDialog({
           placeId: parseInt(form.placeId, 10),
           cityId: parseInt(form.cityId, 10),
           categoryKeys: form.categoryIds,
+          isInvitationOnly: form.isInvitationOnly,
         };
 
         console.log("📤 Envoi des données au backend:", payload);
@@ -672,6 +674,20 @@ export function CreateEventDialog({
                   <SelectItem value="CANCELLED">Annulé</SelectItem>
                 </MemoizedSelect>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isInvitationOnly"
+                name="isInvitationOnly"
+                checked={form.isInvitationOnly}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({ ...prev, isInvitationOnly: !!checked }))
+                }
+              />
+              <Label htmlFor="isInvitationOnly">
+                Sur invitation uniquement
+              </Label>
             </div>
 
             {error && (

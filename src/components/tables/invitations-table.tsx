@@ -44,6 +44,7 @@ import {
   X,
   Mail,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function DragHandle() {
   return (
@@ -62,6 +63,7 @@ function DragHandle() {
 const COLUMN_LABELS: Record<string, string> = {
   description: "Description",
   status: "Statut",
+  participant: "Participant",
 };
 
 export function InvitationsTable({
@@ -126,6 +128,27 @@ export function InvitationsTable({
             return <Badge variant="outline">{row.original.status}</Badge>;
         }
       },
+    },
+    {
+      id: "participant",
+      header: COLUMN_LABELS.participant,
+      cell: ({ row }) => {
+        const participant = row.original.participant;
+        if (!participant)
+          return <span className="text-muted-foreground italic">-</span>;
+        return (
+          <div className="flex items-center gap-2">
+            <Avatar className="h-7 w-7">
+              <AvatarImage src={participant.imageUrl || undefined} />
+              <AvatarFallback>
+                {participant.pseudo?.slice(0, 2).toUpperCase() || "?"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium">{participant.pseudo}</span>
+          </div>
+        );
+      },
+      enableHiding: false,
     },
     {
       id: "actions",
