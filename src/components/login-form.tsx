@@ -37,8 +37,12 @@ export function LoginForm({
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
-  const backendGoogleLoginUrl =
-    "http://localhost:8090/oauth2/authorization/google";
+  const redirectUri = `${
+    process.env.NEXT_PUBLIC_FRONTEND_URL
+  }/auth/callback?redirect=${encodeURIComponent(redirectUrl)}`;
+  const backendGoogleLoginUrl = `${
+    process.env.NEXT_PUBLIC_BACK_URL
+  }/oauth2/authorize/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
   // Gestion des erreurs de permissions
   useEffect(() => {
