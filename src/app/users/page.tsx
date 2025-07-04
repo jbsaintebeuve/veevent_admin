@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { banOrUnbanUser } from "@/lib/fetch-user";
+import { toast } from "sonner";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
@@ -321,8 +322,20 @@ export default function UsersPage() {
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       setBanDialogOpen(false);
       setBanTargetUser(null);
+
+      // Toast de succès
+      if (isBanned) {
+        toast.success(
+          `Utilisateur ${banTargetUser.firstName} ${banTargetUser.lastName} débanni avec succès`
+        );
+      } else {
+        toast.success(
+          `Utilisateur ${banTargetUser.firstName} ${banTargetUser.lastName} banni avec succès`
+        );
+      }
     } catch (e: any) {
       setBanError(e.message || "Erreur inconnue");
+      toast.error(`Erreur: ${e.message || "Erreur inconnue"}`);
     } finally {
       setBanLoading(false);
     }
@@ -461,16 +474,7 @@ export default function UsersPage() {
             >
               Annuler
             </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmBanToggle}
-              className={
-                banTargetUser &&
-                (banTargetUser.role ?? "").toLowerCase() === "banned"
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              }
-              disabled={banLoading}
-            >
+            <AlertDialogAction onClick={confirmBanToggle} disabled={banLoading}>
               {banTargetUser &&
               (banTargetUser.role ?? "").toLowerCase() === "banned"
                 ? "Débannir"

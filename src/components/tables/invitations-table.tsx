@@ -119,7 +119,7 @@ const createColumns = (
     },
   },
   {
-    id: "participant",
+    accessorKey: "participant",
     header: COLUMN_LABELS.participant,
     cell: ({ row }) => {
       const participant = row.original.participant;

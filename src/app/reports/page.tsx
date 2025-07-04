@@ -51,11 +51,6 @@ export default function ReportsPage() {
     );
   }, [reports, search]);
 
-  const handleDelete = useCallback((deleteUrl: string, name: string) => {
-    // TODO: Implémenter la suppression de signalement
-    console.log("Supprimer signalement:", name, deleteUrl);
-  }, []);
-
   // Statistiques des signalements
   const {
     totalReports,
@@ -302,8 +297,6 @@ export default function ReportsPage() {
               data={reports || []}
               search={search}
               onSearchChange={setSearch}
-              onDelete={handleDelete}
-              deleteLoading={false}
             />
 
             {/* Pagination */}

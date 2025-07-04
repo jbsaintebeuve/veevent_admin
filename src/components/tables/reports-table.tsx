@@ -45,25 +45,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Report } from "@/types/report";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  AlertTriangle,
-  FileText,
-  Shield,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Search, AlertTriangle, FileText } from "lucide-react";
 
 // Icône drag visuelle seulement (pas de fonctionnalité)
 function DragHandle() {
@@ -83,15 +65,12 @@ function DragHandle() {
 const COLUMN_LABELS: Record<string, string> = {
   reportType: "Type de signalement",
   description: "Description",
-  status: "Statut",
   date: "Date",
   priority: "Priorité",
 };
 
 // Définition des colonnes en dehors du composant pour éviter les re-créations
-const createColumns = (
-  onDelete: (deleteUrl: string, name: string) => void
-): ColumnDef<Report>[] => [
+const createColumns = (): ColumnDef<Report>[] => [
   {
     id: "drag",
     header: () => null,
@@ -144,16 +123,7 @@ const createColumns = (
       </div>
     ),
   },
-  {
-    accessorKey: "status",
-    header: COLUMN_LABELS.status,
-    cell: ({ row }) => (
-      <Badge variant="outline" className="gap-1">
-        <Shield className="h-3 w-3" />
-        En attente
-      </Badge>
-    ),
-  },
+
   {
     accessorKey: "priority",
     header: COLUMN_LABELS.priority,
@@ -171,93 +141,19 @@ const createColumns = (
       }
     },
   },
-  {
-    id: "actions",
-    header: () => <div className="w-full text-right"></div>,
-    cell: ({ row }) => {
-      const [openDelete, setOpenDelete] = React.useState(false);
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            >
-              <IconDotsVertical />
-              <span className="sr-only">Ouvrir le menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                // TODO: Implémenter la résolution
-                console.log("Résoudre le signalement:", row.original);
-              }}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Résoudre
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setOpenDelete(true);
-              }}
-              className="text-destructive focus:text-destructive"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Rejeter
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-          {/* Dialog Rejeter */}
-          <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Rejeter le signalement</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Êtes-vous sûr de vouloir rejeter ce signalement ? Cette action
-                  est irréversible.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    onDelete(
-                      row.original._links?.self?.href,
-                      `Signalement #${row.index + 1}`
-                    );
-                    setOpenDelete(false);
-                  }}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Rejeter
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </DropdownMenu>
-      );
-    },
-  },
 ];
 
 export function ReportsTable({
   data,
   search,
   onSearchChange,
-  onDelete,
-  deleteLoading,
 }: {
   data: Report[];
   search: string;
   onSearchChange: (v: string) => void;
-  onDelete: (deleteUrl: string, name: string) => void;
-  deleteLoading: boolean;
 }) {
   // Mémorisation des colonnes pour éviter les re-créations
-  const columns = React.useMemo(() => createColumns(onDelete), [onDelete]);
+  const columns = React.useMemo(() => createColumns(), []);
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
