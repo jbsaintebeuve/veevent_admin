@@ -55,7 +55,14 @@ export function useEventParticipants({
       );
 
       if (response._embedded?.userSummaries) {
-        setParticipants(response._embedded.userSummaries);
+        // Éviter les re-rendus inutiles en comparant avec l'état précédent
+        setParticipants((prev) => {
+          const newParticipants = response._embedded.userSummaries;
+          if (JSON.stringify(prev) === JSON.stringify(newParticipants)) {
+            return prev; // Retourner la même référence si les données sont identiques
+          }
+          return newParticipants;
+        });
         setTotalElements(response._embedded.userSummaries.length);
       } else {
         setParticipants([]);

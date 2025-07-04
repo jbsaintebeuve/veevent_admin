@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Invitation } from "@/types/invitation";
 import { fetchInvitationParticipant } from "@/lib/fetch-invitations";
 import { User } from "@/types/user";
@@ -17,6 +17,11 @@ export function useEnrichedInvitations(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // Créer une clé stable pour détecter les changements réels
+  const invitationsKey = useMemo(() => {
+    return invitations.map((inv) => `${inv.id}-${inv.status}`).join("|");
+  }, [invitations]);
+
   useEffect(() => {
     let isMounted = true;
     async function enrich() {
@@ -27,6 +32,10 @@ export function useEnrichedInvitations(
           invitations.map(async (inv) => {
             const selfHref = inv._links?.self?.href;
             if (!selfHref) return inv;
+
+            // Vérifier si l'invitation a déjà un participant pour éviter les re-fetch
+            if (inv.participant) return inv;
+
             try {
               const participant = await fetchInvitationParticipant(
                 selfHref,
@@ -34,23 +43,37 @@ export function useEnrichedInvitations(
               );
               return { ...inv, participant };
             } catch (e) {
-              return { ...inv };
+              return inv; // Retourner l'invitation originale sans modification
             }
           })
         );
-        if (isMounted) setEnriched(enrichedList);
+
+        if (isMounted) {
+          // Comparer avec l'état précédent pour éviter les re-rendus inutiles
+          setEnriched((prev) => {
+            if (JSON.stringify(prev) === JSON.stringify(enrichedList)) {
+              return prev; // Retourner la même référence si les données sont identiques
+            }
+            return enrichedList;
+          });
+        }
       } catch (e: any) {
         if (isMounted) setError(e);
       } finally {
         if (isMounted) setLoading(false);
       }
     }
-    if (invitations.length > 0) enrich();
-    else setEnriched([]);
+
+    if (invitations.length > 0) {
+      enrich();
+    } else {
+      setEnriched([]);
+    }
+
     return () => {
       isMounted = false;
     };
-  }, [invitations, token]);
+  }, [invitationsKey, token]); // Utiliser invitationsKey au lieu de invitations
 
   return { invitations: enriched, loading, error };
 }

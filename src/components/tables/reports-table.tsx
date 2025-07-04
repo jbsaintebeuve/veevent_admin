@@ -2,25 +2,6 @@
 
 import * as React from "react";
 import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type UniqueIdentifier,
-} from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
   IconChevronDown,
   IconDotsVertical,
   IconGripVertical,
@@ -84,18 +65,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-function DragHandle({ id }: { id: number }) {
-  const { attributes, listeners } = useSortable({ id });
+// Icône drag visuelle seulement (pas de fonctionnalité)
+function DragHandle() {
   return (
     <Button
-      {...attributes}
-      {...listeners}
       variant="ghost"
       size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent"
+      className="text-muted-foreground size-7 hover:bg-transparent cursor-default"
+      disabled
     >
       <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag to reorder</span>
+      <span className="sr-only">Drag handle (disabled)</span>
     </Button>
   );
 }
@@ -107,6 +87,161 @@ const COLUMN_LABELS: Record<string, string> = {
   date: "Date",
   priority: "Priorité",
 };
+
+// Définition des colonnes en dehors du composant pour éviter les re-créations
+const createColumns = (
+  onDelete: (deleteUrl: string, name: string) => void
+): ColumnDef<Report>[] => [
+  {
+    id: "drag",
+    header: () => null,
+    cell: () => <DragHandle />,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "reportType",
+    header: COLUMN_LABELS.reportType,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="flex flex-col">
+          {(() => {
+            switch (row.original.reportType.toUpperCase()) {
+              case "INAPPROPRIATE_CONTENT":
+                return <Badge variant="destructive">Contenu inapproprié</Badge>;
+              case "SPAM":
+                return <Badge variant="secondary">Spam</Badge>;
+              case "HARASSMENT":
+                return <Badge variant="destructive">Harcèlement</Badge>;
+              case "FAKE_EVENT":
+                return <Badge variant="outline">Événement fictif</Badge>;
+              case "INAPPROPRIATE_BEHAVIOR":
+                return (
+                  <Badge variant="destructive">Comportement inapproprié</Badge>
+                );
+              default:
+                return (
+                  <Badge variant="outline">{row.original.reportType}</Badge>
+                );
+            }
+          })()}
+        </div>
+      </div>
+    ),
+    enableHiding: false,
+  },
+  {
+    accessorKey: "description",
+    header: COLUMN_LABELS.description,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <FileText className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm max-w-md truncate">
+          {row.original.description}
+        </span>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: COLUMN_LABELS.status,
+    cell: ({ row }) => (
+      <Badge variant="outline" className="gap-1">
+        <Shield className="h-3 w-3" />
+        En attente
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: "priority",
+    header: COLUMN_LABELS.priority,
+    cell: ({ row }) => {
+      const reportType = row.original.reportType.toUpperCase();
+      if (
+        reportType === "HARASSMENT" ||
+        reportType === "INAPPROPRIATE_BEHAVIOR"
+      ) {
+        return <Badge variant="destructive">Haute</Badge>;
+      } else if (reportType === "INAPPROPRIATE_CONTENT") {
+        return <Badge variant="default">Moyenne</Badge>;
+      } else {
+        return <Badge variant="secondary">Basse</Badge>;
+      }
+    },
+  },
+  {
+    id: "actions",
+    header: () => <div className="w-full text-right"></div>,
+    cell: ({ row }) => {
+      const [openDelete, setOpenDelete] = React.useState(false);
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+            >
+              <IconDotsVertical />
+              <span className="sr-only">Ouvrir le menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                // TODO: Implémenter la résolution
+                console.log("Résoudre le signalement:", row.original);
+              }}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Résoudre
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setOpenDelete(true);
+              }}
+              className="text-destructive focus:text-destructive"
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Rejeter
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+          {/* Dialog Rejeter */}
+          <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Rejeter le signalement</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Êtes-vous sûr de vouloir rejeter ce signalement ? Cette action
+                  est irréversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    onDelete(
+                      row.original._links?.self?.href,
+                      `Signalement #${row.index + 1}`
+                    );
+                    setOpenDelete(false);
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Rejeter
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </DropdownMenu>
+      );
+    },
+  },
+];
 
 export function ReportsTable({
   data,
@@ -121,170 +256,11 @@ export function ReportsTable({
   onDelete: (deleteUrl: string, name: string) => void;
   deleteLoading: boolean;
 }) {
-  const columns: ColumnDef<Report>[] = [
-    {
-      id: "drag",
-      header: () => null,
-      cell: ({ row }) => <DragHandle id={row.index} />,
-      enableHiding: false,
-    },
-    {
-      accessorKey: "reportType",
-      header: COLUMN_LABELS.reportType,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex flex-col">
-            {(() => {
-              switch (row.original.reportType.toUpperCase()) {
-                case "INAPPROPRIATE_CONTENT":
-                  return (
-                    <Badge variant="destructive">Contenu inapproprié</Badge>
-                  );
-                case "SPAM":
-                  return <Badge variant="secondary">Spam</Badge>;
-                case "HARASSMENT":
-                  return <Badge variant="destructive">Harcèlement</Badge>;
-                case "FAKE_EVENT":
-                  return <Badge variant="outline">Événement fictif</Badge>;
-                case "INAPPROPRIATE_BEHAVIOR":
-                  return (
-                    <Badge variant="destructive">
-                      Comportement inapproprié
-                    </Badge>
-                  );
-                default:
-                  return (
-                    <Badge variant="outline">{row.original.reportType}</Badge>
-                  );
-              }
-            })()}
-          </div>
-        </div>
-      ),
-      enableHiding: false,
-    },
-    {
-      accessorKey: "description",
-      header: COLUMN_LABELS.description,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm max-w-md truncate">
-            {row.original.description}
-          </span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "status",
-      header: COLUMN_LABELS.status,
-      cell: ({ row }) => (
-        <Badge variant="outline" className="gap-1">
-          <Shield className="h-3 w-3" />
-          En attente
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "priority",
-      header: COLUMN_LABELS.priority,
-      cell: ({ row }) => {
-        const reportType = row.original.reportType.toUpperCase();
-        if (
-          reportType === "HARASSMENT" ||
-          reportType === "INAPPROPRIATE_BEHAVIOR"
-        ) {
-          return <Badge variant="destructive">Haute</Badge>;
-        } else if (reportType === "INAPPROPRIATE_CONTENT") {
-          return <Badge variant="default">Moyenne</Badge>;
-        } else {
-          return <Badge variant="secondary">Basse</Badge>;
-        }
-      },
-    },
-    {
-      id: "actions",
-      header: () => <div className="w-full text-right"></div>,
-      cell: ({ row }) => {
-        const [openDelete, setOpenDelete] = React.useState(false);
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-              >
-                <IconDotsVertical />
-                <span className="sr-only">Ouvrir le menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  // TODO: Implémenter la résolution
-                  console.log("Résoudre le signalement:", row.original);
-                }}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Résoudre
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setOpenDelete(true);
-                }}
-                className="text-destructive focus:text-destructive"
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Rejeter
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-            {/* Dialog Rejeter */}
-            <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Rejeter le signalement</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Êtes-vous sûr de vouloir rejeter ce signalement ? Cette
-                    action est irréversible.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      onDelete(
-                        row.original._links?.self?.href,
-                        `Signalement #${row.index + 1}`
-                      );
-                      setOpenDelete(false);
-                    }}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Rejeter
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
+  // Mémorisation des colonnes pour éviter les re-créations
+  const columns = React.useMemo(() => createColumns(onDelete), [onDelete]);
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  const sortableId = React.useId();
-  const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
-    useSensor(KeyboardSensor, {})
-  );
 
   // Filtrage des signalements selon la recherche
   const filteredData = React.useMemo(() => {
@@ -297,18 +273,8 @@ export function ReportsTable({
     );
   }, [data, search]);
 
-  const [tableData, setTableData] = React.useState(() => filteredData);
-  React.useEffect(() => {
-    setTableData(filteredData);
-  }, [filteredData]);
-
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => tableData?.map((_, index) => index) || [],
-    [tableData]
-  );
-
   const table = useReactTable({
-    data: tableData,
+    data: filteredData,
     columns,
     state: {
       columnVisibility,
@@ -318,17 +284,6 @@ export function ReportsTable({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (active && over && active.id !== over.id) {
-      setTableData((data) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(data, oldIndex, newIndex);
-      });
-    }
-  }
 
   return (
     <Tabs
@@ -385,126 +340,101 @@ export function ReportsTable({
         className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
       >
         <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      const isActions = header.column.id === "actions";
+          <Table>
+            <TableHeader className="bg-muted sticky top-0 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const isActions = header.column.id === "actions";
+                    return (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        className={
+                          isActions ? "text-right w-0 min-w-[64px]" : undefined
+                        }
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody className="**:data-[slot=table-cell]:first:w-8">
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => {
+                      const isActions = cell.column.id === "actions";
                       return (
-                        <TableHead
-                          key={header.id}
-                          colSpan={header.colSpan}
+                        <TableCell
+                          key={cell.id}
                           className={
                             isActions
                               ? "text-right w-0 min-w-[64px]"
                               : undefined
                           }
                         >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
                       );
                     })}
                   </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-64 align-middle p-0"
                   >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
-                    ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-64 align-middle p-0"
-                    >
-                      <div className="flex flex-col items-center justify-center h-full py-8">
-                        {search ? (
-                          <>
-                            <Search className="mb-2 h-8 w-8 text-muted-foreground" />
-                            <div className="mb-1 text-base font-medium text-muted-foreground">
-                              Aucun signalement ne correspond à votre recherche.
-                            </div>
-                            <div className="mb-4 text-sm text-muted-foreground">
-                              Essayez de modifier ou réinitialiser votre
-                              recherche.
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-9 px-3"
-                              onClick={() => onSearchChange("")}
-                            >
-                              Réinitialiser la recherche
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <AlertTriangle className="mb-2 h-8 w-8 text-muted-foreground" />
-                            <div className="mb-1 text-base font-medium text-muted-foreground">
-                              Aucun signalement
-                            </div>
-                            <div className="mb-4 text-sm text-muted-foreground">
-                              Aucun signalement n'a été rapporté pour le moment.
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
+                    <div className="flex flex-col items-center justify-center h-full py-8">
+                      {search ? (
+                        <>
+                          <Search className="mb-2 h-8 w-8 text-muted-foreground" />
+                          <div className="mb-1 text-base font-medium text-muted-foreground">
+                            Aucun signalement ne correspond à votre recherche.
+                          </div>
+                          <div className="mb-4 text-sm text-muted-foreground">
+                            Essayez de modifier ou réinitialiser votre
+                            recherche.
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-3"
+                            onClick={() => onSearchChange("")}
+                          >
+                            Réinitialiser la recherche
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="mb-2 h-8 w-8 text-muted-foreground" />
+                          <div className="mb-1 text-base font-medium text-muted-foreground">
+                            Aucun signalement
+                          </div>
+                          <div className="mb-4 text-sm text-muted-foreground">
+                            Aucun signalement n'a été rapporté pour le moment.
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </TabsContent>
     </Tabs>
-  );
-}
-
-function DraggableRow({ row }: { row: any }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.index,
-  });
-  return (
-    <TableRow
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
-    >
-      {row.getVisibleCells().map((cell: any) => {
-        const isActions = cell.column.id === "actions";
-        return (
-          <TableCell
-            key={cell.id}
-            className={isActions ? "text-right w-0 min-w-[64px]" : undefined}
-          >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </TableCell>
-        );
-      })}
-    </TableRow>
   );
 }
