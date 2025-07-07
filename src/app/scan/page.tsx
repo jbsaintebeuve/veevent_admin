@@ -10,13 +10,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { QRScanner } from "@/components/ui/qr-scanner";
 import { toast } from "sonner";
-import { 
-  QrCode, 
-  CheckCircle, 
-  XCircle, 
+import {
+  QrCode,
+  CheckCircle,
+  XCircle,
   AlertCircle,
   Loader2,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { verifyTicket, parseVerificationKey } from "@/lib/fetch-tickets";
@@ -31,7 +31,8 @@ interface VerificationResult {
 export default function ScanPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [manualKey, setManualKey] = useState("");
-  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [verificationResult, setVerificationResult] =
+    useState<VerificationResult | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const { getToken, user } = useAuth();
@@ -39,20 +40,24 @@ export default function ScanPage() {
   const handleVerification = async (verificationKey: string) => {
     setIsVerifying(true);
     setVerificationResult(null);
-    
+
     try {
       // Appeler l'API de vérification avec l'utilisateur connecté
-      const result = await verifyTicket(verificationKey, getToken() || undefined, user);
-      
+      const result = await verifyTicket(
+        verificationKey,
+        getToken() || undefined,
+        user
+      );
+
       setVerificationResult({
         success: result.isValid,
         data: result,
-        error: result.error
+        error: result.error,
       });
 
       // Afficher le résultat en plein écran
       setShowResult(true);
-      
+
       // Masquer le résultat après 3 secondes
       setTimeout(() => {
         setShowResult(false);
@@ -63,16 +68,15 @@ export default function ScanPage() {
           setTimeout(() => setIsScanning(true), 500);
         }
       }, 3000);
-
     } catch (error: any) {
       setVerificationResult({
         success: false,
-        error: error.message
+        error: error.message,
       });
-      
+
       // Afficher l'erreur en plein écran
       setShowResult(true);
-      
+
       // Masquer l'erreur après 3 secondes
       setTimeout(() => {
         setShowResult(false);
@@ -93,7 +97,7 @@ export default function ScanPage() {
       toast.error("Veuillez saisir une clé de vérification");
       return;
     }
-    
+
     await handleVerification(manualKey.trim());
     setManualKey("");
   };
@@ -111,12 +115,12 @@ export default function ScanPage() {
   return (
     <>
       <SiteHeader />
-      
+
       {/* Résultat en plein écran */}
       {showResult && verificationResult && (
-        <div 
+        <div
           className={`fixed inset-0 z-50 flex items-center justify-center ${
-            verificationResult.success ? 'bg-green-500' : 'bg-red-500'
+            verificationResult.success ? "bg-green-500" : "bg-red-500"
           }`}
         >
           <div className="text-center text-white">
@@ -125,11 +129,14 @@ export default function ScanPage() {
                 <CheckCircle className="mx-auto h-24 w-24 mb-4" />
                 <h1 className="text-4xl font-bold mb-2">Ticket Valide</h1>
                 {verificationResult.data?.event && (
-                  <p className="text-xl mb-1">{verificationResult.data.event.name}</p>
+                  <p className="text-xl mb-1">
+                    {verificationResult.data.event.name}
+                  </p>
                 )}
                 {verificationResult.data?.user && (
                   <p className="text-lg">
-                    {verificationResult.data.user.firstName} {verificationResult.data.user.lastName}
+                    {verificationResult.data.user.firstName}{" "}
+                    {verificationResult.data.user.lastName}
                   </p>
                 )}
               </>
@@ -148,7 +155,9 @@ export default function ScanPage() {
         <div className="mx-auto w-full max-w-4xl">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold tracking-tight">Scanner de Tickets</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Scanner de Tickets
+            </h1>
             <p className="text-muted-foreground">
               Scannez les QR codes des tickets pour vérifier leur validité
             </p>
@@ -156,7 +165,7 @@ export default function ScanPage() {
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* Scanner QR Code */}
-            <Card>
+            <Card className="shadow-xs">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <QrCode className="h-5 w-5" />
@@ -184,7 +193,7 @@ export default function ScanPage() {
             </Card>
 
             {/* Saisie manuelle */}
-            <Card>
+            <Card className="shadow-xs">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <QrCode className="h-5 w-5" />
@@ -203,9 +212,9 @@ export default function ScanPage() {
                     disabled={isVerifying}
                   />
                 </div>
-                
-                <Button 
-                  onClick={handleManualVerification} 
+
+                <Button
+                  onClick={handleManualVerification}
                   disabled={!manualKey.trim() || isVerifying}
                   className="w-full"
                 >
@@ -225,7 +234,10 @@ export default function ScanPage() {
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Format attendu: <code className="bg-muted px-1 rounded">VV-{'{eventId}'}-{'{orderId}'}-{'{ticketId}'}</code>
+                    Format attendu:{" "}
+                    <code className="bg-muted px-1 rounded">
+                      VV-{"{eventId}"}-{"{orderId}"}-{"{ticketId}"}
+                    </code>
                   </AlertDescription>
                 </Alert>
               </CardContent>
@@ -234,7 +246,7 @@ export default function ScanPage() {
 
           {/* Dernier résultat */}
           {verificationResult && !showResult && (
-            <Card className="mt-6">
+            <Card className="mt-6 shadow-xs">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <RefreshCw className="h-5 w-5" />
@@ -250,7 +262,7 @@ export default function ScanPage() {
                         Ticket Valide
                       </Badge>
                     </div>
-                    
+
                     {verificationResult.data?.event && (
                       <div>
                         <h3 className="font-semibold">Événement</h3>
@@ -259,14 +271,17 @@ export default function ScanPage() {
                         </p>
                       </div>
                     )}
-                    
+
                     {verificationResult.data?.user && (
                       <div>
                         <h3 className="font-semibold">Participant</h3>
                         <p className="text-muted-foreground">
-                          {verificationResult.data.user.firstName} {verificationResult.data.user.lastName}
+                          {verificationResult.data.user.firstName}{" "}
+                          {verificationResult.data.user.lastName}
                           {verificationResult.data.user.pseudo && (
-                            <span className="ml-2 text-sm">(@{verificationResult.data.user.pseudo})</span>
+                            <span className="ml-2 text-sm">
+                              (@{verificationResult.data.user.pseudo})
+                            </span>
                           )}
                         </p>
                       </div>
@@ -276,7 +291,9 @@ export default function ScanPage() {
                   <div className="flex items-center gap-2">
                     <XCircle className="h-5 w-5 text-red-500" />
                     <Badge variant="destructive">Ticket Invalide</Badge>
-                    <span className="text-muted-foreground">{verificationResult.error}</span>
+                    <span className="text-muted-foreground">
+                      {verificationResult.error}
+                    </span>
                   </div>
                 )}
               </CardContent>
@@ -286,4 +303,4 @@ export default function ScanPage() {
       </div>
     </>
   );
-} 
+}
