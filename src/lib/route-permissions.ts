@@ -11,4 +11,5 @@ export const routePermissions: Record<string, string[]> = {
   "/settings": ["admin", "authservice", "organizer"],
   "/my-events": ["organizer"],
   "/invitations": ["admin", "authservice", "organizer"],
+  "/scan": ["admin", "authservice", "organizer"],
 };
