@@ -12,6 +12,7 @@ import {
   User,
   PlaneTakeoff,
   Shield,
+  QrCode,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -51,6 +52,11 @@ const data = {
       title: "Mes événements",
       url: "/my-events",
       icon: Calendar,
+    },
+    {
+      title: "Scanner Tickets",
+      url: "/scan",
+      icon: QrCode,
     },
     {
       title: "Utilisateurs",
