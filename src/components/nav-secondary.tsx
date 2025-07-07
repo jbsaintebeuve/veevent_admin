@@ -3,6 +3,7 @@
 import * as React from "react";
 import { type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { useSidebar } from "@/components/ui/sidebar";
 
 import {
   SidebarGroup,
@@ -22,6 +23,7 @@ export function NavSecondary({
     icon: LucideIcon;
   }[];
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+  const sidebar = useSidebar();
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
@@ -29,7 +31,14 @@ export function NavSecondary({
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild>
-                <Link href={item.url}>
+                <Link
+                  href={item.url}
+                  onClick={() => {
+                    if (sidebar && sidebar.isMobile) {
+                      sidebar.setOpenMobile(false);
+                    }
+                  }}
+                >
                   <item.icon className="h-4 w-4" />
                   <span>{item.title}</span>
                 </Link>
