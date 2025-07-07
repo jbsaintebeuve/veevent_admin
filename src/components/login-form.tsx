@@ -123,6 +123,7 @@ export function LoginForm({
       }
 
       // Stockage et redirection
+      clearAuth();
       document.cookie = `token=${token}; path=/; max-age=${
         7 * 24 * 60 * 60
       }; SameSite=Lax`;
