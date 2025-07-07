@@ -54,11 +54,6 @@ const data = {
       icon: Calendar,
     },
     {
-      title: "Scanner Tickets",
-      url: "/scan",
-      icon: QrCode,
-    },
-    {
       title: "Utilisateurs",
       url: "/users",
       icon: Users,
@@ -99,6 +94,11 @@ const data = {
       title: "Paramètres",
       url: "/settings",
       icon: Settings,
+    },
+    {
+      title: "Scanner Tickets",
+      url: "/scan",
+      icon: QrCode,
     },
   ],
 };

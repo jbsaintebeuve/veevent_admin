@@ -69,7 +69,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
     maxCustomers: "",
     imageUrl: "",
     categoryKeys: [] as string[],
-    isTrending: false,
     status: "NOT_STARTED",
     contentHtml: "",
     isInvitationOnly: false,
@@ -119,7 +118,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
           eventDetails.categories?.map(
             (cat: { name: string; key: string }) => cat.key
           ) || [],
-        isTrending: eventDetails.isTrending || false,
         status: eventDetails.status || "NOT_STARTED",
         contentHtml: eventDetails.contentHtml || "",
         isInvitationOnly: eventDetails.isInvitationOnly || false,
@@ -214,7 +212,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         placeId,
         categoryKeys: form.categoryKeys,
         imageUrl: cloudinaryImageUrl?.trim() || undefined,
-        isTrending: form.isTrending,
         status: form.status,
         contentHtml: form.contentHtml.trim() || undefined,
         isInvitationOnly: form.isInvitationOnly,
@@ -269,7 +266,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         maxCustomers: event.maxCustomers?.toString() || "",
         imageUrl: event.imageUrl || "",
         categoryKeys: event.categories?.map((cat) => cat.key) || [],
-        isTrending: event.isTrending || false,
         status: event.status || "NOT_STARTED",
         contentHtml: "",
         isInvitationOnly: event.isInvitationOnly || false,
@@ -516,23 +512,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isTrending"
-                  checked={form.isTrending}
-                  onCheckedChange={(checked) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      isTrending: checked as boolean,
-                    }))
-                  }
-                  disabled={loading}
-                />
-                <Label htmlFor="isTrending" className="text-sm">
-                  Événement tendance
-                </Label>
-              </div>
-
               <div className="grid gap-2">
                 <Label>Statut</Label>
                 <Select
@@ -548,7 +527,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                   <SelectContent>
                     <SelectItem value="NOT_STARTED">À venir</SelectItem>
                     <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                    <SelectItem value="FINISHED">Terminé</SelectItem>
+                    <SelectItem value="COMPLETED">Terminé</SelectItem>
                     <SelectItem value="CANCELLED">Annulé</SelectItem>
                   </SelectContent>
                 </Select>

@@ -195,32 +195,32 @@ export function NovelEditor({
           <Button
             type="button"
             variant={
-              editor.isActive("heading", { level: 1 }) ? "default" : "ghost"
+              editor.isActive("heading", { level: 3 }) ? "default" : "ghost"
             }
             size="sm"
             onClick={(e) =>
               handleToolbarClick(e, () =>
-                editor.chain().focus().toggleHeading({ level: 1 }).run()
+                editor.chain().focus().toggleHeading({ level: 3 }).run()
               )
             }
             className="h-8 px-2"
           >
-            <Heading1 className="h-4 w-4" />
+            H3
           </Button>
           <Button
             type="button"
             variant={
-              editor.isActive("heading", { level: 2 }) ? "default" : "ghost"
+              editor.isActive("heading", { level: 4 }) ? "default" : "ghost"
             }
             size="sm"
             onClick={(e) =>
               handleToolbarClick(e, () =>
-                editor.chain().focus().toggleHeading({ level: 2 }).run()
+                editor.chain().focus().toggleHeading({ level: 4 }).run()
               )
             }
             className="h-8 px-2"
           >
-            <Heading2 className="h-4 w-4" />
+            H4
           </Button>
 
           <Separator orientation="vertical" className="h-6 mx-2" />

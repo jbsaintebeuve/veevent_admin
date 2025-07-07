@@ -45,7 +45,7 @@ export default function Page() {
     error: errorReports,
   } = useQuery({
     queryKey: ["dashboard-reports"],
-    queryFn: () => fetchReports(token),
+    queryFn: () => fetchReports(getToken() || undefined, 0, 1000),
     enabled: isAdminLike,
   });
 
@@ -121,7 +121,10 @@ export default function Page() {
     usersResponse?.page?.totalElements ||
     usersResponse?._embedded?.userResponses?.length ||
     0;
-  const totalReports = reportsResponse?.page?.totalElements || 0;
+  const totalReports =
+    reportsResponse?.page?.totalElements ||
+    reportsResponse?._embedded?.reports?.length ||
+    0;
 
   // ADMIN & AUTHSERVICE CARDS
   if (isAdminLike) {

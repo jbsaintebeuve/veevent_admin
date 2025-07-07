@@ -71,7 +71,6 @@ const initialForm = {
   cityId: "",
   placeId: "",
   categoryIds: [] as string[],
-  isTrending: false,
   status: "NOT_STARTED",
   contentHtml: "",
   isInvitationOnly: false,
@@ -206,13 +205,6 @@ export function CreateEventDialog({
     },
     []
   );
-
-  const handleCheckboxChange = useCallback((name: string, checked: boolean) => {
-    setForm((prev) => ({
-      ...prev,
-      [name]: checked,
-    }));
-  }, []);
 
   const handleSelectChange = useCallback((name: string, value: string) => {
     setForm((prev) => ({
@@ -350,7 +342,6 @@ export function CreateEventDialog({
           address: form.address.trim(),
           price: parseFloat(form.price),
           maxCustomers: parseInt(form.maxCustomers, 10),
-          isTrending: form.isTrending,
           status: form.status,
           imageUrl: cloudinaryImageUrl?.trim() || undefined,
           contentHtml: form.contentHtml.trim() || undefined,
@@ -646,20 +637,6 @@ export function CreateEventDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isTrending"
-                  checked={form.isTrending}
-                  onCheckedChange={(checked) =>
-                    handleCheckboxChange("isTrending", checked as boolean)
-                  }
-                  disabled={loading}
-                />
-                <Label htmlFor="isTrending" className="text-sm">
-                  Événement tendance
-                </Label>
-              </div>
-
               <div className="grid gap-2">
                 <Label>Statut</Label>
                 <MemoizedSelect
@@ -670,7 +647,7 @@ export function CreateEventDialog({
                 >
                   <SelectItem value="NOT_STARTED">À venir</SelectItem>
                   <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                  <SelectItem value="FINISHED">Terminé</SelectItem>
+                  <SelectItem value="COMPLETED">Terminé</SelectItem>
                   <SelectItem value="CANCELLED">Annulé</SelectItem>
                 </MemoizedSelect>
               </div>

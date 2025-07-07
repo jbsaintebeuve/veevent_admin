@@ -44,11 +44,15 @@ export function LoginForm({
     process.env.NEXT_PUBLIC_BACK_URL
   }/oauth2/authorize/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
-  // Gestion des erreurs de permissions
+  // Gestion des erreurs de permissions et d'authentification OAuth
   useEffect(() => {
     if (searchParams.get("error") === "insufficient-permissions") {
       setError(
         "Accès refusé. Votre rôle ne permet pas d'accéder à cette interface d'administration."
+      );
+    } else if (searchParams.get("error") === "auth_failed") {
+      setError(
+        "Vous n'avez pas le rôle nécessaire pour accéder à cette interface."
       );
     }
   }, [searchParams]);
@@ -114,9 +118,7 @@ export function LoginForm({
 
       if (!userData || !isRoleAllowed(userData.role)) {
         throw new Error(
-          `Accès refusé. Votre rôle "${
-            userData?.role || "inconnu"
-          }" ne permet pas d'accéder à cette interface.`
+          "Vous n'avez pas le rôle nécessaire pour accéder à cette interface."
         );
       }
 
