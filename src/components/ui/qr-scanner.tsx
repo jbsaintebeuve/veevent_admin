@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import QrScanner from "qr-scanner";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Camera, XCircle, AlertCircle } from "lucide-react";
@@ -21,8 +21,8 @@ export function QRScanner({
   onStartScan,
   onStopScan,
 }: QRScannerProps) {
-  const scannerRef = useRef<HTMLDivElement>(null);
-  const [scanner, setScanner] = useState<Html5QrcodeScanner | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [scanner, setScanner] = useState<QrScanner | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,42 +44,40 @@ export function QRScanner({
   useEffect(() => {
     return () => {
       if (scanner) {
-        scanner.clear();
+        scanner.destroy();
       }
     };
   }, [scanner]);
 
-  const startScanner = () => {
-    if (scannerRef.current && !scanner && hasPermission) {
-      const newScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          supportedScanTypes: [],
-        },
-        false
-      );
+  const startScanner = async () => {
+    if (videoRef.current && !scanner && hasPermission) {
+      try {
+        const newScanner = new QrScanner(
+          videoRef.current,
+          (result) => {
+            onScan(result.data);
+          },
+          {
+            returnDetailedScanResult: true,
+            highlightScanRegion: true,
+            highlightCodeOutline: true,
+          }
+        );
 
-      newScanner.render(
-        (decodedText) => {
-          onScan(decodedText);
-        },
-        (error) => {
-          // Erreurs de scan ignorées pour l'instant
-          console.log("Scan error:", error);
-        }
-      );
-
-      setScanner(newScanner);
-      onStartScan();
+        await newScanner.start();
+        setScanner(newScanner);
+        onStartScan();
+      } catch (err: any) {
+        console.error("Erreur lors du démarrage du scanner:", err);
+        setError(err.message);
+        onError?.(err.message);
+      }
     }
   };
 
   const stopScanner = () => {
     if (scanner) {
-      scanner.clear();
+      scanner.destroy();
       setScanner(null);
       onStopScan();
     }
@@ -98,7 +96,18 @@ export function QRScanner({
 
   return (
     <div className="space-y-4">
-      <div id="qr-reader" ref={scannerRef} className="w-full"></div>
+      <div className="relative w-full max-w-md mx-auto">
+        <video
+          ref={videoRef}
+          className="w-full rounded-lg border"
+          style={{ aspectRatio: "1/1" }}
+        />
+        {isScanning && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-64 h-64 border-2 border-white rounded-lg shadow-lg"></div>
+          </div>
+        )}
+      </div>
       
       <div className="flex gap-2">
         {!isScanning ? (
