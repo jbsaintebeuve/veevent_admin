@@ -44,7 +44,6 @@ import {
   X,
   Mail,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function DragHandle() {
   return (
@@ -63,134 +62,7 @@ function DragHandle() {
 const COLUMN_LABELS: Record<string, string> = {
   description: "Description",
   status: "Statut",
-  participant: "Participant",
 };
-
-// Définition des colonnes en dehors du composant pour éviter les re-créations
-const createColumns = (
-  onAccept: (invitation: Invitation) => void,
-  onDecline: (invitation: Invitation) => void,
-  actionLoading: boolean
-): ColumnDef<Invitation>[] => [
-  {
-    id: "drag",
-    header: () => null,
-    cell: () => <DragHandle />,
-    enableHiding: false,
-    enableSorting: false,
-  },
-  {
-    accessorKey: "description",
-    header: COLUMN_LABELS.description,
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.description}</span>
-    ),
-    enableHiding: false,
-  },
-  {
-    accessorKey: "status",
-    header: COLUMN_LABELS.status,
-    cell: ({ row }) => {
-      switch (row.original.status) {
-        case "SENT":
-          return (
-            <Badge variant="secondary" className="gap-1">
-              <Clock className="h-3 w-3" />
-              En attente
-            </Badge>
-          );
-        case "ACCEPTED":
-          return (
-            <Badge variant="default" className="gap-1">
-              <CheckCircle className="h-3 w-3" />
-              Acceptée
-            </Badge>
-          );
-        case "REJECTED":
-          return (
-            <Badge variant="destructive" className="gap-1">
-              <XCircle className="h-3 w-3" />
-              Refusée
-            </Badge>
-          );
-        default:
-          return <Badge variant="outline">{row.original.status}</Badge>;
-      }
-    },
-  },
-  {
-    accessorKey: "participant",
-    header: COLUMN_LABELS.participant,
-    cell: ({ row }) => {
-      const participant = row.original.participant;
-      if (!participant)
-        return <span className="text-muted-foreground italic">-</span>;
-      return (
-        <div className="flex items-center gap-2">
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={participant.imageUrl || undefined} />
-            <AvatarFallback>
-              {participant.pseudo?.slice(0, 2).toUpperCase() || "?"}
-            </AvatarFallback>
-          </Avatar>
-          <span className="font-medium">{participant.pseudo}</span>
-        </div>
-      );
-    },
-    enableHiding: true,
-  },
-  {
-    id: "actions",
-    header: () => <div className="w-full text-right"></div>,
-    cell: ({ row }) => {
-      // Ne pas afficher les actions si l'invitation n'est pas en attente
-      if (row.original.status !== "SENT") {
-        return null;
-      }
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-              disabled={actionLoading}
-            >
-              <IconDotsVertical />
-              <span className="sr-only">Ouvrir le menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                onAccept(row.original);
-              }}
-              disabled={actionLoading}
-            >
-              <Check className="h-4 w-4 mr-2" />
-              Accepter
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                onDecline(row.original);
-              }}
-              className="text-destructive focus:text-destructive"
-              disabled={actionLoading}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Refuser
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-    enableSorting: false,
-    enableHiding: false,
-  },
-];
 
 export function InvitationsTable({
   data,
@@ -207,11 +79,105 @@ export function InvitationsTable({
   onDecline: (invitation: Invitation) => void;
   actionLoading: boolean;
 }) {
-  // Utiliser useMemo pour mémoriser les colonnes
-  const columns = React.useMemo(
-    () => createColumns(onAccept, onDecline, actionLoading),
-    [onAccept, onDecline, actionLoading]
-  );
+  const columns: ColumnDef<Invitation>[] = [
+    {
+      id: "drag",
+      header: () => null,
+      cell: () => <DragHandle />,
+      enableHiding: false,
+      enableSorting: false,
+    },
+    {
+      accessorKey: "description",
+      header: COLUMN_LABELS.description,
+      cell: ({ row }) => (
+        <span className="font-medium">{row.original.description}</span>
+      ),
+      enableHiding: false,
+    },
+    {
+      accessorKey: "status",
+      header: COLUMN_LABELS.status,
+      cell: ({ row }) => {
+        switch (row.original.status) {
+          case "SENT":
+            return (
+              <Badge variant="secondary" className="gap-1">
+                <Clock className="h-3 w-3" />
+                En attente
+              </Badge>
+            );
+          case "ACCEPTED":
+            return (
+              <Badge variant="default" className="gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Acceptée
+              </Badge>
+            );
+          case "REJECTED":
+            return (
+              <Badge variant="destructive" className="gap-1">
+                <XCircle className="h-3 w-3" />
+                Refusée
+              </Badge>
+            );
+          default:
+            return <Badge variant="outline">{row.original.status}</Badge>;
+        }
+      },
+    },
+    {
+      id: "actions",
+      header: () => <div className="w-full text-right"></div>,
+      cell: ({ row }) => {
+        // Ne pas afficher les actions si l'invitation n'est pas en attente
+        if (row.original.status !== "SENT") {
+          return null;
+        }
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+                disabled={actionLoading}
+              >
+                <IconDotsVertical />
+                <span className="sr-only">Ouvrir le menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onAccept(row.original);
+                }}
+                disabled={actionLoading}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Accepter
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onDecline(row.original);
+                }}
+                className="text-destructive focus:text-destructive"
+                disabled={actionLoading}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Refuser
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
+  ];
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
