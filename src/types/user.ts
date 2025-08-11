@@ -12,7 +12,7 @@ export interface User {
   imageUrl?: string | null;
   bannerUrl?: string | null;
   socials?: string[] | string;
-  categories?: string[];
+  categories?: Array<{ name: string; key: string }>;
   categoryKeys?: string[];
   note?: number | null;
   _links?: any;

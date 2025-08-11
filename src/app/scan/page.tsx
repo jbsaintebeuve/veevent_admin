@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export default function ScanPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const { getToken, user } = useAuth();
+  const token = useMemo(() => getToken() || undefined, [getToken]);
 
   const handleVerification = async (verificationKey: string) => {
     setIsVerifying(true);
@@ -43,11 +44,7 @@ export default function ScanPage() {
 
     try {
       // Appeler l'API de vérification avec l'utilisateur connecté
-      const result = await verifyTicket(
-        verificationKey,
-        getToken() || undefined,
-        user
-      );
+      const result = await verifyTicket(verificationKey, token, user);
 
       setVerificationResult({
         success: result.isValid,
@@ -151,154 +148,158 @@ export default function ScanPage() {
         </div>
       )}
 
-      <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
-        <div className="mx-auto w-full max-w-4xl">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold tracking-tight">
-              Scanner de Tickets
-            </h1>
-            <p className="text-muted-foreground">
-              Scannez les QR codes des tickets pour vérifier leur validité
-            </p>
-          </div>
+      <div className="flex flex-1 flex-col">
+        <div className="@container/main flex flex-1 flex-col gap-2">
+          <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+            {/* Header */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Scanner de Tickets
+                </h1>
+                <p className="text-muted-foreground">
+                  Scannez les QR codes des tickets pour vérifier leur validité
+                </p>
+              </div>
+            </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Scanner QR Code */}
-            <Card className="shadow-xs">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5" />
-                  Scanner QR Code
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <QRScanner
-                  onScan={handleVerification}
-                  onError={handleScanError}
-                  isScanning={isScanning}
-                  onStartScan={() => setIsScanning(true)}
-                  onStopScan={() => setIsScanning(false)}
-                />
+            <div className="grid gap-6 md:grid-cols-2 px-4 lg:px-6">
+              {/* Scanner QR Code */}
+              <Card className="shadow-xs">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <QrCode className="h-5 w-5" />
+                    Scanner QR Code
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <QRScanner
+                    onScan={handleVerification}
+                    onError={handleScanError}
+                    isScanning={isScanning}
+                    onStartScan={() => setIsScanning(true)}
+                    onStopScan={() => setIsScanning(false)}
+                  />
 
-                {isVerifying && (
-                  <Alert className="mt-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                  {isVerifying && (
+                    <Alert className="mt-4">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <AlertDescription>
+                        Vérification du ticket en cours...
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Saisie manuelle */}
+              <Card className="shadow-xs">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <QrCode className="h-5 w-5" />
+                    Saisie Manuelle
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-key">Clé de vérification</Label>
+                    <Input
+                      id="manual-key"
+                      placeholder="VV-1-1-1"
+                      value={manualKey}
+                      onChange={(e) => setManualKey(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      disabled={isVerifying}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleManualVerification}
+                    disabled={!manualKey.trim() || isVerifying}
+                    className="w-full"
+                  >
+                    {isVerifying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Vérification...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Vérifier le Ticket
+                      </>
+                    )}
+                  </Button>
+
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Vérification du ticket en cours...
+                      Format attendu:{" "}
+                      <code className="bg-muted px-1 rounded">
+                        VV-{"{eventId}"}-{"{orderId}"}-{"{ticketId}"}
+                      </code>
                     </AlertDescription>
                   </Alert>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
 
-            {/* Saisie manuelle */}
-            <Card className="shadow-xs">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5" />
-                  Saisie Manuelle
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="manual-key">Clé de vérification</Label>
-                  <Input
-                    id="manual-key"
-                    placeholder="VV-1-1-1"
-                    value={manualKey}
-                    onChange={(e) => setManualKey(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    disabled={isVerifying}
-                  />
-                </div>
+            {/* Dernier résultat */}
+            {verificationResult && !showResult && (
+              <Card className="mt-6 shadow-xs">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <RefreshCw className="h-5 w-5" />
+                    Dernier Résultat
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {verificationResult.success ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        <Badge variant="default" className="bg-green-500">
+                          Ticket Valide
+                        </Badge>
+                      </div>
 
-                <Button
-                  onClick={handleManualVerification}
-                  disabled={!manualKey.trim() || isVerifying}
-                  className="w-full"
-                >
-                  {isVerifying ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Vérification...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Vérifier le Ticket
-                    </>
-                  )}
-                </Button>
+                      {verificationResult.data?.event && (
+                        <div>
+                          <h3 className="font-semibold">Événement</h3>
+                          <p className="text-muted-foreground">
+                            {verificationResult.data.event.name}
+                          </p>
+                        </div>
+                      )}
 
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Format attendu:{" "}
-                    <code className="bg-muted px-1 rounded">
-                      VV-{"{eventId}"}-{"{orderId}"}-{"{ticketId}"}
-                    </code>
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Dernier résultat */}
-          {verificationResult && !showResult && (
-            <Card className="mt-6 shadow-xs">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="h-5 w-5" />
-                  Dernier Résultat
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {verificationResult.success ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                      <Badge variant="default" className="bg-green-500">
-                        Ticket Valide
-                      </Badge>
+                      {verificationResult.data?.user && (
+                        <div>
+                          <h3 className="font-semibold">Participant</h3>
+                          <p className="text-muted-foreground">
+                            {verificationResult.data.user.firstName}{" "}
+                            {verificationResult.data.user.lastName}
+                            {verificationResult.data.user.pseudo && (
+                              <span className="ml-2 text-sm">
+                                (@{verificationResult.data.user.pseudo})
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
                     </div>
-
-                    {verificationResult.data?.event && (
-                      <div>
-                        <h3 className="font-semibold">Événement</h3>
-                        <p className="text-muted-foreground">
-                          {verificationResult.data.event.name}
-                        </p>
-                      </div>
-                    )}
-
-                    {verificationResult.data?.user && (
-                      <div>
-                        <h3 className="font-semibold">Participant</h3>
-                        <p className="text-muted-foreground">
-                          {verificationResult.data.user.firstName}{" "}
-                          {verificationResult.data.user.lastName}
-                          {verificationResult.data.user.pseudo && (
-                            <span className="ml-2 text-sm">
-                              (@{verificationResult.data.user.pseudo})
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <XCircle className="h-5 w-5 text-red-500" />
-                    <Badge variant="destructive">Ticket Invalide</Badge>
-                    <span className="text-muted-foreground">
-                      {verificationResult.error}
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-5 w-5 text-red-500" />
+                      <Badge variant="destructive">Ticket Invalide</Badge>
+                      <span className="text-muted-foreground">
+                        {verificationResult.error}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { fetchUserMe } from "@/lib/fetch-user-me";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,7 @@ import {
   Edit,
 } from "lucide-react";
 import { fetchCategories } from "@/lib/fetch-categories";
-import { fetchUserProfile, updateUserProfile } from "@/lib/fetch-user";
+import { updateUserProfile } from "@/lib/fetch-user-me";
 import { Category as CategoryType } from "@/types/category";
 import { uploadImage } from "@/lib/upload-image";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -67,15 +68,28 @@ export default function ProfilePage() {
     bannerFile: null as File | null,
   });
   const [socials, setSocials] = useState<Social[]>([]);
-  const [loading, setLoading] = useState(true);
+  // État de chargement maintenant géré par React Query
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const { data: categoriesResponse } = useQuery({
+  const queryClient = useQueryClient();
+
+  // Mémoriser le token pour éviter les rechargements inutiles
+  const token = useMemo(
+    () => (user ? getToken() : undefined),
+    [user, getToken]
+  );
+
+  const {
+    data: categoriesResponse,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useQuery({
     queryKey: ["categories"],
-    queryFn: () => fetchCategories(getToken() || undefined),
-    enabled: !!getToken(),
+    queryFn: () => fetchCategories(token || undefined),
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000, // 5 minutes de mise en cache
   });
 
   const categories = categoriesResponse?._embedded?.categories || [];
@@ -83,109 +97,126 @@ export default function ProfilePage() {
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
+  // Utiliser React Query pour récupérer les données de l'utilisateur connecté
+  const {
+    data: userData,
+    isLoading: userDataLoading,
+    error: userDataError,
+  } = useQuery({
+    queryKey: ["user", "me"],
+    queryFn: () => {
+      if (!token) throw new Error("Utilisateur non connecté");
+      return fetchUserMe(token);
+    },
+    enabled: !!token && !authLoading,
+    staleTime: 5 * 60 * 1000, // 5 minutes de mise en cache
+  });
+
+  // Gérer les erreurs des requêtes React Query
   useEffect(() => {
-    async function fetchUserProfileData() {
-      if (!user) return;
+    if (userDataError) {
+      setError(
+        (userDataError as Error).message ||
+          "Erreur lors du chargement du profil"
+      );
+      toast.error("Erreur lors du chargement du profil");
+    }
+    if (categoriesError) {
+      toast.error("Erreur lors du chargement des catégories");
+    }
+  }, [userDataError, categoriesError]);
 
-      setLoading(true);
-      try {
-        // ✅ Récupérer les données de profil depuis /users/{id}
-        const token = getToken();
-        const profileData = await fetchUserProfile(user.id, token || undefined);
+  // Utiliser useEffect uniquement pour mettre à jour le formulaire quand les données changent
+  useEffect(() => {
+    if (userData) {
+      // Utiliser uniquement les données de l'API pour une cohérence maximale
+      setForm({
+        // Données complètes depuis l'API
+        lastName: userData.lastName || "",
+        firstName: userData.firstName || "",
+        pseudo: userData.pseudo || "",
+        email: userData.email || "",
+        role: userData.role || "",
+        description: userData.description || "",
+        phone: userData.phone || "",
+        imageUrl: userData.imageUrl || "",
+        bannerUrl: userData.bannerUrl || "",
+        note: userData.note || 0,
+        // Utiliser les catégories de l'utilisateur pour extraire les clés
+        categoryKeys: userData.categories?.map((cat) => cat.key) || [],
+        imageFile: null,
+        bannerFile: null,
+      });
 
-        // ✅ Combiner les données useAuth + profil
-        setForm({
-          // Données de base depuis useAuth
-          lastName: user.lastName || "",
-          firstName: user.firstName || "",
-          pseudo: user.pseudo || "",
-          email: user.email || "",
-          role: user.role || "",
-          // Données du profil depuis l'API
-          description: profileData.description || "",
-          phone: profileData.phone || "",
-          imageUrl: profileData.imageUrl || user.imageUrl || "",
-          bannerUrl: profileData.bannerUrl || "",
-          note: profileData.note || 0,
-          categoryKeys: profileData.categoryKeys || [],
-          imageFile: null,
-          bannerFile: null,
-        });
+      // Parser les réseaux sociaux
+      setSocials(
+        Array.isArray(userData.socials)
+          ? userData.socials.map((social: any) => {
+              // S'assurer que chaque élément a le bon format {name, url}
+              if (typeof social === "object" && social.name && social.url) {
+                return social;
+              } else if (typeof social === "string") {
+                // Essayer de le convertir en format {name, url}
+                return { name: "link", url: social };
+              }
+              return { name: "", url: "" };
+            })
+          : []
+      );
+    }
+  }, [userData]);
 
-        // ✅ Parser les réseaux sociaux
-        console.log("🔍 Socials from API:", profileData.socials);
-        if (profileData.socials) {
-          try {
-            // Si c'est déjà un tableau, l'utiliser directement
-            if (Array.isArray(profileData.socials)) {
-              setSocials(profileData.socials);
-            } else {
-              // Sinon, essayer de parser comme JSON string
-              const parsedSocials = JSON.parse(profileData.socials);
-              setSocials(Array.isArray(parsedSocials) ? parsedSocials : []);
-            }
-          } catch {
-            console.warn("⚠️ Erreur parsing socials:", profileData.socials);
-            setSocials([]);
-          }
-        } else {
-          setSocials([]);
-        }
-      } catch (err: any) {
-        setError(err.message);
-        toast.error("Erreur lors du chargement du profil");
-      } finally {
-        setLoading(false);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = e.target;
+      if (name === "note") {
+        setForm((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
+      } else {
+        setForm((prev) => ({ ...prev, [name]: value }));
       }
-    }
+    },
+    []
+  );
 
-    if (user && !authLoading) {
-      fetchUserProfileData();
-    }
-  }, [user, authLoading, getToken]);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    if (name === "note") {
-      setForm({ ...form, [name]: parseFloat(value) || 0 });
-    } else {
-      setForm({ ...form, [name]: value });
-    }
-  };
-
-  const handleCategoryChange = (categoryKey: string, checked: boolean) => {
-    if (checked) {
-      setForm({
-        ...form,
-        categoryKeys: [...form.categoryKeys, categoryKey],
+  const handleCategoryChange = useCallback(
+    (categoryKey: string, checked: boolean) => {
+      setForm((prev) => {
+        if (checked) {
+          return {
+            ...prev,
+            categoryKeys: [...prev.categoryKeys, categoryKey],
+          };
+        } else {
+          return {
+            ...prev,
+            categoryKeys: prev.categoryKeys.filter(
+              (key) => key !== categoryKey
+            ),
+          };
+        }
       });
-    } else {
-      setForm({
-        ...form,
-        categoryKeys: form.categoryKeys.filter((key) => key !== categoryKey),
+    },
+    []
+  );
+
+  const addSocial = useCallback(() => {
+    setSocials((prev) => [...prev, { name: "", url: "" }]);
+  }, []);
+
+  const removeSocial = useCallback((index: number) => {
+    setSocials((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const updateSocial = useCallback(
+    (index: number, field: "name" | "url", value: string) => {
+      setSocials((prev) => {
+        const newSocials = [...prev];
+        newSocials[index][field] = value;
+        return newSocials;
       });
-    }
-  };
-
-  const addSocial = () => {
-    setSocials([...socials, { name: "", url: "" }]);
-  };
-
-  const removeSocial = (index: number) => {
-    setSocials(socials.filter((_, i) => i !== index));
-  };
-
-  const updateSocial = (
-    index: number,
-    field: "name" | "url",
-    value: string
-  ) => {
-    const newSocials = [...socials];
-    newSocials[index][field] = value;
-    setSocials(newSocials);
-  };
+    },
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,6 +237,9 @@ export default function ProfilePage() {
         bannerUrl = await uploadImage(form.bannerFile);
       }
 
+      // Filtrer les réseaux sociaux vides avant de les inclure
+      const filteredSocials = socials.filter((s) => s.name && s.url);
+
       const payload = {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
@@ -216,48 +250,68 @@ export default function ProfilePage() {
         imageUrl: imageUrl?.trim() || null,
         bannerUrl: bannerUrl?.trim() || null,
         note: form.note || null,
-        socials: socials.length > 0 ? JSON.stringify(socials) : null,
+        socials:
+          filteredSocials.length > 0 ? JSON.stringify(filteredSocials) : null,
         categoryKeys: form.categoryKeys,
       };
 
       console.log("Payload envoyé:", payload); // Debug
 
-      const token = getToken();
-      await updateUserProfile(user.id, payload, token || undefined);
+      try {
+        // Utiliser notre fonction utilitaire pour mettre à jour le profil
+        await updateUserProfile(payload, token || "");
+        console.log("✅ Profil mis à jour avec succès");
+      } catch (updateError) {
+        console.error(
+          "❌ Erreur lors de la mise à jour du profil:",
+          updateError
+        );
+        throw updateError;
+      }
+
+      // Invalider les requêtes pour forcer un rechargement des données
+      queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 
       toast.success("Profil mis à jour avec succès !");
-      router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message);
-      toast.error("Erreur lors de la mise à jour du profil");
+      console.error("Erreur complète:", err);
+      setError(
+        err.message || "Erreur inconnue lors de la mise à jour du profil"
+      );
+      toast.error(
+        `Erreur: ${err.message || "Problème lors de la mise à jour du profil"}`
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target;
-    const file = files?.[0] || null;
-    setForm((prev) => ({ ...prev, [name]: file }));
-    if (name === "bannerFile") {
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreviewBannerUrl(url);
-      } else {
-        setPreviewBannerUrl(null);
-      }
-    }
-    if (name === "imageFile") {
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreviewImageUrl(url);
-      } else {
-        setPreviewImageUrl(null);
-      }
-    }
-  };
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, files } = e.target;
+      const file = files?.[0] || null;
+      setForm((prev) => ({ ...prev, [name]: file }));
 
-  const handleRemoveImage = (type: "banner" | "image") => {
+      if (name === "bannerFile") {
+        if (file) {
+          const url = URL.createObjectURL(file);
+          setPreviewBannerUrl(url);
+        } else {
+          setPreviewBannerUrl(null);
+        }
+      } else if (name === "imageFile") {
+        if (file) {
+          const url = URL.createObjectURL(file);
+          setPreviewImageUrl(url);
+        } else {
+          setPreviewImageUrl(null);
+        }
+      }
+    },
+    []
+  );
+
+  const handleRemoveImage = useCallback((type: "banner" | "image") => {
     if (type === "banner") {
       setForm((prev) => ({ ...prev, bannerFile: null }));
       setPreviewBannerUrl(null);
@@ -265,13 +319,31 @@ export default function ProfilePage() {
       setForm((prev) => ({ ...prev, imageFile: null }));
       setPreviewImageUrl(null);
     }
-  };
+  }, []);
 
-  const triggerImageUpload = () => {
+  const triggerImageUpload = useCallback(() => {
     document.getElementById("imageFile")?.click();
-  };
+  }, []);
 
-  if (authLoading || loading) {
+  // Mémoriser les valeurs calculées pour éviter les recalculs inutiles
+  const getInitials = useMemo(() => {
+    return `${form.firstName.charAt(0)}${form.lastName.charAt(
+      0
+    )}`.toUpperCase();
+  }, [form.firstName, form.lastName]);
+
+  const getRoleBadgeVariant = useCallback((role: string) => {
+    switch (role.toLowerCase()) {
+      case "admin":
+        return "destructive";
+      case "organizer":
+        return "default";
+      default:
+        return "secondary";
+    }
+  }, []);
+
+  if (authLoading || userDataLoading || categoriesLoading) {
     return (
       <>
         <SiteHeader />
@@ -319,23 +391,6 @@ export default function ProfilePage() {
     );
   }
 
-  const getInitials = () => {
-    return `${form.firstName.charAt(0)}${form.lastName.charAt(
-      0
-    )}`.toUpperCase();
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "admin":
-        return "destructive";
-      case "organizer":
-        return "default";
-      default:
-        return "secondary";
-    }
-  };
-
   return (
     <>
       <SiteHeader />
@@ -360,7 +415,7 @@ export default function ProfilePage() {
                       alt={`${form.firstName} ${form.lastName}`}
                     />
                     <AvatarFallback className="text-lg">
-                      {getInitials() || "?"}
+                      {getInitials || "?"}
                     </AvatarFallback>
                   </Avatar>
                   <Button
@@ -624,7 +679,7 @@ export default function ProfilePage() {
                 )}
 
                 {/* Submit Button */}
-                <div className="flex gap-3 pt-6">
+                <div className="flex flex-col sm:flex-row gap-3 pt-6">
                   <Button type="submit" disabled={saving} className="flex-1">
                     {saving ? (
                       <>

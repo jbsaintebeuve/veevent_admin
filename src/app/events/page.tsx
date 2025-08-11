@@ -4,8 +4,6 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
@@ -25,20 +23,22 @@ export default function EventsPage() {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
+  // Mémoriser le token pour éviter les recalculs
+  const token = useMemo(() => getToken() || undefined, [getToken]);
+
   const {
     data: eventsResponse,
     isLoading,
     error,
   } = useQuery<EventsApiResponse>({
     queryKey: ["events", currentPage],
-    queryFn: () =>
-      fetchEvents(getToken() || undefined, currentPage - 1, pageSize),
+    queryFn: () => fetchEvents(token, currentPage - 1, pageSize),
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
 
   const deleteMutation = useMutation({
-    mutationFn: (deleteUrl: string) => deleteEvent(deleteUrl, getToken() || ""),
+    mutationFn: (deleteUrl: string) => deleteEvent(deleteUrl, token || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Événement supprimé avec succès");
@@ -72,18 +72,6 @@ export default function EventsPage() {
         )
     );
   }, [events, search]);
-
-  const formatDateTime = useCallback((dateStr: string) => {
-    const date = new Date(dateStr);
-    return {
-      date: date.toLocaleDateString("fr-FR"),
-      time: date.toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }),
-    };
-  }, []);
 
   const handleDelete = useCallback(
     (deleteUrl: string, name: string) => {
@@ -324,7 +312,7 @@ export default function EventsPage() {
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             {/* ✅ Header Section */}
-            <div className="flex items-center justify-between px-4 lg:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
                   Événements

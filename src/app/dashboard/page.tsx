@@ -9,10 +9,11 @@ import { fetchUsers } from "@/lib/fetch-users";
 import { fetchReports } from "@/lib/fetch-reports";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { fetchUserInvitations } from "@/lib/fetch-invitations";
+import { useMemo } from "react";
 
 export default function Page() {
   const { getToken } = useAuth();
-  const token = getToken() || undefined;
+  const token = useMemo(() => getToken() || undefined, [getToken]);
   const user = useAuth().user;
   const role = user?.role?.toUpperCase();
 
@@ -45,7 +46,7 @@ export default function Page() {
     error: errorReports,
   } = useQuery({
     queryKey: ["dashboard-reports"],
-    queryFn: () => fetchReports(getToken() || undefined, 0, 1000),
+    queryFn: () => fetchReports(token, 0, 1000),
     enabled: isAdminLike,
   });
 

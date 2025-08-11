@@ -26,14 +26,16 @@ export default function CitiesPage() {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
+  // Mémoriser le token pour éviter les recalculs
+  const token = useMemo(() => getToken() || undefined, [getToken]);
+
   const {
     data: citiesResponse,
     isLoading,
     error,
   } = useQuery<CitiesApiResponse>({
     queryKey: ["cities", currentPage],
-    queryFn: () =>
-      fetchCities(getToken() || undefined, currentPage - 1, pageSize),
+    queryFn: () => fetchCities(token, currentPage - 1, pageSize),
   });
 
   const cities = citiesResponse?._embedded?.cityResponses || [];
@@ -43,8 +45,7 @@ export default function CitiesPage() {
   }, []);
 
   const deleteMutation = useMutation({
-    mutationFn: (deleteUrl: string) =>
-      deleteCity(deleteUrl, getToken() || undefined),
+    mutationFn: (deleteUrl: string) => deleteCity(deleteUrl, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville supprimée avec succès");
@@ -275,7 +276,7 @@ export default function CitiesPage() {
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             {/* Header Section */}
-            <div className="flex items-center justify-between px-4 lg:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Villes</h1>
                 <p className="text-muted-foreground">

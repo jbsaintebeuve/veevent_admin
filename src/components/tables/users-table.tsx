@@ -78,7 +78,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Trash2, Check, Ban } from "lucide-react";
-import { banOrUnbanUser } from "@/lib/fetch-user";
+import { banOrUnbanUser } from "@/lib/fetch-users";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -350,7 +350,7 @@ export function UsersTable({
 
   return (
     <Tabs defaultValue="users" className="w-full flex-col justify-start gap-6">
-      <div className="flex items-center justify-between px-4 lg:px-6">
+      <div className="flex gap-2 items-center justify-between px-4 lg:px-6">
         <div className="w-full max-w-xs">
           <Input
             placeholder="Rechercher un utilisateur..."

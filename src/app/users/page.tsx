@@ -25,13 +25,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { banOrUnbanUser } from "@/lib/fetch-user";
+import { banOrUnbanUser } from "@/lib/fetch-users";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const { getToken } = useAuth();
+
+  // Mémoriser le token pour éviter les recalculs
+  const token = useMemo(() => getToken() || undefined, [getToken]);
+
   const queryClient = useQueryClient();
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [banTargetUser, setBanTargetUser] = useState<User | null>(null);
@@ -44,8 +48,7 @@ export default function UsersPage() {
     error,
   } = useQuery<UsersApiResponse>({
     queryKey: ["users", currentPage],
-    queryFn: () =>
-      fetchUsers(getToken() || undefined, currentPage - 1, pageSize),
+    queryFn: () => fetchUsers(token, currentPage - 1, pageSize),
   });
 
   const users = usersResponse?._embedded?.userResponses || [];
@@ -314,7 +317,6 @@ export default function UsersPage() {
     setBanLoading(true);
     setBanError(null);
     try {
-      const token = getToken() || undefined;
       const isBanned = (banTargetUser.role ?? "").toLowerCase() === "banned";
       await banOrUnbanUser(
         banTargetUser.id,
@@ -370,7 +372,7 @@ export default function UsersPage() {
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             {/* ✅ Header Section */}
-            <div className="flex items-center justify-between px-4 lg:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
                   Utilisateurs

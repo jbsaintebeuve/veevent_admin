@@ -21,6 +21,7 @@ export default function MyEventsPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const { user, getToken } = useAuth();
+  const token = useMemo(() => getToken() || undefined, [getToken]);
 
   // Récupérer le lien HAL des événements de l'utilisateur
   const userEventsUrl = user?._links?.events?.href;
@@ -45,8 +46,7 @@ export default function MyEventsPage() {
     refetch,
   } = useQuery<EventsApiResponse>({
     queryKey: ["my-events", user?.id],
-    queryFn: () =>
-      fetchUserEvents(userEventsUrl!, getToken() || undefined, 0, 1000), // Récupérer tous les événements
+    queryFn: () => fetchUserEvents(userEventsUrl!, token, 0, 1000), // Récupérer tous les événements
     enabled: !!user?.id && !!userEventsUrl,
     staleTime: 30000, // 30 secondes
     refetchOnWindowFocus: false,
@@ -270,7 +270,7 @@ export default function MyEventsPage() {
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             {/* ✅ Header Section */}
-            <div className="flex items-center justify-between px-4 lg:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
                   Mes événements

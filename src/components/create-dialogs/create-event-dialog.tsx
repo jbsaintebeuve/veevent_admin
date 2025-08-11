@@ -379,7 +379,7 @@ export function CreateEventDialog({
     >
       <DialogTrigger asChild>
         {children || (
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button className="w-fit">
             <Plus className="mr-2 h-4 w-4" />
             Créer un événement
           </Button>
@@ -414,7 +414,7 @@ export function CreateEventDialog({
               required
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Date *</Label>
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
@@ -507,7 +507,7 @@ export function CreateEventDialog({
               disabled={loading}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Ville *</Label>
                 <MemoizedSelect

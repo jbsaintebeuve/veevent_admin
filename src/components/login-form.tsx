@@ -17,8 +17,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { authenticateUser, fetchUserMe } from "@/lib/fetch-user";
+import { authenticateUser, fetchUserMe } from "@/lib/fetch-user-me";
 import { User } from "@/types/user";
+import { useLogin } from "@/hooks/use-login";
 import { isRoleAllowed } from "@/lib/auth-roles";
 
 interface LoginResponse {
@@ -40,6 +41,7 @@ export function LoginForm({
   const redirectUri = `${
     process.env.NEXT_PUBLIC_FRONTEND_URL
   }/auth/callback?redirect=${encodeURIComponent(redirectUrl)}`;
+  const { storeAuthAndRedirect, clearAuth } = useLogin();
   const backendGoogleLoginUrl = `${
     process.env.NEXT_PUBLIC_BACK_URL
   }/oauth2/authorize/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
@@ -57,11 +59,7 @@ export function LoginForm({
     }
   }, [searchParams]);
 
-  const clearAuth = () => {
-    document.cookie =
-      "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
-    clearLocalStoragePreservingTheme();
-  };
+  // Utilisation de clearAuth du hook de login
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -123,13 +121,9 @@ export function LoginForm({
       }
 
       // Stockage et redirection
-      clearAuth();
-      document.cookie = `token=${token}; path=/; max-age=${
-        7 * 24 * 60 * 60
-      }; SameSite=Lax`;
-      localStorage.setItem("user", JSON.stringify(userData));
-      toast.success(`Bienvenue ${userData.firstName} !`);
-      router.push(redirectUrl);
+      // Utiliser notre hook pour stocker l'authentification et rediriger
+      if (!token) throw new Error("Token manquant");
+      await storeAuthAndRedirect(token, userData!, redirectUrl);
     } catch (err: any) {
       clearAuth();
       const errorMessage =

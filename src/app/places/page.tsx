@@ -26,14 +26,16 @@ export default function PlacesPage() {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
+  // Mémoriser le token pour éviter les recalculs
+  const token = useMemo(() => getToken() || undefined, [getToken]);
+
   const {
     data: placesResponse,
     isLoading,
     error,
   } = useQuery<PlacesApiResponse>({
     queryKey: ["places", currentPage],
-    queryFn: () =>
-      fetchPlaces(getToken() || undefined, currentPage - 1, pageSize),
+    queryFn: () => fetchPlaces(token, currentPage - 1, pageSize),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -44,7 +46,7 @@ export default function PlacesPage() {
   }, []);
 
   const deleteMutation = useMutation({
-    mutationFn: (deleteUrl: string) => deletePlace(deleteUrl, getToken() || ""),
+    mutationFn: (deleteUrl: string) => deletePlace(deleteUrl, token || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu supprimé avec succès");
@@ -56,13 +58,16 @@ export default function PlacesPage() {
     },
   });
 
-  const handleDelete = (deleteUrl: string, name: string) => {
-    console.log(
-      `🗑️ Tentative de suppression du lieu "${name}" via URL:`,
-      deleteUrl
-    );
-    deleteMutation.mutate(deleteUrl);
-  };
+  const handleDelete = useCallback(
+    (deleteUrl: string, name: string) => {
+      console.log(
+        `🗑️ Tentative de suppression du lieu "${name}" via URL:`,
+        deleteUrl
+      );
+      deleteMutation.mutate(deleteUrl);
+    },
+    [deleteMutation]
+  );
 
   // Calculs optimisés avec useMemo
   const { totalEvents, totalPastEvents, activePlaces } = useMemo(() => {
@@ -263,7 +268,7 @@ export default function PlacesPage() {
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             {/* Header Section */}
-            <div className="flex items-center justify-between px-4 lg:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Lieux</h1>
                 <p className="text-muted-foreground">

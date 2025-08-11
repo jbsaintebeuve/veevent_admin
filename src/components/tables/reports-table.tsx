@@ -186,7 +186,7 @@ export function ReportsTable({
       defaultValue="reports"
       className="w-full flex-col justify-start gap-6"
     >
-      <div className="flex items-center justify-between px-4 lg:px-6">
+      <div className="flex gap-2 items-center justify-between px-4 lg:px-6">
         <div className="w-full max-w-xs">
           <Input
             placeholder="Rechercher un signalement..."

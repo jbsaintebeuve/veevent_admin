@@ -20,6 +20,7 @@ export default function ReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const { getToken } = useAuth();
+  const token = useMemo(() => getToken() || undefined, [getToken]);
 
   const {
     data: reportsResponse,
@@ -27,8 +28,7 @@ export default function ReportsPage() {
     error,
   } = useQuery<ReportsApiResponse>({
     queryKey: ["reports", currentPage],
-    queryFn: () =>
-      fetchReports(getToken() || undefined, currentPage - 1, pageSize),
+    queryFn: () => fetchReports(token, currentPage - 1, pageSize),
   });
 
   const reports = reportsResponse?._embedded?.reports || [];
@@ -278,7 +278,7 @@ export default function ReportsPage() {
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             {/* Header Section */}
-            <div className="flex items-center justify-between px-4 lg:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
                   Signalements

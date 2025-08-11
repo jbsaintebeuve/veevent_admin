@@ -139,7 +139,7 @@ export function CreateCategoryDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className="w-fit">
           <Plus className="mr-2 h-4 w-4" />
           Créer une catégorie
         </Button>

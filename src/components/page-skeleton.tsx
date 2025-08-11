@@ -34,7 +34,7 @@ export function PageSkeleton({
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             {/* Header Section */}
-            <div className="flex items-center justify-between px-4 lg:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <Skeleton className="h-8 w-32 mb-2" />
                 <Skeleton className="h-4 w-64" />

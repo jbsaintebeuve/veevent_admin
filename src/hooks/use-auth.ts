@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { User } from "@/types/user";
 import { isRoleAllowed } from "@/lib/auth-roles";
-import { fetchUserMe } from "@/lib/fetch-user";
+import { fetchUserMe } from "@/lib/fetch-user-me";
 import { clearLocalStoragePreservingTheme } from "@/lib/utils";
 
 export function useAuth() {

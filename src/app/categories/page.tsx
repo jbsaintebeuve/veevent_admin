@@ -29,14 +29,16 @@ export default function CategoriesPage() {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
+  // Mémoriser le token pour éviter les recalculs
+  const token = useMemo(() => getToken() || undefined, [getToken]);
+
   const {
     data: categoriesResponse,
     isLoading,
     error,
   } = useQuery<CategoriesApiResponse>({
     queryKey: ["categories", currentPage],
-    queryFn: () =>
-      fetchCategories(getToken() || undefined, currentPage - 1, pageSize),
+    queryFn: () => fetchCategories(token, currentPage - 1, pageSize),
   });
 
   const {
@@ -45,7 +47,7 @@ export default function CategoriesPage() {
     error: errorCounts,
   } = useQuery<Record<string, number>>({
     queryKey: ["categories-counts"],
-    queryFn: () => fetchCategoriesCounts(getToken() || undefined),
+    queryFn: () => fetchCategoriesCounts(token),
   });
 
   const categories = categoriesResponse?._embedded?.categories || [];
@@ -55,8 +57,7 @@ export default function CategoriesPage() {
   }, []);
 
   const deleteMutation = useMutation({
-    mutationFn: (deleteUrl: string) =>
-      deleteCategory(deleteUrl, getToken() || ""),
+    mutationFn: (deleteUrl: string) => deleteCategory(deleteUrl, token || ""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie supprimée avec succès");
@@ -247,7 +248,7 @@ export default function CategoriesPage() {
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             {/* Header Section */}
-            <div className="flex items-center justify-between px-4 lg:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
                   Catégories

@@ -127,7 +127,7 @@ export function EventParticipantsTable({
                     {participant.pseudo}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Participant #{participant.id}
+                    ID: {participant.id}
                   </p>
                 </div>
                 <Badge variant="secondary" className="text-xs font-mono">

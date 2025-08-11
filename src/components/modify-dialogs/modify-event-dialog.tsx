@@ -331,7 +331,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Date *</Label>
                 <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
@@ -431,7 +431,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
               disabled={loading}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Ville</Label>
                 <Input
