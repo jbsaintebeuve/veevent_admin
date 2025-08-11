@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { authenticateUser, fetchUserMe } from "@/lib/fetch-user-me";
 import { User } from "@/types/user";
-import { useLogin } from "@/hooks/use-login";
+import { useAuth } from "@/hooks/use-auth";
 import { isRoleAllowed } from "@/lib/auth-roles";
 
 interface LoginResponse {
@@ -41,7 +41,7 @@ export function LoginForm({
   const redirectUri = `${
     process.env.NEXT_PUBLIC_FRONTEND_URL
   }/auth/callback?redirect=${encodeURIComponent(redirectUrl)}`;
-  const { storeAuthAndRedirect, clearAuth } = useLogin();
+  const { storeAuthAndRedirect, clearAuth } = useAuth();
   const backendGoogleLoginUrl = `${
     process.env.NEXT_PUBLIC_BACK_URL
   }/oauth2/authorize/google?redirect_uri=${encodeURIComponent(redirectUri)}`;

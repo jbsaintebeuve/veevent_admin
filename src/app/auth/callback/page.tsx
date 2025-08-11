@@ -2,13 +2,13 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchUserMe } from "@/lib/fetch-user-me";
-import { useLogin } from "@/hooks/use-login";
+import { useAuth } from "@/hooks/use-auth";
 
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
-  const { storeAuthAndRedirect } = useLogin();
+  const { storeAuthAndRedirect } = useAuth();
 
   useEffect(() => {
     const token = searchParams.get("token");

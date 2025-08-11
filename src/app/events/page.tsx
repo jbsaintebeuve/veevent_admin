@@ -3,7 +3,8 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { SectionCards, type CardData } from "@/components/section-cards";
+import { SectionCards } from "@/components/section-cards";
+import { useEventsCards } from "@/hooks/data-cards/use-events-cards";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
@@ -115,165 +116,16 @@ export default function EventsPage() {
     return stats;
   }, [events]);
 
-  // ✅ Données pour SectionCards optimisées avec useMemo
-  const cardsData: CardData[] = useMemo(
-    () => [
-      {
-        id: "total",
-        title: "Total événements",
-        description: "Tous les événements",
-        value: eventsResponse?.page?.totalElements || 0,
-        trend: {
-          value:
-            (eventsResponse?.page?.totalElements || 0) > 50
-              ? 18.5
-              : (eventsResponse?.page?.totalElements || 0) > 20
-              ? 12.3
-              : (eventsResponse?.page?.totalElements || 0) > 5
-              ? 6.8
-              : (eventsResponse?.page?.totalElements || 0) > 0
-              ? 2.1
-              : 0,
-          isPositive: !!(
-            eventsResponse?.page?.totalElements &&
-            eventsResponse.page.totalElements > 0
-          ),
-          label:
-            (eventsResponse?.page?.totalElements || 0) > 50
-              ? "Plateforme très active"
-              : (eventsResponse?.page?.totalElements || 0) > 20
-              ? "Bonne activité"
-              : (eventsResponse?.page?.totalElements || 0) > 5
-              ? "Activité modérée"
-              : (eventsResponse?.page?.totalElements || 0) > 0
-              ? "Démarrage"
-              : "Aucun événement",
-        },
-        footer: {
-          primary:
-            (eventsResponse?.page?.totalElements || 0) > 50
-              ? "Plateforme très active"
-              : (eventsResponse?.page?.totalElements || 0) > 20
-              ? "Bonne activité"
-              : (eventsResponse?.page?.totalElements || 0) > 5
-              ? "Activité modérée"
-              : (eventsResponse?.page?.totalElements || 0) > 0
-              ? "Démarrage"
-              : "Aucun événement",
-          secondary: "événements créés",
-        },
-      },
-      {
-        id: "upcoming",
-        title: "À venir",
-        description: "Événements programmés",
-        value: upcomingEvents,
-        trend: {
-          value:
-            upcomingEvents > 20
-              ? 25.4
-              : upcomingEvents > 10
-              ? 15.7
-              : upcomingEvents > 3
-              ? 8.2
-              : upcomingEvents > 0
-              ? 3.1
-              : 0,
-          isPositive: upcomingEvents > 0,
-          label:
-            upcomingEvents > 20
-              ? "Calendrier très chargé"
-              : upcomingEvents > 10
-              ? "Planning rempli"
-              : upcomingEvents > 3
-              ? "Prochains événements"
-              : upcomingEvents > 0
-              ? "Quelques événements"
-              : "Aucun événement prévu",
-        },
-        footer: {
-          primary:
-            upcomingEvents > 20
-              ? "Calendrier très chargé"
-              : upcomingEvents > 10
-              ? "Planning rempli"
-              : upcomingEvents > 3
-              ? "Prochains événements"
-              : upcomingEvents > 0
-              ? "Quelques événements"
-              : "Aucun événement prévu",
-          secondary: "événements programmés",
-        },
-      },
-      {
-        id: "average-participants",
-        title: "Participants moyens",
-        description: "Moyenne de participants par événement",
-        value: averageParticipants,
-        trend: {
-          value: averageParticipants,
-          isPositive: averageParticipants > 0,
-          label:
-            averageParticipants > 100
-              ? "Très populaire"
-              : averageParticipants > 50
-              ? "Bonne affluence"
-              : averageParticipants > 10
-              ? "Participation correcte"
-              : averageParticipants > 0
-              ? "Quelques participants"
-              : "Aucun participant",
-        },
-        footer: {
-          primary: averageParticipants === 1 ? "participant" : "participants",
-          secondary: "par événement",
-        },
-      },
-      {
-        id: "participants",
-        title: "Participants",
-        description: "Total des inscriptions",
-        value: totalParticipants,
-        trend: {
-          value:
-            totalParticipants > 1000
-              ? 22.8
-              : totalParticipants > 500
-              ? 16.4
-              : totalParticipants > 100
-              ? 9.7
-              : totalParticipants > 0
-              ? 4.3
-              : 0,
-          isPositive: totalParticipants > 0,
-          label:
-            totalParticipants > 1000
-              ? "Très populaire"
-              : totalParticipants > 500
-              ? "Bonne affluence"
-              : totalParticipants > 100
-              ? "Participation correcte"
-              : totalParticipants > 0
-              ? "Quelques participants"
-              : "Aucun participant",
-        },
-        footer: {
-          primary:
-            totalParticipants > 1000
-              ? "Très populaire"
-              : totalParticipants > 500
-              ? "Bonne affluence"
-              : totalParticipants > 100
-              ? "Participation correcte"
-              : totalParticipants > 0
-              ? "Quelques participants"
-              : "Aucun participant",
-          secondary: "participants inscrits",
-        },
-      },
-    ],
-    [events, upcomingEvents, totalParticipants, averageParticipants]
-  );
+  // Variable propre pour le total des événements
+  const totalEvents = eventsResponse?.page?.totalElements || 0;
+
+  // Données pour SectionCards avec hook personnalisé
+  const cardsData = useEventsCards({
+    totalEvents,
+    upcomingEvents,
+    averageParticipants,
+    totalParticipants,
+  });
 
   // Loading state
   if (isLoading) {

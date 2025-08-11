@@ -1,3 +1,16 @@
+/*
+ * ⚠️ FICHIER OBSOLÈTE - À SUPPRIMER ⚠️
+ *
+ * Ce hook a été fusionné dans use-auth.ts
+ * Toutes les fonctionnalités sont maintenant disponibles dans useAuth()
+ *
+ * Migration effectuée :
+ * - storeAuthAndRedirect() -> useAuth().storeAuthAndRedirect()
+ * - clearAuth() -> useAuth().clearAuth()
+ *
+ * Ce fichier peut être supprimé en toute sécurité.
+ */
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -35,23 +48,30 @@ export function useLogin(options: UseLoginOptions = {}) {
     // Nettoyer les données d'authentification précédentes
     clearAuth();
 
+    // Stockage des données utilisateur AVANT le cookie pour éviter les problèmes de race condition
+    localStorage.setItem("user", JSON.stringify(userData));
+
     // Définition du cookie
     document.cookie = `token=${token}; path=/; max-age=${
       7 * 24 * 60 * 60
     }; SameSite=Lax`;
 
-    // Stockage des données utilisateur
-    localStorage.setItem("user", JSON.stringify(userData));
-
-    // Attendre un peu pour s'assurer que le navigateur a traité les changements
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Déclencher un événement personnalisé pour forcer la re-vérification de l'auth
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("auth-refresh"));
+    }
 
     // Afficher le toast de bienvenue si l'option est activée
     if (showToast) {
-      toast.success(`Bienvenue ${userData.firstName} !`);
+      toast.success(`Bienvenue ${userData.firstName} !`, {
+        duration: 4000, // Toast visible pendant 4 secondes
+      });
     }
 
-    // Redirection avec await pour s'assurer qu'elle est initiée
+    // Attendre un peu pour que les données soient synchronisées
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Navigation SPA (garde le toast actif)
     await router.push(redirectUrl);
   };
 

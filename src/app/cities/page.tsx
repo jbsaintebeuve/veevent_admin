@@ -3,7 +3,8 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { SectionCards, type CardData } from "@/components/section-cards";
+import { SectionCards } from "@/components/section-cards";
+import { useCitiesCards } from "@/hooks/data-cards/use-cities-cards";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -94,150 +95,15 @@ export default function CitiesPage() {
       return stats;
     }, [cities]);
 
-  // Données pour SectionCards optimisées avec useMemo
-  const cardsData: CardData[] = useMemo(
-    () => [
-      {
-        id: "cities",
-        title: "Total des villes",
-        description: "Toutes les villes disponibles",
-        value: citiesResponse?.page?.totalElements || 0,
-        trend: {
-          value:
-            (citiesResponse?.page?.totalElements || 0) > 20
-              ? 18.7
-              : (citiesResponse?.page?.totalElements || 0) > 10
-              ? 12.5
-              : (citiesResponse?.page?.totalElements || 0) > 5
-              ? 5.2
-              : (citiesResponse?.page?.totalElements || 0) > 0
-              ? 2.1
-              : 0,
-          isPositive: !!(
-            citiesResponse?.page?.totalElements &&
-            citiesResponse.page.totalElements > 0
-          ),
-          label:
-            (citiesResponse?.page?.totalElements || 0) > 20
-              ? "Réseau très développé"
-              : (citiesResponse?.page?.totalElements || 0) > 10
-              ? "Croissance stable"
-              : (citiesResponse?.page?.totalElements || 0) > 5
-              ? "En développement"
-              : (citiesResponse?.page?.totalElements || 0) > 0
-              ? "Premières villes"
-              : "Aucune ville",
-        },
-        footer: {
-          primary:
-            (citiesResponse?.page?.totalElements || 0) > 20
-              ? "Réseau très développé"
-              : (citiesResponse?.page?.totalElements || 0) > 10
-              ? "Croissance stable"
-              : (citiesResponse?.page?.totalElements || 0) > 5
-              ? "En développement"
-              : (citiesResponse?.page?.totalElements || 0) > 0
-              ? "Premières villes"
-              : "Aucune ville",
-          secondary:
-            (citiesResponse?.page?.totalElements || 0) === 1
-              ? "ville"
-              : "villes",
-        },
-      },
-      {
-        id: "events",
-        title: "Total événements",
-        description: "Tous les événements",
-        value: totalEvents,
-        trend: {
-          value:
-            totalEvents > 100
-              ? 25.4
-              : totalEvents > 50
-              ? 18.2
-              : totalEvents > 20
-              ? 12.1
-              : totalEvents > 5
-              ? 6.8
-              : totalEvents > 0
-              ? 2.1
-              : 0,
-          isPositive: totalEvents > 0,
-          label:
-            totalEvents > 100
-              ? "Très actif"
-              : totalEvents > 50
-              ? "Bonne activité"
-              : totalEvents > 20
-              ? "Activité modérée"
-              : totalEvents > 5
-              ? "Démarrage"
-              : totalEvents > 0
-              ? "Premiers événements"
-              : "Aucun événement",
-        },
-        footer: {
-          primary:
-            totalEvents > 100
-              ? "Très actif"
-              : totalEvents > 50
-              ? "Bonne activité"
-              : totalEvents > 20
-              ? "Activité modérée"
-              : totalEvents > 5
-              ? "Démarrage"
-              : totalEvents > 0
-              ? "Premiers événements"
-              : "Aucun événement",
-          secondary: totalEvents === 1 ? "événement" : "événements",
-        },
-      },
-      {
-        id: "countries",
-        title: "Pays couverts",
-        description: "Nombre de pays",
-        value: totalCountries,
-        trend: {
-          value:
-            totalCountries > 10
-              ? 15.7
-              : totalCountries > 5
-              ? 10.2
-              : totalCountries > 2
-              ? 5.8
-              : totalCountries > 0
-              ? 2.3
-              : 0,
-          isPositive: totalCountries > 0,
-          label:
-            totalCountries > 10
-              ? "International"
-              : totalCountries > 5
-              ? "Multi-pays"
-              : totalCountries > 2
-              ? "Plusieurs pays"
-              : totalCountries > 0
-              ? "Un pays"
-              : "Aucun pays",
-        },
-        footer: {
-          primary:
-            totalCountries > 10
-              ? "International"
-              : totalCountries > 5
-              ? "Multi-pays"
-              : totalCountries > 2
-              ? "Plusieurs pays"
-              : totalCountries > 0
-              ? "Un pays"
-              : "Aucun pays",
-          secondary: totalCountries === 1 ? "pays" : "pays",
-        },
-      },
-    ],
-    [cities, totalEvents, totalCountries]
-  );
+  // Variable propre pour le total des villes
+  const totalCities = citiesResponse?.page?.totalElements || 0;
+
+  // Données pour SectionCards avec hook personnalisé
+  const cardsData = useCitiesCards({
+    totalCities,
+    totalEvents,
+    totalCountries,
+  });
 
   // Loading state
   if (isLoading) {

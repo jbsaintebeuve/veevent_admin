@@ -1,16 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { User } from "@/types/user";
 import { isRoleAllowed } from "@/lib/auth-roles";
 import { fetchUserMe } from "@/lib/fetch-user-me";
 import { clearLocalStoragePreservingTheme } from "@/lib/utils";
+
+export interface UseAuthLoginOptions {
+  showToast?: boolean;
+}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const router = useRouter();
 
   // Fonction pour récupérer le token depuis les cookies
   const getToken = useCallback(() => {
@@ -29,7 +36,7 @@ export function useAuth() {
   }, []);
 
   // Fonction de nettoyage sécurisée
-  const cleanupAuth = useCallback(() => {
+  const clearAuth = useCallback(() => {
     try {
       if (typeof document !== "undefined") {
         document.cookie =
@@ -43,15 +50,68 @@ export function useAuth() {
     }
   }, []);
 
+  // ✅ NOUVELLE FONCTIONNALITÉ : Fonction de login (fusionnée depuis use-login)
+  const storeAuthAndRedirect = useCallback(
+    async (
+      token: string,
+      userData: User,
+      redirectUrl: string,
+      options: UseAuthLoginOptions = {}
+    ) => {
+      const { showToast = true } = options;
+
+      // Vérifier si l'utilisateur a les permissions nécessaires
+      if (!isRoleAllowed(userData.role)) {
+        throw new Error(
+          `Accès refusé. Votre rôle "${userData.role}" ne permet pas d'accéder à cette interface.`
+        );
+      }
+
+      // Nettoyer les données d'authentification précédentes
+      clearAuth();
+
+      // Stockage des données utilisateur AVANT le cookie pour éviter les problèmes de race condition
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      // Définition du cookie
+      document.cookie = `token=${token}; path=/; max-age=${
+        7 * 24 * 60 * 60
+      }; SameSite=Lax`;
+
+      // Mettre à jour l'état immédiatement
+      setUser(userData);
+      setIsAuthenticated(true);
+      setLoading(false);
+
+      // Déclencher un événement personnalisé pour forcer la re-vérification de l'auth
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth-refresh"));
+      }
+
+      // Afficher le toast de bienvenue si l'option est activée
+      if (showToast) {
+        toast.success(`Bienvenue ${userData.firstName} !`, {
+          duration: 4000, // Toast visible pendant 4 secondes
+        });
+      }
+
+      // Attendre un peu pour que les données soient synchronisées
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Navigation SPA (garde le toast actif)
+      await router.push(redirectUrl);
+    },
+    [clearAuth, router]
+  );
+
   // Fonction de logout avec useCallback pour éviter les re-renders
   const logout = useCallback(() => {
-    cleanupAuth();
+    clearAuth();
     setUser(null);
     setIsAuthenticated(false);
-    if (typeof window !== "undefined") {
-      window.location.href = "/auth/login";
-    }
-  }, [cleanupAuth]);
+    // Navigation SPA pour garder les toasts actifs
+    router.push("/auth/login");
+  }, [clearAuth, router]);
 
   useEffect(() => {
     let didFallbackToCache = false;
@@ -107,7 +167,7 @@ export function useAuth() {
           const freshUserData = await attemptApiCall();
 
           if (!isRoleAllowed(freshUserData.role)) {
-            cleanupAuth();
+            clearAuth();
             setUser(null);
             setIsAuthenticated(false);
             setLoading(false);
@@ -140,14 +200,14 @@ export function useAuth() {
 
           // Si toutes les tentatives ont échoué, déconnexion
           console.error("❌ Toutes les tentatives API ont échoué, déconnexion");
-          cleanupAuth();
+          clearAuth();
           setUser(null);
           setIsAuthenticated(false);
           setLoading(false);
         }
       } catch (error) {
         console.error("❌ Erreur générale dans checkAuth:", error);
-        cleanupAuth();
+        clearAuth();
         setIsAuthenticated(false);
         setUser(null);
         setLoading(false);
@@ -156,13 +216,26 @@ export function useAuth() {
 
     checkAuth();
 
+    // Écouter les événements personnalisés pour forcer la re-vérification
+    const handleAuthRefresh = () => {
+      console.log("🔄 Événement auth-refresh reçu, re-vérification...");
+      checkAuth();
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("auth-refresh", handleAuthRefresh);
+    }
+
     // Cleanup function pour annuler la requête si le hook se démonte
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("auth-refresh", handleAuthRefresh);
+      }
     };
-  }, [getToken, cleanupAuth]);
+  }, [getToken, clearAuth]);
 
   return {
     user,
@@ -170,5 +243,7 @@ export function useAuth() {
     isAuthenticated,
     logout,
     getToken,
+    storeAuthAndRedirect,
+    clearAuth,
   };
 }
