@@ -231,7 +231,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                   name="region"
                   value={form.region}
                   onChange={handleChange}
-                  placeholder="Provence Alpes Côte d'azur"
+                  placeholder="PAC"
                   required
                   disabled={loading}
                 />
