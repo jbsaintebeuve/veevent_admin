@@ -42,9 +42,16 @@ export default function ScanPage() {
     setIsVerifying(true);
     setVerificationResult(null);
 
+    // Arrêter le scanner pendant la vérification pour éviter les scans multiples
+    if (isScanning) {
+      setIsScanning(false);
+    }
+
     try {
       // Appeler l'API de vérification avec l'utilisateur connecté
+      console.log("🔍 Vérification du ticket:", verificationKey);
       const result = await verifyTicket(verificationKey, token, user);
+      console.log("📊 Résultat de vérification:", result);
 
       setVerificationResult({
         success: result.isValid,
@@ -52,41 +59,25 @@ export default function ScanPage() {
         error: result.error,
       });
 
-      // Afficher le résultat en plein écran
+      // Afficher le résultat en plein écran (reste affiché jusqu'au clic)
       setShowResult(true);
-
-      // Masquer le résultat après 3 secondes
-      setTimeout(() => {
-        setShowResult(false);
-        setVerificationResult(null);
-        if (isScanning) {
-          // Redémarrer le scanner
-          setIsScanning(false);
-          setTimeout(() => setIsScanning(true), 500);
-        }
-      }, 3000);
     } catch (error: any) {
+      console.error("❌ Erreur lors de la vérification:", error);
       setVerificationResult({
         success: false,
         error: error.message,
       });
 
-      // Afficher l'erreur en plein écran
+      // Afficher l'erreur en plein écran (reste affiché jusqu'au clic)
       setShowResult(true);
-
-      // Masquer l'erreur après 3 secondes
-      setTimeout(() => {
-        setShowResult(false);
-        setVerificationResult(null);
-        if (isScanning) {
-          // Redémarrer le scanner
-          setIsScanning(false);
-          setTimeout(() => setIsScanning(true), 500);
-        }
-      }, 3000);
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const handleCloseResult = () => {
+    setShowResult(false);
+    setVerificationResult(null);
   };
 
   const handleManualVerification = async () => {
@@ -116,11 +107,15 @@ export default function ScanPage() {
       {/* Résultat en plein écran */}
       {showResult && verificationResult && (
         <div
-          className={`fixed inset-0 z-50 flex items-center justify-center ${
+          className={`fixed inset-0 z-50 flex items-center justify-center cursor-pointer ${
             verificationResult.success ? "bg-green-500" : "bg-red-500"
           }`}
+          onClick={handleCloseResult}
         >
-          <div className="text-center text-white">
+          <div
+            className="text-center text-white max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             {verificationResult.success ? (
               <>
                 <CheckCircle className="mx-auto h-24 w-24 mb-4" />
@@ -131,7 +126,7 @@ export default function ScanPage() {
                   </p>
                 )}
                 {verificationResult.data?.user && (
-                  <p className="text-lg">
+                  <p className="text-lg mb-4">
                     {verificationResult.data.user.firstName}{" "}
                     {verificationResult.data.user.lastName}
                   </p>
@@ -141,9 +136,23 @@ export default function ScanPage() {
               <>
                 <XCircle className="mx-auto h-24 w-24 mb-4" />
                 <h1 className="text-4xl font-bold mb-2">Ticket Invalide</h1>
-                <p className="text-xl">{verificationResult.error}</p>
+                <p className="text-xl mb-4">{verificationResult.error}</p>
               </>
             )}
+
+            {/* Bouton de fermeture */}
+            <Button
+              onClick={handleCloseResult}
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+            >
+              Fermer
+            </Button>
+
+            {/* Instruction pour fermer */}
+            <p className="text-sm mt-4 opacity-75">
+              Cliquez n'importe où pour fermer
+            </p>
           </div>
         </div>
       )}
