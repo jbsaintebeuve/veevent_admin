@@ -470,40 +470,47 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Informations de base (lecture seule) */}
+                {/* Informations de base */}
                 <div className="space-y-4">
-                  <h4 className="text-sm font-medium text-muted-foreground">
-                    Informations de base (non modifiables)
-                  </h4>
+                  <h4 className="text-sm font-medium">Informations de base</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label>Nom</Label>
+                      <Label htmlFor="lastName">Nom</Label>
                       <Input
+                        id="lastName"
+                        name="lastName"
                         value={form.lastName}
-                        readOnly
-                        className="bg-muted"
+                        onChange={handleChange}
+                        placeholder="Votre nom de famille"
+                        disabled={saving}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label>Prénom</Label>
+                      <Label htmlFor="firstName">Prénom</Label>
                       <Input
+                        id="firstName"
+                        name="firstName"
                         value={form.firstName}
-                        readOnly
-                        className="bg-muted"
+                        onChange={handleChange}
+                        placeholder="Votre prénom"
+                        disabled={saving}
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label>Pseudo</Label>
+                      <Label htmlFor="pseudo">Pseudo</Label>
                       <Input
+                        id="pseudo"
+                        name="pseudo"
                         value={form.pseudo}
-                        readOnly
-                        className="bg-muted"
+                        onChange={handleChange}
+                        placeholder="Votre nom d'utilisateur"
+                        disabled={saving}
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label>Email</Label>
+                      <Label>Email (non modifiable)</Label>
                       <Input value={form.email} readOnly className="bg-muted" />
                     </div>
                   </div>
