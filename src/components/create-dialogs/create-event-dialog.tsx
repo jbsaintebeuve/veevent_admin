@@ -636,23 +636,6 @@ export function CreateEventDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Statut</Label>
-                <MemoizedSelect
-                  value={form.status}
-                  onValueChange={(value) => handleSelectChange("status", value)}
-                  disabled={loading}
-                  placeholder="Sélectionner un statut"
-                >
-                  <SelectItem value="NOT_STARTED">À venir</SelectItem>
-                  <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                  <SelectItem value="COMPLETED">Terminé</SelectItem>
-                  <SelectItem value="CANCELLED">Annulé</SelectItem>
-                </MemoizedSelect>
-              </div>
-            </div>
-
             <div className="flex items-center gap-2">
               <Checkbox
                 id="isInvitationOnly"

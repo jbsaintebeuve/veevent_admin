@@ -130,11 +130,9 @@ export function InvitationsTable({
       id: "actions",
       header: () => <div className="w-full text-right"></div>,
       cell: ({ row }) => {
-        // Ne pas afficher les actions si l'invitation n'est pas en attente
-        if (row.original.status !== "SENT") {
-          return null;
-        }
+        const status = row.original.status;
 
+        // Afficher les actions pour tous les statuts sauf SENT qui a les deux options
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -149,27 +147,56 @@ export function InvitationsTable({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  onAccept(row.original);
-                }}
-                disabled={actionLoading}
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Accepter
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  onDecline(row.original);
-                }}
-                className="text-destructive focus:text-destructive"
-                disabled={actionLoading}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Refuser
-              </DropdownMenuItem>
+              {status === "SENT" && (
+                <>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      onAccept(row.original);
+                    }}
+                    disabled={actionLoading}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Accepter
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      onDecline(row.original);
+                    }}
+                    className="text-destructive focus:text-destructive"
+                    disabled={actionLoading}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Refuser
+                  </DropdownMenuItem>
+                </>
+              )}
+              {status === "ACCEPTED" && (
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    onDecline(row.original);
+                  }}
+                  className="text-destructive focus:text-destructive"
+                  disabled={actionLoading}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Refuser
+                </DropdownMenuItem>
+              )}
+              {status === "REJECTED" && (
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    onAccept(row.original);
+                  }}
+                  disabled={actionLoading}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Accepter
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );

@@ -511,29 +511,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Statut</Label>
-                <Select
-                  value={form.status}
-                  onValueChange={(value) =>
-                    setForm((prev) => ({ ...prev, status: value }))
-                  }
-                  disabled={loading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un statut" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NOT_STARTED">À venir</SelectItem>
-                    <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                    <SelectItem value="COMPLETED">Terminé</SelectItem>
-                    <SelectItem value="CANCELLED">Annulé</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             <div className="flex items-center gap-2">
               <Checkbox
                 id="isInvitationOnly"
