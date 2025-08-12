@@ -183,7 +183,7 @@ export function QRScanner({
     return (
       <div className="space-y-4">
         <div
-          className="w-full max-w-md mx-auto bg-muted rounded-lg border flex items-center justify-center"
+          className="w-full mx-auto bg-muted rounded-lg border flex items-center justify-center"
           style={{ aspectRatio: "1/1" }}
         >
           <div className="text-center">
@@ -197,7 +197,7 @@ export function QRScanner({
 
   return (
     <div className="space-y-4">
-      <div className="relative w-full max-w-md mx-auto">
+      <div className="relative w-full mx-auto">
         <video
           ref={videoRef}
           className="w-full rounded-lg border"
