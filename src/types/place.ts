@@ -47,3 +47,22 @@ export interface PlaceRequest {
 
 export type PlaceCreateRequest = PlaceRequest;
 export type PlaceUpdateRequest = PlaceRequest;
+
+export interface PlaceTypeOption {
+  value: string;
+  label: string;
+}
+
+export const placeTypes: PlaceTypeOption[] = [
+  { value: "theatre", label: "Théâtre" },
+  { value: "museum", label: "Musée" },
+  { value: "stadium", label: "Stadium" },
+  { value: "conference", label: "Conférence" },
+  { value: "cinema", label: "Cinéma" },
+  { value: "gallery", label: "Galerie" },
+  { value: "club", label: "Club" },
+  { value: "park", label: "Parc" },
+  { value: "auditorium", label: "Auditorium" },
+  { value: "exhibition", label: "Exposition" },
+  { value: "default", label: "Autre" },
+];

@@ -6,8 +6,6 @@ import {
   IconDotsVertical,
   IconGripVertical,
   IconLayoutColumns,
-  IconPlus,
-  IconSearch,
 } from "@tabler/icons-react";
 import {
   ColumnDef,
@@ -34,16 +32,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Place } from "@/types/place";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Place, placeTypes } from "@/types/place";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Building2, Edit, Trash2 } from "lucide-react";
 import {
@@ -55,12 +45,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
 
-// Icône drag visuelle seulement (pas de fonctionnalité)
 function DragHandle() {
   return (
     <Button
@@ -109,11 +97,16 @@ const createColumns = (
   {
     accessorKey: "type",
     header: COLUMN_LABELS.type,
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-xs">
-        {row.original.type || "Non défini"}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const label =
+        placeTypes.find((type) => type.value === row.original.type)?.label ||
+        "Non défini";
+      return (
+        <Badge variant="outline" className="text-xs">
+          {label}
+        </Badge>
+      );
+    },
   },
   {
     accessorKey: "address",

@@ -128,8 +128,7 @@ export default function InvitationsPage() {
     setCurrentPage(page);
   }, []);
 
-  // Loading state
-  if (isLoading) {
+  if (isLoading || participantsLoading) {
     return (
       <PageSkeleton
         cardsCount={4}

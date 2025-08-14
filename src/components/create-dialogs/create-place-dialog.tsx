@@ -27,8 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-
-import { PlaceCreateRequest } from "@/types/place";
+import { PlaceCreateRequest, placeTypes } from "@/types/place";
 import { CitiesApiResponse } from "@/types/city";
 import { fetchCities } from "@/lib/fetch-cities";
 import { createPlace } from "@/lib/fetch-places";
@@ -274,21 +273,11 @@ export function CreatePlaceDialog() {
                   <SelectValue placeholder="Choisir un type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Théâtre">Théâtre</SelectItem>
-                  <SelectItem value="Salle de concert">
-                    Salle de concert
-                  </SelectItem>
-                  <SelectItem value="Centre de congrès">
-                    Centre de congrès
-                  </SelectItem>
-                  <SelectItem value="Musée">Musée</SelectItem>
-                  <SelectItem value="Galerie">Galerie</SelectItem>
-                  <SelectItem value="Parc">Parc</SelectItem>
-                  <SelectItem value="Stade">Stade</SelectItem>
-                  <SelectItem value="Cinéma">Cinéma</SelectItem>
-                  <SelectItem value="Restaurant">Restaurant</SelectItem>
-                  <SelectItem value="Hôtel">Hôtel</SelectItem>
-                  <SelectItem value="Autre">Autre</SelectItem>
+                  {placeTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

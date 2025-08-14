@@ -229,7 +229,7 @@ export function LoginForm({
               Besoin d'un compte ?{" "}
               <a
                 target="_blank"
-                href="https://veevent.vercel.app/inscription"
+                href="https://event-website-veevent.vercel.app/inscription"
                 className="underline underline-offset-4 hover:text-primary"
               >
                 Inscrivez-vous
@@ -240,15 +240,11 @@ export function LoginForm({
       </Card>
 
       <div className="text-muted-foreground text-center text-xs text-balance">
-        En continuant, vous acceptez nos{" "}
+        Avant de vous connecter, assurez-vous d'avoir un{" "}
         <a href="#" className="underline underline-offset-4 hover:text-primary">
-          Conditions d'utilisation
+          compte organisateur
         </a>{" "}
-        et notre{" "}
-        <a href="#" className="underline underline-offset-4 hover:text-primary">
-          Politique de confidentialité
-        </a>
-        .
+        actif.
       </div>
     </div>
   );

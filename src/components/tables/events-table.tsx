@@ -25,8 +25,6 @@ import {
   IconDotsVertical,
   IconGripVertical,
   IconLayoutColumns,
-  IconPlus,
-  IconSearch,
 } from "@tabler/icons-react";
 import {
   ColumnDef,
@@ -53,15 +51,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+
 import { Event } from "@/types/event";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -78,7 +69,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 function DragHandle({ id }: { id: number }) {

@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Edit, Loader2 } from "lucide-react";
-import { Place, PlaceUpdateRequest } from "@/types/place";
+import { Place, PlaceUpdateRequest, placeTypes } from "@/types/place";
 import { City, CitiesApiResponse } from "@/types/city";
 import { fetchCities } from "@/lib/fetch-cities";
 import { modifyPlace } from "@/lib/fetch-places";
@@ -288,21 +288,11 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
                   <SelectValue placeholder="Choisir un type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Théâtre">Théâtre</SelectItem>
-                  <SelectItem value="Salle de concert">
-                    Salle de concert
-                  </SelectItem>
-                  <SelectItem value="Centre de congrès">
-                    Centre de congrès
-                  </SelectItem>
-                  <SelectItem value="Musée">Musée</SelectItem>
-                  <SelectItem value="Galerie">Galerie</SelectItem>
-                  <SelectItem value="Parc">Parc</SelectItem>
-                  <SelectItem value="Stade">Stade</SelectItem>
-                  <SelectItem value="Cinéma">Cinéma</SelectItem>
-                  <SelectItem value="Restaurant">Restaurant</SelectItem>
-                  <SelectItem value="Hôtel">Hôtel</SelectItem>
-                  <SelectItem value="Autre">Autre</SelectItem>
+                  {placeTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

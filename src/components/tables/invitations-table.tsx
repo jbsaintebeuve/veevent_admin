@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Invitation } from "@/types/invitation";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Search,
   Clock,
@@ -60,6 +61,7 @@ function DragHandle() {
 }
 
 const COLUMN_LABELS: Record<string, string> = {
+  participant: "Participant",
   description: "Description",
   status: "Statut",
 };
@@ -86,6 +88,37 @@ export function InvitationsTable({
       cell: () => <DragHandle />,
       enableHiding: false,
       enableSorting: false,
+    },
+    {
+      id: "participant",
+      header: COLUMN_LABELS.participant,
+      cell: ({ row }) => {
+        const participant = row.original.participant;
+        if (!participant)
+          return <span className="text-muted-foreground italic">-</span>;
+        return (
+          <div className="flex items-center gap-2">
+            <Avatar>
+              {participant.imageUrl ? (
+                <AvatarImage
+                  src={participant.imageUrl}
+                  alt={participant.pseudo || "Avatar"}
+                />
+              ) : null}
+              <AvatarFallback>{participant.pseudo?.[0] || "?"}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-medium">
+                {participant.firstName} {participant.lastName}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                @{participant.pseudo}
+              </span>
+            </div>
+          </div>
+        );
+      },
+      enableHiding: false,
     },
     {
       accessorKey: "description",
@@ -131,8 +164,6 @@ export function InvitationsTable({
       header: () => <div className="w-full text-right"></div>,
       cell: ({ row }) => {
         const status = row.original.status;
-
-        // Afficher les actions pour tous les statuts sauf SENT qui a les deux options
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

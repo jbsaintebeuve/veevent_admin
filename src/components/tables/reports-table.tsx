@@ -3,11 +3,8 @@
 import * as React from "react";
 import {
   IconChevronDown,
-  IconDotsVertical,
   IconGripVertical,
   IconLayoutColumns,
-  IconPlus,
-  IconSearch,
 } from "@tabler/icons-react";
 import {
   ColumnDef,
@@ -23,7 +20,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -34,20 +30,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Report } from "@/types/report";
 import { Input } from "@/components/ui/input";
 import { Search, AlertTriangle, FileText } from "lucide-react";
 
-// Icône drag visuelle seulement (pas de fonctionnalité)
 function DragHandle() {
   return (
     <Button

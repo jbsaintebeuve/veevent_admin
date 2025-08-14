@@ -6,8 +6,6 @@ import {
   IconDotsVertical,
   IconGripVertical,
   IconLayoutColumns,
-  IconPlus,
-  IconSearch,
 } from "@tabler/icons-react";
 import {
   ColumnDef,
@@ -34,15 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { City } from "@/types/city";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Building, Edit, Trash2 } from "lucide-react";
@@ -55,12 +45,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
 
-// Icône drag visuelle seulement (pas de fonctionnalité)
 function DragHandle() {
   return (
     <Button

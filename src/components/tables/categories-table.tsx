@@ -6,8 +6,6 @@ import {
   IconDotsVertical,
   IconGripVertical,
   IconLayoutColumns,
-  IconPlus,
-  IconSearch,
 } from "@tabler/icons-react";
 import {
   ColumnDef,
@@ -34,15 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Category } from "@/types/category";
 import { Input } from "@/components/ui/input";
 import {
@@ -63,12 +53,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
 import { ModifyCategoryDialog } from "@/components/modify-dialogs/modify-category-dialog";
 
-// Icône drag visuelle seulement (pas de fonctionnalité)
 function DragHandle() {
   return (
     <Button
