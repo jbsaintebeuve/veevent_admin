@@ -132,7 +132,7 @@ export function InvitationsTable({
           </span>
         </div>
       ),
-      enableHiding: false,
+      enableHiding: true,
     },
     {
       accessorKey: "status",
