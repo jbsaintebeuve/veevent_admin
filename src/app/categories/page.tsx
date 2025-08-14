@@ -5,8 +5,6 @@ import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards } from "@/components/section-cards";
 import { useCategoriesCards } from "@/hooks/data-cards/use-categories-cards";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -30,7 +28,6 @@ export default function CategoriesPage() {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
-  // Mémoriser le token pour éviter les recalculs
   const token = useMemo(() => getToken() || undefined, [getToken]);
 
   const {
@@ -81,7 +78,6 @@ export default function CategoriesPage() {
     [deleteMutation]
   );
 
-  // Statistiques optimisées avec useMemo
   const { trendingCount, standardCount, totalCategories } = useMemo(() => {
     const trending = categories?.filter((c) => c.trending).length || 0;
     const standard = (categories?.length || 0) - trending;
@@ -94,14 +90,12 @@ export default function CategoriesPage() {
     };
   }, [categories, categoriesResponse]);
 
-  // Données pour SectionCards avec hook personnalisé
   const cardsData = useCategoriesCards({
     totalCategories,
     trendingCount,
     standardCount,
   });
 
-  // Loading state
   if (isLoading || isLoadingCounts) {
     return (
       <PageSkeleton
@@ -114,7 +108,6 @@ export default function CategoriesPage() {
     );
   }
 
-  // Error state
   if (error || errorCounts) {
     return (
       <>
@@ -137,7 +130,6 @@ export default function CategoriesPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
@@ -150,10 +142,8 @@ export default function CategoriesPage() {
               <CreateCategoryDialog />
             </div>
 
-            {/* SectionCards */}
             <SectionCards cards={cardsData} gridCols={3} className="mb-2" />
 
-            {/* Nouveau tableau */}
             <CategoriesTable
               data={categories}
               search={search}
@@ -163,7 +153,6 @@ export default function CategoriesPage() {
               eventCounts={categoriesCounts}
             />
 
-            {/* Pagination */}
             {categoriesResponse?.page &&
               categoriesResponse.page.totalPages > 1 && (
                 <div className="flex justify-center px-4 lg:px-6">

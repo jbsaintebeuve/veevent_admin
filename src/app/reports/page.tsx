@@ -38,7 +38,6 @@ export default function ReportsPage() {
     setCurrentPage(page);
   }, []);
 
-  // Filtrage des signalements avec recherche
   const filteredReports = useMemo(() => {
     if (!Array.isArray(reports)) return [];
 
@@ -52,7 +51,6 @@ export default function ReportsPage() {
     );
   }, [reports, search]);
 
-  // Statistiques des signalements
   const {
     totalReports,
     inappropriateContentCount,
@@ -89,7 +87,6 @@ export default function ReportsPage() {
     return stats;
   }, [reports]);
 
-  // Données pour SectionCards
   const cardsData = useReportsCards({
     totalReports,
     inappropriateContentCount,
@@ -97,7 +94,6 @@ export default function ReportsPage() {
     harassmentCount,
   });
 
-  // Loading state
   if (isLoading) {
     return (
       <PageSkeleton
@@ -111,7 +107,6 @@ export default function ReportsPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <>
@@ -134,7 +129,6 @@ export default function ReportsPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
@@ -146,17 +140,14 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* SectionCards */}
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
-            {/* Nouveau tableau */}
             <ReportsTable
               data={reports || []}
               search={search}
               onSearchChange={setSearch}
             />
 
-            {/* Pagination */}
             {reportsResponse?.page && reportsResponse.page.totalPages > 1 && (
               <div className="flex justify-center px-4 lg:px-6">
                 <PaginationWrapper

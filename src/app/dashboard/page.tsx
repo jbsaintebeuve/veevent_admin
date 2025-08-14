@@ -17,7 +17,6 @@ export default function Page() {
   const user = useAuth().user;
   const role = user?.role?.toUpperCase();
 
-  // ADMIN & AUTHSERVICE DASHBOARD
   const isAdminLike = role === "ADMIN" || role === "AUTHSERVICE";
 
   const {
@@ -50,7 +49,6 @@ export default function Page() {
     enabled: isAdminLike,
   });
 
-  // ORGANIZER DASHBOARD
   const userEventsUrl = user?._links?.events?.href;
   const userInvitationsUrl = user?._links?.invitations?.href;
 
@@ -108,7 +106,6 @@ export default function Page() {
     );
   }
 
-  // Calculs
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
   const totalEvents = events.length;
   const totalParticipants = events.reduce(
@@ -127,9 +124,7 @@ export default function Page() {
     reportsResponse?._embedded?.reports?.length ||
     0;
 
-  // ADMIN & AUTHSERVICE CARDS
   if (isAdminLike) {
-    // Cards dashboard
     const dashboardCardsData: CardData[] = [
       {
         id: "total-events",
@@ -222,7 +217,6 @@ export default function Page() {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              {/* ✅ SectionCards avec les données */}
               <SectionCards
                 cards={dashboardCardsData}
                 gridCols={4}
@@ -238,7 +232,6 @@ export default function Page() {
     );
   }
 
-  // ORGANIZER CARDS
   if (role === "ORGANIZER") {
     const events = myEventsResponse?._embedded?.eventSummaryResponses || [];
     const totalEvents = events.length;

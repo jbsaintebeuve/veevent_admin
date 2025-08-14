@@ -24,7 +24,6 @@ export default function MyEventsPage() {
   const { user, getToken } = useAuth();
   const token = useMemo(() => getToken() || undefined, [getToken]);
 
-  // Récupérer le lien HAL des événements de l'utilisateur
   const userEventsUrl = user?._links?.events?.href;
 
   const pageSize = 10;
@@ -47,32 +46,28 @@ export default function MyEventsPage() {
     refetch,
   } = useQuery<EventsApiResponse>({
     queryKey: ["my-events", user?.id],
-    queryFn: () => fetchUserEvents(userEventsUrl!, token, 0, 1000), // Récupérer tous les événements
+    queryFn: () => fetchUserEvents(userEventsUrl!, token, 0, 1000),
     enabled: !!user?.id && !!userEventsUrl,
-    staleTime: 30000, // 30 secondes
+    staleTime: 30000,
     refetchOnWindowFocus: false,
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
   const pageInfo = eventsResponse?.page;
 
-  // 🔧 Détection si l'API supporte la pagination ou non
   const apiSupportsPagination =
     pageInfo && pageInfo.totalElements !== undefined;
 
-  // Si l'API ne supporte pas la pagination, on fait de la pagination côté client
   const paginatedEvents = useMemo(() => {
     if (apiSupportsPagination) {
-      return events; // L'API gère déjà la pagination
+      return events;
     }
 
-    // Pagination côté client
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return events.slice(startIndex, endIndex);
   }, [events, currentPage, pageSize, apiSupportsPagination]);
 
-  // Calcul des pages pour pagination côté client
   const clientSidePagination = useMemo(() => {
     if (apiSupportsPagination) return null;
 
@@ -84,10 +79,8 @@ export default function MyEventsPage() {
     };
   }, [events.length, pageSize, currentPage, apiSupportsPagination]);
 
-  // Statistiques optimisées avec useMemo - une seule boucle au lieu de 4
   const { totalEvents, upcomingCount, completedCount, averageParticipants } =
     useMemo(() => {
-      // Utiliser tous les événements pour les stats, pas seulement la page courante
       const allEvents = apiSupportsPagination ? events : events;
       const stats = {
         totalEvents: apiSupportsPagination
@@ -124,7 +117,6 @@ export default function MyEventsPage() {
   });
 
   const handleDelete = (deleteUrl: string, name: string) => {
-    // TODO: Implémenter la suppression d'événement
     console.log("Supprimer événement:", name, deleteUrl);
   };
 
@@ -132,12 +124,10 @@ export default function MyEventsPage() {
     setCurrentPage(page);
   };
 
-  // Vérifier si le lien HAL est disponible (cas spécifique aux liens HAL)
   if (!userEventsUrl) {
     return null;
   }
 
-  // Loading state
   if (isLoading) {
     return (
       <PageSkeleton
@@ -151,7 +141,6 @@ export default function MyEventsPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <>
@@ -187,7 +176,6 @@ export default function MyEventsPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* ✅ Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
@@ -200,10 +188,8 @@ export default function MyEventsPage() {
               <CreateEventDialog />
             </div>
 
-            {/* ✅ SectionCards */}
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
-            {/* ✅ Nouveau tableau */}
             <EventsTable
               data={paginatedEvents || []}
               search={search}
@@ -213,10 +199,8 @@ export default function MyEventsPage() {
               hideDelete={true}
             />
 
-            {/* Pagination adaptative */}
             {(() => {
               if (apiSupportsPagination) {
-                // Pagination serveur
                 return pageInfo && pageInfo.totalPages > 1 ? (
                   <div className="px-4 lg:px-6">
                     <PaginationWrapper
@@ -227,7 +211,6 @@ export default function MyEventsPage() {
                   </div>
                 ) : null;
               } else {
-                // Pagination client
                 return clientSidePagination &&
                   clientSidePagination.totalPages > 1 ? (
                   <div className="px-4 lg:px-6">

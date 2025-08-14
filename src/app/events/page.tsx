@@ -24,7 +24,6 @@ export default function EventsPage() {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
-  // Mémoriser le token pour éviter les recalculs
   const token = useMemo(() => getToken() || undefined, [getToken]);
 
   const {
@@ -55,25 +54,6 @@ export default function EventsPage() {
     setCurrentPage(page);
   }, []);
 
-  // ✅ Filtrage des événements avec recherche - optimisé avec useMemo
-  const filteredEvents = useMemo(() => {
-    if (!Array.isArray(events)) return [];
-
-    if (!search.trim()) return events;
-
-    const searchLower = search.toLowerCase();
-    return events.filter(
-      (event) =>
-        event.name.toLowerCase().includes(searchLower) ||
-        event.description.toLowerCase().includes(searchLower) ||
-        event.cityName.toLowerCase().includes(searchLower) ||
-        event.placeName.toLowerCase().includes(searchLower) ||
-        event.categories.some((cat) =>
-          cat.name.toLowerCase().includes(searchLower)
-        )
-    );
-  }, [events, search]);
-
   const handleDelete = useCallback(
     (deleteUrl: string, name: string) => {
       console.log(
@@ -85,41 +65,34 @@ export default function EventsPage() {
     [deleteMutation]
   );
 
-  // Calculs des statistiques optimisés avec useMemo - une seule boucle au lieu de 4
-  const {
-    upcomingEvents,
-    completedEvents,
-    totalParticipants,
-    averageParticipants,
-  } = useMemo(() => {
-    const stats = {
-      upcomingEvents: 0,
-      completedEvents: 0,
-      totalParticipants: 0,
-      averageParticipants: 0,
-    };
-    let eventCount = 0;
-    events.forEach((event) => {
-      switch (event.status) {
-        case "NOT_STARTED":
-          stats.upcomingEvents++;
-          break;
-        case "COMPLETED":
-          stats.completedEvents++;
-          break;
-      }
-      stats.totalParticipants += event.currentParticipants;
-      eventCount++;
-    });
-    stats.averageParticipants =
-      eventCount > 0 ? Math.round(stats.totalParticipants / eventCount) : 0;
-    return stats;
-  }, [events]);
+  const { upcomingEvents, totalParticipants, averageParticipants } =
+    useMemo(() => {
+      const stats = {
+        upcomingEvents: 0,
+        completedEvents: 0,
+        totalParticipants: 0,
+        averageParticipants: 0,
+      };
+      let eventCount = 0;
+      events.forEach((event) => {
+        switch (event.status) {
+          case "NOT_STARTED":
+            stats.upcomingEvents++;
+            break;
+          case "COMPLETED":
+            stats.completedEvents++;
+            break;
+        }
+        stats.totalParticipants += event.currentParticipants;
+        eventCount++;
+      });
+      stats.averageParticipants =
+        eventCount > 0 ? Math.round(stats.totalParticipants / eventCount) : 0;
+      return stats;
+    }, [events]);
 
-  // Variable propre pour le total des événements
   const totalEvents = eventsResponse?.page?.totalElements || 0;
 
-  // Données pour SectionCards avec hook personnalisé
   const cardsData = useEventsCards({
     totalEvents,
     upcomingEvents,
@@ -127,7 +100,6 @@ export default function EventsPage() {
     totalParticipants,
   });
 
-  // Loading state
   if (isLoading) {
     return (
       <PageSkeleton
@@ -140,7 +112,6 @@ export default function EventsPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <>
@@ -163,7 +134,6 @@ export default function EventsPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* ✅ Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
@@ -176,7 +146,6 @@ export default function EventsPage() {
               <CreateEventDialog />
             </div>
 
-            {/* ✅ SectionCards au lieu des cards manuelles */}
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
             <EventsTable
@@ -187,7 +156,6 @@ export default function EventsPage() {
               deleteLoading={deleteMutation.isPending}
             />
 
-            {/* Pagination */}
             {eventsResponse?.page && eventsResponse.page.totalPages > 1 && (
               <div className="flex justify-center px-4 lg:px-6">
                 <PaginationWrapper

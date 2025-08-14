@@ -27,7 +27,6 @@ export default function CitiesPage() {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
-  // Mémoriser le token pour éviter les recalculs
   const token = useMemo(() => getToken() || undefined, [getToken]);
 
   const {
@@ -69,7 +68,6 @@ export default function CitiesPage() {
     [deleteMutation]
   );
 
-  // Calculs optimisés avec useMemo - une seule boucle au lieu de 4
   const { totalEvents, totalPastEvents, totalCountries, activeCities } =
     useMemo(() => {
       const stats = {
@@ -95,17 +93,14 @@ export default function CitiesPage() {
       return stats;
     }, [cities]);
 
-  // Variable propre pour le total des villes
   const totalCities = citiesResponse?.page?.totalElements || 0;
 
-  // Données pour SectionCards avec hook personnalisé
   const cardsData = useCitiesCards({
     totalCities,
     totalEvents,
     totalCountries,
   });
 
-  // Loading state
   if (isLoading) {
     return (
       <PageSkeleton
@@ -118,7 +113,6 @@ export default function CitiesPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <>
@@ -141,7 +135,6 @@ export default function CitiesPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Villes</h1>
@@ -152,10 +145,8 @@ export default function CitiesPage() {
               <CreateCityDialog cities={cities} />
             </div>
 
-            {/* SectionCards */}
             <SectionCards cards={cardsData} gridCols={3} className="mb-2" />
 
-            {/* Nouveau tableau */}
             <CitiesTable
               data={cities}
               search={search}
@@ -164,7 +155,6 @@ export default function CitiesPage() {
               deleteLoading={deleteMutation.isPending}
             />
 
-            {/* Pagination */}
             {citiesResponse?.page && citiesResponse.page.totalPages > 1 && (
               <div className="flex justify-center px-4 lg:px-6">
                 <PaginationWrapper

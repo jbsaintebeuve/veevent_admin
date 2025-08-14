@@ -68,14 +68,12 @@ export default function ProfilePage() {
     bannerFile: null as File | null,
   });
   const [socials, setSocials] = useState<Social[]>([]);
-  // État de chargement maintenant géré par React Query
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
   const queryClient = useQueryClient();
 
-  // Mémoriser le token pour éviter les rechargements inutiles
   const token = useMemo(
     () => (user ? getToken() : undefined),
     [user, getToken]
@@ -89,7 +87,7 @@ export default function ProfilePage() {
     queryKey: ["categories"],
     queryFn: () => fetchCategories(token || undefined),
     enabled: !!token,
-    staleTime: 5 * 60 * 1000, // 5 minutes de mise en cache
+    staleTime: 5 * 60 * 1000,
   });
 
   const categories = categoriesResponse?._embedded?.categories || [];
@@ -97,7 +95,6 @@ export default function ProfilePage() {
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
-  // Utiliser React Query pour récupérer les données de l'utilisateur connecté
   const {
     data: userData,
     isLoading: userDataLoading,
@@ -109,10 +106,9 @@ export default function ProfilePage() {
       return fetchUserMe(token);
     },
     enabled: !!token && !authLoading,
-    staleTime: 5 * 60 * 1000, // 5 minutes de mise en cache
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Gérer les erreurs des requêtes React Query
   useEffect(() => {
     if (userDataError) {
       setError(
@@ -126,12 +122,9 @@ export default function ProfilePage() {
     }
   }, [userDataError, categoriesError]);
 
-  // Utiliser useEffect uniquement pour mettre à jour le formulaire quand les données changent
   useEffect(() => {
     if (userData) {
-      // Utiliser uniquement les données de l'API pour une cohérence maximale
       setForm({
-        // Données complètes depuis l'API
         lastName: userData.lastName || "",
         firstName: userData.firstName || "",
         pseudo: userData.pseudo || "",
@@ -142,21 +135,17 @@ export default function ProfilePage() {
         imageUrl: userData.imageUrl || "",
         bannerUrl: userData.bannerUrl || "",
         note: userData.note || 0,
-        // Utiliser les catégories de l'utilisateur pour extraire les clés
         categoryKeys: userData.categories?.map((cat) => cat.key) || [],
         imageFile: null,
         bannerFile: null,
       });
 
-      // Parser les réseaux sociaux
       setSocials(
         Array.isArray(userData.socials)
           ? userData.socials.map((social: any) => {
-              // S'assurer que chaque élément a le bon format {name, url}
               if (typeof social === "object" && social.name && social.url) {
                 return social;
               } else if (typeof social === "string") {
-                // Essayer de le convertir en format {name, url}
                 return { name: "link", url: social };
               }
               return { name: "", url: "" };
@@ -229,7 +218,6 @@ export default function ProfilePage() {
       let imageUrl = form.imageUrl;
       let bannerUrl = form.bannerUrl;
 
-      // Upload des nouvelles images si elles existent
       if (form.imageFile) {
         imageUrl = await uploadImage(form.imageFile);
       }
@@ -237,7 +225,6 @@ export default function ProfilePage() {
         bannerUrl = await uploadImage(form.bannerFile);
       }
 
-      // Filtrer les réseaux sociaux vides avant de les inclure
       const filteredSocials = socials.filter((s) => s.name && s.url);
 
       const payload = {
@@ -255,10 +242,9 @@ export default function ProfilePage() {
         categoryKeys: form.categoryKeys,
       };
 
-      console.log("Payload envoyé:", payload); // Debug
+      console.log("Payload envoyé:", payload);
 
       try {
-        // Utiliser notre fonction utilitaire pour mettre à jour le profil
         await updateUserProfile(payload, token || "");
         console.log("✅ Profil mis à jour avec succès");
       } catch (updateError) {
@@ -269,7 +255,6 @@ export default function ProfilePage() {
         throw updateError;
       }
 
-      // Invalider les requêtes pour forcer un rechargement des données
       queryClient.invalidateQueries({ queryKey: ["user", "me"] });
 
       toast.success("Profil mis à jour avec succès !");
@@ -325,7 +310,6 @@ export default function ProfilePage() {
     document.getElementById("imageFile")?.click();
   }, []);
 
-  // Mémoriser les valeurs calculées pour éviter les recalculs inutiles
   const getInitials = useMemo(() => {
     return `${form.firstName.charAt(0)}${form.lastName.charAt(
       0
@@ -396,7 +380,6 @@ export default function ProfilePage() {
       <SiteHeader />
       <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
         <div className="mx-auto w-full max-w-2xl">
-          {/* Header Section */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold tracking-tight">Mon Profil</h1>
             <p className="text-muted-foreground">
@@ -404,7 +387,6 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          {/* Profile Preview Card */}
           <Card className="mb-6 shadow-xs">
             <CardHeader>
               <div className="flex items-center gap-4">
@@ -460,7 +442,6 @@ export default function ProfilePage() {
             </CardHeader>
           </Card>
 
-          {/* Profile Form */}
           <Card className="shadow-xs">
             <CardHeader>
               <CardTitle>Informations du profil</CardTitle>
@@ -470,7 +451,6 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Informations de base */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Informations de base</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -518,7 +498,6 @@ export default function ProfilePage() {
 
                 <Separator />
 
-                {/* Informations modifiables */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">
                     Informations du profil
@@ -589,7 +568,6 @@ export default function ProfilePage() {
 
                 <Separator />
 
-                {/* Réseaux sociaux */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">
@@ -641,7 +619,6 @@ export default function ProfilePage() {
 
                 <Separator />
 
-                {/* Catégories d'intérêt */}
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium">Catégories d'intérêt</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -677,7 +654,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Error Display */}
                 {error && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
@@ -685,7 +661,6 @@ export default function ProfilePage() {
                   </Alert>
                 )}
 
-                {/* Submit Button */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-6">
                   <Button type="submit" disabled={saving} className="flex-1">
                     {saving ? (

@@ -12,9 +12,7 @@ function AuthCallbackContent() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    // Si pas de redirect fourni, on va sur /dashboard
     let redirectUrl = searchParams.get("redirect") || "/dashboard";
-    // Si le redirect cible /auth/callback, on force /dashboard
     if (redirectUrl.startsWith("/auth/callback")) {
       redirectUrl = "/dashboard";
     }
@@ -33,7 +31,6 @@ function AuthCallbackContent() {
       try {
         const userData = await fetchUserMe(token);
 
-        // Utilisation de notre hook pour stocker l'authentification et rediriger
         await storeAuthAndRedirect(token, userData, redirectUrl);
       } catch (err: any) {
         setError(err.message || "Erreur d'authentification");

@@ -27,7 +27,6 @@ export default function PlacesPage() {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
-  // Mémoriser le token pour éviter les recalculs
   const token = useMemo(() => getToken() || undefined, [getToken]);
 
   const {
@@ -37,7 +36,7 @@ export default function PlacesPage() {
   } = useQuery<PlacesApiResponse>({
     queryKey: ["places", currentPage],
     queryFn: () => fetchPlaces(token, currentPage - 1, pageSize),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   const places = placesResponse?._embedded?.placeResponses || [];
@@ -70,7 +69,6 @@ export default function PlacesPage() {
     [deleteMutation]
   );
 
-  // Calculs optimisés avec useMemo
   const { totalEvents, totalPastEvents, activePlaces } = useMemo(() => {
     const totalEvents =
       places?.reduce((sum, place) => sum + place.eventsCount, 0) || 0;
@@ -81,7 +79,6 @@ export default function PlacesPage() {
     return { totalEvents, totalPastEvents, activePlaces };
   }, [places]);
 
-  // Données pour SectionCards
   const cardsData = usePlacesCards({
     totalPlaces: placesResponse?.page?.totalElements || 0,
     activePlaces,
@@ -89,7 +86,6 @@ export default function PlacesPage() {
     totalPastEvents,
   });
 
-  // Loading state
   if (isLoading) {
     return (
       <PageSkeleton
@@ -102,7 +98,6 @@ export default function PlacesPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <>
@@ -125,7 +120,6 @@ export default function PlacesPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Lieux</h1>
@@ -136,10 +130,8 @@ export default function PlacesPage() {
               <CreatePlaceDialog />
             </div>
 
-            {/* SectionCards */}
             <SectionCards cards={cardsData} gridCols={3} className="mb-2" />
 
-            {/* Nouveau tableau */}
             <PlacesTable
               data={places}
               search={search}
@@ -148,7 +140,6 @@ export default function PlacesPage() {
               deleteLoading={deleteMutation.isPending}
             />
 
-            {/* Pagination */}
             {placesResponse?.page && placesResponse.page.totalPages > 1 && (
               <div className="flex justify-center px-4 lg:px-6">
                 <PaginationWrapper

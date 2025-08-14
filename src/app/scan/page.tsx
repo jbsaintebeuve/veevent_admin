@@ -42,13 +42,11 @@ export default function ScanPage() {
     setIsVerifying(true);
     setVerificationResult(null);
 
-    // Arrêter le scanner pendant la vérification pour éviter les scans multiples
     if (isScanning) {
       setIsScanning(false);
     }
 
     try {
-      // Appeler l'API de vérification avec l'utilisateur connecté
       console.log("🔍 Vérification du ticket:", verificationKey);
       const result = await verifyTicket(verificationKey, token, user);
       console.log("📊 Résultat de vérification:", result);
@@ -59,7 +57,6 @@ export default function ScanPage() {
         error: result.error,
       });
 
-      // Afficher le résultat en plein écran (reste affiché jusqu'au clic)
       setShowResult(true);
     } catch (error: any) {
       console.error("❌ Erreur lors de la vérification:", error);
@@ -68,7 +65,6 @@ export default function ScanPage() {
         error: error.message,
       });
 
-      // Afficher l'erreur en plein écran (reste affiché jusqu'au clic)
       setShowResult(true);
     } finally {
       setIsVerifying(false);
@@ -104,7 +100,6 @@ export default function ScanPage() {
     <>
       <SiteHeader />
 
-      {/* Résultat en plein écran */}
       {showResult && verificationResult && (
         <div
           className={`fixed inset-0 z-50 flex items-center justify-center cursor-pointer ${
@@ -140,7 +135,6 @@ export default function ScanPage() {
               </>
             )}
 
-            {/* Bouton de fermeture */}
             <Button
               onClick={handleCloseResult}
               variant="secondary"
@@ -149,7 +143,6 @@ export default function ScanPage() {
               Fermer
             </Button>
 
-            {/* Instruction pour fermer */}
             <p className="text-sm mt-4 opacity-75">
               Cliquez n'importe où pour fermer
             </p>
@@ -160,7 +153,6 @@ export default function ScanPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
@@ -173,7 +165,6 @@ export default function ScanPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 px-4 lg:px-6">
-              {/* Scanner QR Code */}
               <Card className="shadow-xs">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -201,7 +192,6 @@ export default function ScanPage() {
                 </CardContent>
               </Card>
 
-              {/* Saisie manuelle */}
               <Card className="shadow-xs">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -253,7 +243,6 @@ export default function ScanPage() {
               </Card>
             </div>
 
-            {/* Dernier résultat */}
             {verificationResult && !showResult && (
               <Card className="mt-6 shadow-xs">
                 <CardHeader>

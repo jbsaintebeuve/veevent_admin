@@ -7,19 +7,17 @@ import {
   fetchUserInvitations,
   acceptInvitation,
   declineInvitation,
-  fetchInvitationParticipant,
 } from "@/lib/fetch-invitations";
 import { SiteHeader } from "@/components/site-header";
-import { SectionCards, type CardData } from "@/components/section-cards";
+import { SectionCards } from "@/components/section-cards";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { InvitationsTable } from "@/components/tables/invitations-table";
 import { Invitation } from "@/types/invitation";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { User } from "@/types/user";
 import { useEnrichedInvitations } from "@/hooks/use-enriched-invitations";
 import { useInvitationsCards } from "@/hooks/data-cards/use-invitations-cards";
 
@@ -29,40 +27,25 @@ export default function InvitationsPage() {
   const pageSize = 10;
   const { user, getToken } = useAuth();
   const token = useMemo(() => getToken() || undefined, [getToken]);
-  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["user-invitations", user?.id, currentPage],
     queryFn: () => fetchUserInvitations(token, currentPage - 1, pageSize),
     enabled: !!token && !!user?.id,
-    staleTime: 30000, // 30 secondes
+    staleTime: 30000,
     refetchOnWindowFocus: false,
   });
 
-  // Mutation pour accepter une invitation
   const acceptMutation = useMutation({
     mutationFn: (invitation: Invitation) => acceptInvitation(invitation, token),
-    onSuccess: () => {
-      toast.success("Invitation acceptée avec succès!");
-      queryClient.invalidateQueries({
-        queryKey: ["user-invitations", user?.id],
-      });
-    },
     onError: (error: Error) => {
       toast.error(`Erreur lors de l'acceptation: ${error.message}`);
     },
   });
 
-  // Mutation pour refuser une invitation
   const declineMutation = useMutation({
     mutationFn: (invitation: Invitation) =>
       declineInvitation(invitation, token),
-    onSuccess: () => {
-      toast.success("Invitation refusée avec succès!");
-      queryClient.invalidateQueries({
-        queryKey: ["user-invitations", user?.id],
-      });
-    },
     onError: (error: Error) => {
       toast.error(`Erreur lors du refus: ${error.message}`);
     },
@@ -71,11 +54,14 @@ export default function InvitationsPage() {
   const invitations = data?._embedded?.invitations || [];
   const pageInfo = data?.page;
 
-  // Remplacement : hook pour enrichir les invitations avec participant
-  const { invitations: enrichedInvitations, loading: participantsLoading } =
+  const { invitations: enrichedData, loading: participantsLoading } =
     useEnrichedInvitations(invitations, token);
+  const [localInvitations, setLocalInvitations] = useState<Invitation[]>([]);
 
-  // Statistiques optimisées avec useMemo
+  useEffect(() => {
+    setLocalInvitations(enrichedData);
+  }, [enrichedData]);
+
   const { totalInvitations, pendingCount, acceptedCount, rejectedCount } =
     useMemo(() => {
       const stats = {
@@ -112,14 +98,32 @@ export default function InvitationsPage() {
 
   const handleAccept = useCallback(
     (invitation: Invitation) => {
-      acceptMutation.mutate(invitation);
+      acceptMutation.mutate(invitation, {
+        onSuccess: () => {
+          toast.success("Invitation acceptée avec succès!");
+          setLocalInvitations((prev) =>
+            prev.map((inv) =>
+              inv.id === invitation.id ? { ...inv, status: "ACCEPTED" } : inv
+            )
+          );
+        },
+      });
     },
     [acceptMutation]
   );
 
   const handleDecline = useCallback(
     (invitation: Invitation) => {
-      declineMutation.mutate(invitation);
+      declineMutation.mutate(invitation, {
+        onSuccess: () => {
+          toast.success("Invitation refusée avec succès!");
+          setLocalInvitations((prev) =>
+            prev.map((inv) =>
+              inv.id === invitation.id ? { ...inv, status: "REJECTED" } : inv
+            )
+          );
+        },
+      });
     },
     [declineMutation]
   );
@@ -141,7 +145,6 @@ export default function InvitationsPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <>
@@ -164,7 +167,6 @@ export default function InvitationsPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* ✅ Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
@@ -176,12 +178,10 @@ export default function InvitationsPage() {
               </div>
             </div>
 
-            {/* ✅ SectionCards */}
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
-            {/* ✅ Tableau des invitations */}
             <InvitationsTable
-              data={enrichedInvitations}
+              data={localInvitations}
               search={search}
               onSearchChange={setSearch}
               onAccept={handleAccept}
@@ -193,7 +193,6 @@ export default function InvitationsPage() {
               }
             />
 
-            {/* Pagination */}
             {pageInfo && pageInfo.totalPages > 1 && (
               <div className="flex justify-center px-4 lg:px-6">
                 <PaginationWrapper

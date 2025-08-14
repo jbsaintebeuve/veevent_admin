@@ -34,7 +34,6 @@ export default function UsersPage() {
   const pageSize = 10;
   const { getToken } = useAuth();
 
-  // Mémoriser le token pour éviter les recalculs
   const token = useMemo(() => getToken() || undefined, [getToken]);
 
   const queryClient = useQueryClient();
@@ -58,7 +57,6 @@ export default function UsersPage() {
     setCurrentPage(page);
   }, []);
 
-  // ✅ Filtrage des utilisateurs avec recherche - optimisé avec useMemo
   const filteredUsers = useMemo(() => {
     if (!Array.isArray(users)) return [];
 
@@ -76,11 +74,9 @@ export default function UsersPage() {
   }, [users, search]);
 
   const handleDelete = useCallback((deleteUrl: string, name: string) => {
-    // TODO: Implémenter la suppression d'utilisateur
     console.log("Supprimer utilisateur:", name, deleteUrl);
   }, []);
 
-  // Statistiques optimisées avec useMemo - une seule boucle au lieu de 4
   const { adminCount, organizerCount, userCount, authServiceCount } =
     useMemo(() => {
       const stats = {
@@ -91,7 +87,6 @@ export default function UsersPage() {
       };
 
       users?.forEach((user) => {
-        // Vérification si le rôle existe
         if (!user.role) return;
 
         switch (user.role.toUpperCase()) {
@@ -113,7 +108,6 @@ export default function UsersPage() {
       return stats;
     }, [users]);
 
-  // ✅ Données pour SectionCards optimisées avec useMemo
   const cardsData = useUsersCards({
     totalUsers: usersResponse?.page?.totalElements || users?.length || 0,
     adminCount,
@@ -148,7 +142,6 @@ export default function UsersPage() {
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <PageSkeleton
@@ -163,7 +156,6 @@ export default function UsersPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <>
@@ -186,7 +178,6 @@ export default function UsersPage() {
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            {/* ✅ Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
@@ -198,10 +189,8 @@ export default function UsersPage() {
               </div>
             </div>
 
-            {/* ✅ SectionCards au lieu des cards manuelles */}
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
-            {/* ✅ Team Overview avec groupe d'avatars */}
             <div className="px-4 lg:px-6">
               <Card className="shadow-xs">
                 <CardHeader>
@@ -214,7 +203,6 @@ export default function UsersPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-4">
-                    {/* Groupe d'avatars qui se chevauchent */}
                     <AvatarGroup
                       users={filteredUsers}
                       maxDisplay={5}
@@ -234,7 +222,6 @@ export default function UsersPage() {
               </Card>
             </div>
 
-            {/* ✅ Nouveau tableau */}
             <UsersTable
               data={users || []}
               search={search}
@@ -244,7 +231,6 @@ export default function UsersPage() {
               onBanToggle={handleBanToggle}
             />
 
-            {/* Pagination */}
             {usersResponse?.page && usersResponse.page.totalPages > 1 && (
               <div className="flex justify-center px-4 lg:px-6">
                 <PaginationWrapper
@@ -257,7 +243,6 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
-      {/* Dialog Bannir/Débannir */}
       <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
