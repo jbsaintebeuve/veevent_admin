@@ -44,6 +44,7 @@ import {
   Check,
   X,
   Mail,
+  FileText,
 } from "lucide-react";
 
 function DragHandle() {
@@ -124,7 +125,12 @@ export function InvitationsTable({
       accessorKey: "description",
       header: COLUMN_LABELS.description,
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.description}</span>
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm max-w-md truncate">
+            {row.original.description}
+          </span>
+        </div>
       ),
       enableHiding: false,
     },
