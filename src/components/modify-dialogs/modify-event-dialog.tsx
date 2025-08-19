@@ -26,18 +26,11 @@ import {
   ClockIcon,
   ChevronDown,
 } from "lucide-react";
-import { Event, EventUpdateRequest, EventDetails } from "@/types/event";
+import { Event, EventUpdateRequest } from "@/types/event";
 import { modifyEvent, fetchEventDetails } from "@/lib/fetch-events";
 import { uploadImage } from "@/lib/upload-image";
 import { fetchCategories } from "@/lib/fetch-categories";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -72,6 +65,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
     status: "NOT_STARTED",
     contentHtml: "",
     isInvitationOnly: false,
+    isTrending: false,
   };
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
@@ -85,7 +79,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
   });
   const categories = categoriesResponse?._embedded?.categories || [];
 
-  // Récupération des détails complets de l'événement
   const { data: eventDetails, isLoading: eventDetailsLoading } = useQuery({
     queryKey: ["eventDetails", event.id],
     queryFn: () => fetchEventDetails(event.id, getToken() || undefined),
@@ -121,6 +114,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         status: eventDetails.status || "NOT_STARTED",
         contentHtml: eventDetails.contentHtml || "",
         isInvitationOnly: eventDetails.isInvitationOnly || false,
+        isTrending: eventDetails.isTrending || false,
       });
     }
   }, [eventDetails]);
@@ -180,7 +174,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         ).toISOString();
       };
 
-      // Extraire les IDs depuis les liens HAL de l'événement original
       const extractIdFromUrl = (url: string) => {
         const parts = url.split("/");
         return parseInt(parts[parts.length - 1]);
@@ -193,7 +186,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         ? extractIdFromUrl(eventDetails._links.places.href)
         : 0;
 
-      // Upload de l'image vers Cloudinary si un nouveau fichier est sélectionné
       let cloudinaryImageUrl = form.imageUrl;
       if (imageFile) {
         console.log("🔄 Upload de la nouvelle image vers Cloudinary...");
@@ -215,6 +207,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         status: form.status,
         contentHtml: form.contentHtml.trim() || undefined,
         isInvitationOnly: form.isInvitationOnly,
+        isTrending: form.isTrending,
       };
 
       const patchUrl = event._links?.self?.href;
@@ -241,7 +234,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen && event) {
-      // Clean up image states
       setImageFile(null);
       if (imagePreviewUrl) {
         URL.revokeObjectURL(imagePreviewUrl);
@@ -269,6 +261,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         status: event.status || "NOT_STARTED",
         contentHtml: "",
         isInvitationOnly: event.isInvitationOnly || false,
+        isTrending: event.isTrending || false,
       });
     }
   };
@@ -280,11 +273,6 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         ? [...prev.categoryKeys, categoryKey]
         : prev.categoryKeys.filter((key) => key !== categoryKey),
     }));
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setForm((prev) => ({ ...prev, [name]: checked }));
   };
 
   return (
@@ -524,6 +512,18 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
                 Sur invitation uniquement
               </Label>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="isTrending"
+              name="isTrending"
+              checked={form.isTrending}
+              onCheckedChange={(checked) =>
+                setForm((prev) => ({ ...prev, isTrending: !!checked }))
+              }
+            />
+            <Label htmlFor="isTrending">Événement tendance</Label>
           </div>
 
           {error && (

@@ -74,6 +74,7 @@ const initialForm = {
   status: "NOT_STARTED",
   contentHtml: "",
   isInvitationOnly: false,
+  isTrending: false,
 };
 
 const InputField = memo(
@@ -206,13 +207,6 @@ export function CreateEventDialog({
     []
   );
 
-  const handleSelectChange = useCallback((name: string, value: string) => {
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }, []);
-
   const handleCityChange = useCallback((value: string) => {
     setForm((prev) => ({ ...prev, cityId: value, placeId: "" }));
   }, []);
@@ -274,7 +268,6 @@ export function CreateEventDialog({
   const resetForm = useCallback(() => {
     setForm(initialForm);
     setError("");
-    // Clean up image states
     setImageFile(null);
     if (imagePreviewUrl) {
       URL.revokeObjectURL(imagePreviewUrl);
@@ -327,7 +320,6 @@ export function CreateEventDialog({
       try {
         validateForm();
 
-        // Upload de l'image vers Cloudinary si un fichier est sélectionné
         let cloudinaryImageUrl = form.imageUrl;
         if (imageFile) {
           console.log("🔄 Upload de l'image vers Cloudinary...");
@@ -349,6 +341,7 @@ export function CreateEventDialog({
           cityId: parseInt(form.cityId, 10),
           categoryKeys: form.categoryIds,
           isInvitationOnly: form.isInvitationOnly,
+          isTrending: form.isTrending,
         };
 
         console.log("📤 Envoi des données au backend:", payload);
@@ -648,6 +641,18 @@ export function CreateEventDialog({
               <Label htmlFor="isInvitationOnly">
                 Sur invitation uniquement
               </Label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isTrending"
+                name="isTrending"
+                checked={form.isTrending}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({ ...prev, isTrending: !!checked }))
+                }
+              />
+              <Label htmlFor="isTrending">Événement tendance</Label>
             </div>
 
             {error && (
