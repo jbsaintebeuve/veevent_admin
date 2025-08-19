@@ -219,7 +219,6 @@ const createColumns = (
                     );
                     setOpenDelete(false);
                   }}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Supprimer
                 </AlertDialogAction>

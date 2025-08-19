@@ -266,16 +266,7 @@ export default function UsersPage() {
             >
               Annuler
             </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmBanToggle}
-              className={
-                banTargetUser &&
-                (banTargetUser.role ?? "").toLowerCase() === "banned"
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              }
-              disabled={banLoading}
-            >
+            <AlertDialogAction onClick={confirmBanToggle} disabled={banLoading}>
               {banTargetUser &&
               (banTargetUser.role ?? "").toLowerCase() === "banned"
                 ? "Débannir"

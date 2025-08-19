@@ -195,7 +195,7 @@ const createColumns = (
                   Cette action est irréversible.
                   {row.original.eventsCount > 0 && (
                     <span className="block mt-2 text-destructive font-medium">
-                      ⚠️ Ce lieu a {row.original.eventsCount} événement(s)
+                      Ce lieu a {row.original.eventsCount} événement(s)
                       actif(s).
                     </span>
                   )}
@@ -211,7 +211,6 @@ const createColumns = (
                     );
                     setOpenDelete(false);
                   }}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Supprimer
                 </AlertDialogAction>

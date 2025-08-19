@@ -422,7 +422,10 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
                   Modification...
                 </>
               ) : (
-                "Modifier"
+                <>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Modifier
+                </>
               )}
             </Button>
           </DialogFooter>

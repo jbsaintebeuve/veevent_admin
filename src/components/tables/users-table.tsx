@@ -173,14 +173,7 @@ export function UsersTable({
           case "AUTHSERVICE":
             return <Badge variant="outline">Auth Service</Badge>;
           case "BANNED":
-            return (
-              <Badge
-                variant="outline"
-                className="bg-red-100 text-red-800 border-red-200"
-              >
-                Banni
-              </Badge>
-            );
+            return <Badge variant="outline">Banni</Badge>;
           default:
             return <Badge variant="outline">{row.original.role}</Badge>;
         }

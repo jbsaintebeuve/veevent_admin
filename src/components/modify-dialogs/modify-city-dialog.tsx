@@ -428,9 +428,15 @@ export function ModifyCityDialog({
             </DialogClose>
             <Button type="submit" disabled={!isFormValid || loading}>
               {loading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Modification...
+                </>
               ) : (
-                "Modifier la ville"
+                <>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Modifier
+                </>
               )}
             </Button>
           </DialogFooter>

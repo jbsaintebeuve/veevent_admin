@@ -258,7 +258,7 @@ export function CreateCategoryDialog() {
               ) : (
                 <>
                   <Plus className="mr-2 h-4 w-4" />
-                  Créer la catégorie
+                  Créer
                 </>
               )}
             </Button>

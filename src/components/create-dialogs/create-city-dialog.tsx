@@ -382,9 +382,15 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
             </DialogClose>
             <Button type="submit" disabled={!isFormValid || loading}>
               {loading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Création...
+                </>
               ) : (
-                "Créer la ville"
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Créer
+                </>
               )}
             </Button>
           </DialogFooter>

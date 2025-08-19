@@ -440,7 +440,7 @@ export function CreatePlaceDialog() {
               ) : (
                 <>
                   <Plus className="mr-2 h-4 w-4" />
-                  Créer le lieu
+                  Créer
                 </>
               )}
             </Button>

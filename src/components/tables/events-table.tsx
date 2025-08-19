@@ -278,7 +278,7 @@ export function EventsTable({
                       Cette action est irréversible.
                       {row.original.currentParticipants > 0 && (
                         <span className="block mt-2 text-destructive font-medium">
-                          ⚠️ Cet événement a {row.original.currentParticipants}{" "}
+                          Cet événement a {row.original.currentParticipants}{" "}
                           participant(s) inscrit(s).
                         </span>
                       )}
@@ -294,7 +294,6 @@ export function EventsTable({
                         );
                         setOpenDelete(false);
                       }}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       Supprimer
                     </AlertDialogAction>
