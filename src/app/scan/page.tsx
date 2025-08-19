@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { verifyTicket, parseVerificationKey } from "@/lib/fetch-tickets";
+import { verifyTicket } from "@/lib/fetch-tickets";
 import { TicketVerificationResponse } from "@/types/ticket";
 
 interface VerificationResult {
@@ -35,8 +35,9 @@ export default function ScanPage() {
     useState<VerificationResult | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showResult, setShowResult] = useState(false);
+
   const { getToken, user } = useAuth();
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const token = getToken() ?? undefined;
 
   const handleVerification = async (verificationKey: string) => {
     setIsVerifying(true);
@@ -58,11 +59,11 @@ export default function ScanPage() {
       });
 
       setShowResult(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Erreur lors de la vérification:", error);
       setVerificationResult({
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
 
       setShowResult(true);
@@ -86,7 +87,7 @@ export default function ScanPage() {
     setManualKey("");
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleManualVerification();
     }
@@ -207,7 +208,7 @@ export default function ScanPage() {
                       placeholder="VV-1-1-1"
                       value={manualKey}
                       onChange={(e) => setManualKey(e.target.value)}
-                      onKeyPress={handleKeyPress}
+                      onKeyDown={handleKeyDown}
                       disabled={isVerifying}
                     />
                   </div>
