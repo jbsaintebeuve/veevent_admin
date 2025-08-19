@@ -14,7 +14,7 @@ export function useEnrichedInvitations(
   token?: string
 ): UseEnrichedInvitationsResult {
   const [enriched, setEnriched] = useState<Invitation[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   // Créer une clé stable pour détecter les changements réels
@@ -68,12 +68,13 @@ export function useEnrichedInvitations(
       enrich();
     } else {
       setEnriched([]);
+      setLoading(true); // loading reste à true tant que la query principale n'a pas fini
     }
 
     return () => {
       isMounted = false;
     };
-  }, [invitationsKey, token]); // Utiliser invitationsKey au lieu de invitations
+  }, [invitationsKey, token]);
 
   return { invitations: enriched, loading, error };
 }

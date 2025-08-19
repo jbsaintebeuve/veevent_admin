@@ -246,15 +246,22 @@ export function InvitationsTable({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
 
-  // Filtrage des invitations selon la recherche
   const filteredData = React.useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
-    return data.filter(
-      (invitation) =>
-        invitation.description.toLowerCase().includes(s) ||
-        invitation.status.toLowerCase().includes(s)
-    );
+    return data.filter((invitation) => {
+      const participant = (invitation.participant as any) || {};
+      const pseudo = (participant.pseudo ?? "").toLowerCase();
+      const firstName = (participant.firstName ?? "").toLowerCase();
+      const lastName = (participant.lastName ?? "").toLowerCase();
+      return (
+        (invitation.description ?? "").toLowerCase().includes(s) ||
+        (invitation.status ?? "").toLowerCase().includes(s) ||
+        pseudo.includes(s) ||
+        firstName.includes(s) ||
+        lastName.includes(s)
+      );
+    });
   }, [data, search]);
 
   const table = useReactTable({
