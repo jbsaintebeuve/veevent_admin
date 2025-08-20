@@ -231,15 +231,14 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen && event) {
-      setImageFile(null);
-      if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-      setImagePreviewUrl(null);
+  const resetToInitialState = () => {
+    setImageFile(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImagePreviewUrl(null);
 
+    if (event) {
       const eventDate = event.date ? new Date(event.date) : undefined;
       const eventTime = eventDate
         ? eventDate.toLocaleTimeString("fr-FR", {
@@ -273,6 +272,13 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         ? [...prev.categoryKeys, categoryKey]
         : prev.categoryKeys.filter((key) => key !== categoryKey),
     }));
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      resetToInitialState();
+    }
   };
 
   return (

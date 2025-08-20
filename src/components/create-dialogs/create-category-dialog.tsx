@@ -54,7 +54,6 @@ export function CreateCategoryDialog() {
     setForm({ ...form, trending: checked });
   };
 
-  // ✅ Validation des champs requis
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
@@ -99,7 +98,6 @@ export function CreateCategoryDialog() {
     try {
       validateForm();
 
-      // ✅ Utilisation de l'interface CategoryCreateRequest
       const payload: CategoryCreateRequest = {
         name: form.name.trim(),
         description: form.description.trim(),

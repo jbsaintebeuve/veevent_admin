@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useState, useCallback, useMemo, memo } from "react";
+import { useState, useMemo, memo } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -196,58 +196,51 @@ export function CreateEventDialog({
     Array.isArray(categories)
   );
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const { name, value, type, checked } = e.target as HTMLInputElement;
-      setForm((prev) => ({
-        ...prev,
-        [name]: type === "checkbox" ? checked : value,
-      }));
-    },
-    []
-  );
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type, checked } = e.target as HTMLInputElement;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
 
-  const handleCityChange = useCallback((value: string) => {
+  const handleCityChange = (value: string) => {
     setForm((prev) => ({ ...prev, cityId: value, placeId: "" }));
-  }, []);
+  };
 
-  const handlePlaceChange = useCallback((value: string) => {
+  const handlePlaceChange = (value: string) => {
     setForm((prev) => ({ ...prev, placeId: value }));
-  }, []);
+  };
 
-  const handleCategoryChange = useCallback(
-    (categoryKey: string, checked: boolean) => {
-      setForm((prev) => ({
-        ...prev,
-        categoryIds: checked
-          ? [...prev.categoryIds, categoryKey]
-          : prev.categoryIds.filter((key) => key !== categoryKey),
-      }));
-    },
-    []
-  );
+  const handleCategoryChange = (categoryKey: string, checked: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      categoryIds: checked
+        ? [...prev.categoryIds, categoryKey]
+        : prev.categoryIds.filter((key) => key !== categoryKey),
+    }));
+  };
 
-  const handleImageChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        setImageFile(file);
-        const url = URL.createObjectURL(file);
-        setImagePreviewUrl(url);
-        setForm((prev) => ({ ...prev, imageUrl: url }));
-      }
-    },
-    []
-  );
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const url = URL.createObjectURL(file);
+      setImagePreviewUrl(url);
+      setForm((prev) => ({ ...prev, imageUrl: url }));
+    }
+  };
 
-  const handleImageRemove = useCallback(() => {
+  const handleImageRemove = () => {
     setImageFile(null);
     if (imagePreviewUrl) {
       URL.revokeObjectURL(imagePreviewUrl);
     }
     setImagePreviewUrl(null);
     setForm((prev) => ({ ...prev, imageUrl: "" }));
-  }, [imagePreviewUrl]);
+  };
 
   const isFormValid = useMemo(() => {
     return (
@@ -265,7 +258,7 @@ export function CreateEventDialog({
     );
   }, [form]);
 
-  const resetForm = useCallback(() => {
+  const resetForm = () => {
     setForm(initialForm);
     setError("");
     setImageFile(null);
@@ -273,9 +266,9 @@ export function CreateEventDialog({
       URL.revokeObjectURL(imagePreviewUrl);
     }
     setImagePreviewUrl(null);
-  }, [imagePreviewUrl]);
+  };
 
-  const validateForm = useCallback(() => {
+  const validateForm = () => {
     const required = [
       "name",
       "description",
@@ -298,7 +291,7 @@ export function CreateEventDialog({
       throw new Error("Capacité invalide");
     if (form.date && new Date(form.date) <= new Date())
       throw new Error("Date invalide");
-  }, [form]);
+  };
 
   const getDateTimeISO = () => {
     if (!form.date || !form.time) return "";
@@ -311,65 +304,63 @@ export function CreateEventDialog({
     ).toISOString();
   };
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      setLoading(true);
-      setError("");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-      try {
-        validateForm();
+    try {
+      validateForm();
 
-        let cloudinaryImageUrl = form.imageUrl;
-        if (imageFile) {
-          console.log("🔄 Upload de l'image vers Cloudinary...");
-          cloudinaryImageUrl = await uploadImage(imageFile);
-          console.log("✅ Image uploadée avec succès:", cloudinaryImageUrl);
-        }
-
-        const payload = {
-          name: form.name.trim(),
-          description: form.description.trim(),
-          date: getDateTimeISO(),
-          address: form.address.trim(),
-          price: parseFloat(form.price),
-          maxCustomers: parseInt(form.maxCustomers, 10),
-          status: form.status,
-          imageUrl: cloudinaryImageUrl?.trim() || undefined,
-          contentHtml: form.contentHtml.trim() || undefined,
-          placeId: parseInt(form.placeId, 10),
-          cityId: parseInt(form.cityId, 10),
-          categoryKeys: form.categoryIds,
-          isInvitationOnly: form.isInvitationOnly,
-          isTrending: form.isTrending,
-        };
-
-        console.log("📤 Envoi des données au backend:", payload);
-        await createEvent(payload, getToken() || undefined);
-        queryClient.invalidateQueries({ queryKey: ["events"] });
-        queryClient.invalidateQueries({ queryKey: ["my-events"] });
-        toast.success("Événement créé avec succès");
-        setOpen(false);
-        resetForm();
-      } catch (err: any) {
-        console.error("❌ Erreur lors de la création:", err);
-        setError(err.message);
-        toast.error(err.message);
-      } finally {
-        setLoading(false);
+      let cloudinaryImageUrl = form.imageUrl;
+      if (imageFile) {
+        console.log("🔄 Upload de l'image vers Cloudinary...");
+        cloudinaryImageUrl = await uploadImage(imageFile);
+        console.log("✅ Image uploadée avec succès:", cloudinaryImageUrl);
       }
-    },
-    [form, imageFile, validateForm, queryClient, resetForm, getToken]
-  );
+
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        date: getDateTimeISO(),
+        address: form.address.trim(),
+        price: parseFloat(form.price),
+        maxCustomers: parseInt(form.maxCustomers, 10),
+        status: form.status,
+        imageUrl: cloudinaryImageUrl?.trim() || undefined,
+        contentHtml: form.contentHtml.trim() || undefined,
+        placeId: parseInt(form.placeId, 10),
+        cityId: parseInt(form.cityId, 10),
+        categoryKeys: form.categoryIds,
+        isInvitationOnly: form.isInvitationOnly,
+        isTrending: form.isTrending,
+      };
+
+      console.log("📤 Envoi des données au backend:", payload);
+      await createEvent(payload, getToken() || undefined);
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["my-events"] });
+      toast.success("Événement créé avec succès");
+      setOpen(false);
+      resetForm();
+    } catch (err: any) {
+      console.error("❌ Erreur lors de la création:", err);
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      resetForm();
+    }
+  };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(newOpen) => {
-        setOpen(newOpen);
-        !newOpen && resetForm();
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {children || (
           <Button className="w-fit">

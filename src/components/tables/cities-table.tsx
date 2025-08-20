@@ -36,18 +36,9 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { City } from "@/types/city";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Building, Edit, Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
+import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 
 function DragHandle() {
   return (
@@ -178,37 +169,19 @@ const createColumns = (
             </DropdownMenuItem>
           </DropdownMenuContent>
           {/* Dialog Supprimer */}
-          <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer la ville</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Êtes-vous sûr de vouloir supprimer "{row.original.name}" ?
-                  Cette action est irréversible.
-                  {row.original.eventsCount > 0 && (
-                    <span className="block mt-2 text-destructive font-medium">
-                      Cette ville a {row.original.eventsCount} événement(s)
-                      actif(s).
-                    </span>
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    onDelete(
-                      row.original._links?.self?.href,
-                      row.original.name
-                    );
-                    setOpenDelete(false);
-                  }}
-                >
-                  Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+
+          <CustomAlertDialog
+            isOpen={openDelete}
+            onClose={() => setOpenDelete(false)}
+            title="Supprimer la ville"
+            description={` Êtes-vous sûr de vouloir supprimer "${row.original.name}" ?
+                  Cette action est irréversible.`}
+            action="Supprimer"
+            onClick={() => {
+              onDelete(row.original._links?.self?.href, row.original.name);
+              setOpenDelete(false);
+            }}
+          />
         </DropdownMenu>
       );
     },

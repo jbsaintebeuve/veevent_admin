@@ -273,9 +273,6 @@ export default function UsersPage() {
                 : "Bannir"}
             </AlertDialogAction>
           </AlertDialogFooter>
-          {banError && (
-            <div className="text-xs text-red-600 mt-2">{banError}</div>
-          )}
         </AlertDialogContent>
       </AlertDialog>
     </>

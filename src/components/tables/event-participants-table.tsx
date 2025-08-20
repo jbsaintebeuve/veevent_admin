@@ -20,18 +20,17 @@ export function EventParticipantsTable({
 }: EventParticipantsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Filtrer les participants selon le terme de recherche
-  const filteredParticipants = React.useMemo(
-    () =>
-      participants.filter((participant) =>
-        participant.pseudo.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [participants, searchTerm]
-  );
+  const filteredParticipants = React.useMemo(() => {
+    const s = searchTerm.toLowerCase();
+    return participants.filter((participant) => {
+      const pseudo = (participant.pseudo ?? "").toLowerCase();
+      const id = String(participant.id ?? "").toLowerCase();
+      return pseudo.includes(s) || id.includes(s);
+    });
+  }, [participants, searchTerm]);
 
   return (
     <div className="space-y-4">
-      {/* Barre de recherche */}
       <div className="space-y-2">
         <Label htmlFor="search-participants">Rechercher un participant</Label>
         <div className="relative">
@@ -56,7 +55,6 @@ export function EventParticipantsTable({
         </div>
       </div>
 
-      {/* Liste des participants */}
       <div>
         {isLoading ? (
           <div className="space-y-3">

@@ -60,16 +60,8 @@ import { Search, CalendarDays, Edit, Trash2, Users } from "lucide-react";
 import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { EventParticipantsDialog } from "@/components/dialogs/event-participants-dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
+import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 
 function DragHandle({ id }: { id: number }) {
   const { attributes, listeners } = useSortable({ id });
@@ -269,37 +261,18 @@ export function EventsTable({
             />
             {/* Dialog Supprimer - seulement si hideDelete est false */}
             {!hideDelete && (
-              <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Supprimer l'événement</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir supprimer "{row.original.name}" ?
-                      Cette action est irréversible.
-                      {row.original.currentParticipants > 0 && (
-                        <span className="block mt-2 text-destructive font-medium">
-                          Cet événement a {row.original.currentParticipants}{" "}
-                          participant(s) inscrit(s).
-                        </span>
-                      )}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => {
-                        onDelete(
-                          row.original._links?.self?.href,
-                          row.original.name
-                        );
-                        setOpenDelete(false);
-                      }}
-                    >
-                      Supprimer
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <CustomAlertDialog
+                isOpen={openDelete}
+                onClose={() => setOpenDelete(false)}
+                title="Supprimer l'événement"
+                description={` Êtes-vous sûr de vouloir supprimer "${row.original.name}" ?
+                      Cette action est irréversible.`}
+                action="Supprimer"
+                onClick={() => {
+                  onDelete(row.original._links?.self?.href, row.original.name);
+                  setOpenDelete(false);
+                }}
+              />
             )}
           </DropdownMenu>
         );

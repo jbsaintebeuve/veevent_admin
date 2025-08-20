@@ -105,15 +105,6 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
     }
   };
 
-  const handleNearestCitiesChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const selected = Array.from(e.target.selectedOptions, (option) =>
-      Number(option.value)
-    );
-    setForm({ ...form, nearestCities: selected });
-  };
-
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&

@@ -223,9 +223,8 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen && place) {
+  const resetToInitialState = () => {
+    if (place) {
       setForm({
         name: place.name || "",
         address: place.address || "",
@@ -243,6 +242,13 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
       });
       setPreviewBannerUrl(null);
       setPreviewImageUrl(null);
+    }
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      resetToInitialState();
     }
   };
 

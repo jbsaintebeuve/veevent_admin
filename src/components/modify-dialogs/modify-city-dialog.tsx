@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -196,9 +196,8 @@ export function ModifyCityDialog({
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen && city) {
+  const resetToInitialState = useCallback(() => {
+    if (city) {
       setForm({
         name: city.name || "",
         location: {
@@ -218,6 +217,13 @@ export function ModifyCityDialog({
       setError("");
       setPreviewBannerUrl(null);
       setPreviewImageUrl(null);
+    }
+  }, [city]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      resetToInitialState();
     }
   };
 

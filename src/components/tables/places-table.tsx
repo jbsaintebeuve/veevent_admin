@@ -36,18 +36,10 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Place, placeTypes } from "@/types/place";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Building2, Edit, Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
+import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 
 function DragHandle() {
   return (
@@ -72,7 +64,6 @@ const COLUMN_LABELS: Record<string, string> = {
   eventsPastCount: "Événements passés",
 };
 
-// Définition des colonnes en dehors du composant pour éviter les re-créations
 const createColumns = (
   onDelete: (deleteUrl: string, name: string) => void,
   data: Place[]
@@ -185,38 +176,17 @@ const createColumns = (
               Supprimer
             </DropdownMenuItem>
           </DropdownMenuContent>
-          {/* Dialog Supprimer */}
-          <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer le lieu</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Êtes-vous sûr de vouloir supprimer "{row.original.name}" ?
-                  Cette action est irréversible.
-                  {row.original.eventsCount > 0 && (
-                    <span className="block mt-2 text-destructive font-medium">
-                      Ce lieu a {row.original.eventsCount} événement(s)
-                      actif(s).
-                    </span>
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    onDelete(
-                      row.original._links?.self?.href,
-                      row.original.name
-                    );
-                    setOpenDelete(false);
-                  }}
-                >
-                  Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <CustomAlertDialog
+            isOpen={openDelete}
+            onClose={() => setOpenDelete(false)}
+            title="Supprimer le lieu"
+            description={`Êtes-vous sûr de vouloir supprimer "${row.original.name}" ? Cette action est irréversible.`}
+            action="Supprimer"
+            onClick={() => {
+              onDelete(row.original._links?.self?.href, row.original.name);
+              setOpenDelete(false);
+            }}
+          />
         </DropdownMenu>
       );
     },

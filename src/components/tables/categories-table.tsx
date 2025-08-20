@@ -44,18 +44,9 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
 import { ModifyCategoryDialog } from "@/components/modify-dialogs/modify-category-dialog";
+import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 
 function DragHandle() {
   return (
@@ -199,32 +190,19 @@ const createColumns = (
             </DropdownMenuItem>
           </DropdownMenuContent>
           {/* Dialog Supprimer */}
-          <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer la catégorie</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Êtes-vous sûr de vouloir supprimer la catégorie "
-                  {row.original.name}" ? Cette action est irréversible et
-                  pourrait affecter les événements associés.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    onDelete(
-                      row.original._links?.self?.href,
-                      row.original.name
-                    );
-                    setOpenDelete(false);
-                  }}
-                >
-                  Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <CustomAlertDialog
+            isOpen={openDelete}
+            onClose={() => setOpenDelete(false)}
+            title="Supprimer la catégorie"
+            description={` Êtes-vous sûr de vouloir supprimer la catégorie "
+                  ${row.original.name}" ? Cette action est irréversible et
+                  pourrait affecter les événements associés.`}
+            action="Supprimer"
+            onClick={() => {
+              onDelete(row.original._links?.self?.href, row.original.name);
+              setOpenDelete(false);
+            }}
+          />
         </DropdownMenu>
       );
     },
