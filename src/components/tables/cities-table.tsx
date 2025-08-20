@@ -39,20 +39,7 @@ import { Search, MapPin, Building, Edit, Trash2 } from "lucide-react";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
-
-function DragHandle() {
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent cursor-default"
-      disabled
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag handle (disabled)</span>
-    </Button>
-  );
-}
+import { DragHandle } from "../ui/drag-handle";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Nom",

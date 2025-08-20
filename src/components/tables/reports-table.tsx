@@ -34,20 +34,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Report } from "@/types/report";
 import { Input } from "@/components/ui/input";
 import { Search, AlertTriangle, FileText } from "lucide-react";
-
-function DragHandle() {
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent cursor-default"
-      disabled
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag handle (disabled)</span>
-    </Button>
-  );
-}
+import { DragHandle } from "../ui/drag-handle";
 
 const COLUMN_LABELS: Record<string, string> = {
   reportType: "Type de signalement",

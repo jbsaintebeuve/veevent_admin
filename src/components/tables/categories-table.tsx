@@ -47,20 +47,7 @@ import {
 import { CreateCategoryDialog } from "@/components/create-dialogs/create-category-dialog";
 import { ModifyCategoryDialog } from "@/components/modify-dialogs/modify-category-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
-
-function DragHandle() {
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent cursor-default"
-      disabled
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag handle (disabled)</span>
-    </Button>
-  );
-}
+import { DragHandle } from "../ui/drag-handle";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Catégorie",
@@ -70,7 +57,6 @@ const COLUMN_LABELS: Record<string, string> = {
   trending: "Tendance",
 };
 
-// Définition des colonnes en dehors du composant pour éviter les re-créations
 const createColumns = (
   onDelete: (deleteUrl: string, name: string) => void,
   eventCounts?: Record<string, number>
@@ -224,7 +210,6 @@ export function CategoriesTable({
   deleteLoading: boolean;
   eventCounts?: Record<string, number>;
 }) {
-  // Mémorisation des colonnes pour éviter les re-créations
   const columns = React.useMemo(
     () => createColumns(onDelete, eventCounts),
     [onDelete, eventCounts]
@@ -232,7 +217,6 @@ export function CategoriesTable({
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  // Filtrage des catégories selon la recherche
   const filteredData = React.useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;

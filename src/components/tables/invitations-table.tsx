@@ -46,20 +46,7 @@ import {
   Mail,
   FileText,
 } from "lucide-react";
-
-function DragHandle() {
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent cursor-default"
-      disabled
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag handle (disabled)</span>
-    </Button>
-  );
-}
+import { DragHandle } from "../ui/drag-handle";
 
 const COLUMN_LABELS: Record<string, string> = {
   participant: "Participant",

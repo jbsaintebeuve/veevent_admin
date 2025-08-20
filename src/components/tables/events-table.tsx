@@ -2,8 +2,6 @@
 
 import * as React from "react";
 import {
-  closestCenter,
-  DndContext,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
@@ -12,7 +10,6 @@ import {
   type DragEndEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
@@ -23,7 +20,6 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   IconChevronDown,
   IconDotsVertical,
-  IconGripVertical,
   IconLayoutColumns,
 } from "@tabler/icons-react";
 import {
@@ -62,22 +58,7 @@ import { CreateEventDialog } from "@/components/create-dialogs/create-event-dial
 import { EventParticipantsDialog } from "@/components/dialogs/event-participants-dialog";
 
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
-
-function DragHandle({ id }: { id: number }) {
-  const { attributes, listeners } = useSortable({ id });
-  return (
-    <Button
-      {...attributes}
-      {...listeners}
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent"
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </Button>
-  );
-}
+import { DragHandle } from "../ui/drag-handle";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Nom",
@@ -109,7 +90,7 @@ export function EventsTable({
     {
       id: "drag",
       header: () => null,
-      cell: ({ row }) => <DragHandle id={row.original.id} />,
+      cell: ({ row }) => <DragHandle />,
       enableHiding: false,
     },
     {
@@ -329,17 +310,6 @@ export function EventsTable({
     getSortedRowModel: getSortedRowModel(),
   });
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (active && over && active.id !== over.id) {
-      setTableData((data) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(data, oldIndex, newIndex);
-      });
-    }
-  }
-
   return (
     <Tabs defaultValue="events" className="w-full flex-col justify-start gap-6">
       <div className="flex gap-2 items-center justify-between px-4 lg:px-6">
@@ -392,96 +362,86 @@ export function EventsTable({
         className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
       >
         <div className="overflow-hidden rounded-lg border shadow-xs">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      const isActions = header.column.id === "actions";
-                      return (
-                        <TableHead
-                          key={header.id}
-                          colSpan={header.colSpan}
-                          className={
-                            isActions
-                              ? "text-right w-0 min-w-[64px]"
-                              : undefined
-                          }
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
+          <Table>
+            <TableHeader className="bg-muted sticky top-0 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const isActions = header.column.id === "actions";
+                    return (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        className={
+                          isActions ? "text-right w-0 min-w-[64px]" : undefined
+                        }
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody className="**:data-[slot=table-cell]:first:w-8">
+              {table.getRowModel().rows?.length ? (
+                <SortableContext
+                  items={dataIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {table.getRowModel().rows.map((row) => (
+                    <DraggableRow key={row.id} row={row} />
+                  ))}
+                </SortableContext>
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-64 align-middle p-0"
                   >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
-                    ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-64 align-middle p-0"
-                    >
-                      <div className="flex flex-col items-center justify-center h-full py-8">
-                        {search ? (
-                          <>
-                            <Search className="mb-2 h-8 w-8 text-muted-foreground" />
-                            <div className="mb-1 text-base font-medium text-muted-foreground">
-                              Aucun événement ne correspond à votre recherche.
-                            </div>
-                            <div className="mb-4 text-sm text-muted-foreground">
-                              Essayez de modifier ou réinitialiser votre
-                              recherche.
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-9 px-3"
-                              onClick={() => onSearchChange("")}
-                            >
-                              Réinitialiser la recherche
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <CalendarDays className="mb-2 h-8 w-8 text-muted-foreground" />
-                            <div className="mb-1 text-base font-medium text-muted-foreground">
-                              Aucun événement
-                            </div>
-                            <div className="mb-4 text-sm text-muted-foreground">
-                              Commencez par créer votre premier événement.
-                            </div>
-                            <CreateEventDialog />
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
+                    <div className="flex flex-col items-center justify-center h-full py-8">
+                      {search ? (
+                        <>
+                          <Search className="mb-2 h-8 w-8 text-muted-foreground" />
+                          <div className="mb-1 text-base font-medium text-muted-foreground">
+                            Aucun événement ne correspond à votre recherche.
+                          </div>
+                          <div className="mb-4 text-sm text-muted-foreground">
+                            Essayez de modifier ou réinitialiser votre
+                            recherche.
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-3"
+                            onClick={() => onSearchChange("")}
+                          >
+                            Réinitialiser la recherche
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <CalendarDays className="mb-2 h-8 w-8 text-muted-foreground" />
+                          <div className="mb-1 text-base font-medium text-muted-foreground">
+                            Aucun événement
+                          </div>
+                          <div className="mb-4 text-sm text-muted-foreground">
+                            Commencez par créer votre premier événement.
+                          </div>
+                          <CreateEventDialog />
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </TabsContent>
     </Tabs>

@@ -40,20 +40,7 @@ import { Search, MapPin, Building2, Edit, Trash2 } from "lucide-react";
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
-
-function DragHandle() {
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent cursor-default"
-      disabled
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag handle (disabled)</span>
-    </Button>
-  );
-}
+import { DragHandle } from "../ui/drag-handle";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Nom",
