@@ -71,17 +71,23 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { token } = useAuth();
   const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
-    queryFn: () => fetchCategories(getToken() || undefined),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCategories(token);
+    },
     enabled: open,
   });
   const categories = categoriesResponse?._embedded?.categories || [];
 
   const { data: eventDetails, isLoading: eventDetailsLoading } = useQuery({
     queryKey: ["eventDetails", event.id],
-    queryFn: () => fetchEventDetails(event.id, getToken() || undefined),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchEventDetails(event.id, token);
+    },
     enabled: open && !!event.id,
   });
 

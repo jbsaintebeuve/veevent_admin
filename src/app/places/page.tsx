@@ -25,9 +25,7 @@ export default function PlacesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
-
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { token } = useAuth();
 
   const {
     data: placesResponse,
@@ -35,7 +33,10 @@ export default function PlacesPage() {
     error,
   } = useQuery<PlacesApiResponse>({
     queryKey: ["places", currentPage],
-    queryFn: () => fetchPlaces(token, currentPage - 1, pageSize),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchPlaces(token, currentPage - 1, pageSize);
+    },
     staleTime: 5 * 60 * 1000,
   });
 

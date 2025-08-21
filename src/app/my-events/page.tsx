@@ -21,8 +21,7 @@ import { useMyEventsCards } from "@/hooks/data-cards/use-my-events-cards";
 export default function MyEventsPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const { user, getToken } = useAuth();
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { user, token } = useAuth();
 
   const userEventsUrl = user?._links?.events?.href;
 
@@ -46,8 +45,11 @@ export default function MyEventsPage() {
     refetch,
   } = useQuery<EventsApiResponse>({
     queryKey: ["my-events", user?.id],
-    queryFn: () => fetchUserEvents(userEventsUrl!, token, 0, 1000),
-    enabled: !!user?.id && !!userEventsUrl,
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchUserEvents(userEventsUrl, token, 0, 1000);
+    },
+    enabled: !!token && !!user?.id && !!userEventsUrl,
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });

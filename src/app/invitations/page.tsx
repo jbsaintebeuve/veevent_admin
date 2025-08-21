@@ -25,59 +25,67 @@ export default function InvitationsPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const { user, getToken } = useAuth();
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { user, token } = useAuth();
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["user-invitations", user?.id, currentPage],
-    queryFn: () => fetchUserInvitations(token, currentPage - 1, pageSize),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchUserInvitations(token, currentPage - 1, pageSize);
+    },
     enabled: !!token && !!user?.id,
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
   });
 
   const invitations = data?._embedded?.invitations || [];
   const pageInfo = data?.page;
 
-  // Enrichir les invitations avec les participants
   const participantQueries = useQueries({
     queries: invitations.map((invitation, index) => ({
-      queryKey: ["invitation-participant", invitation._links?.self?.href || index],
+      queryKey: [
+        "invitation-participant",
+        invitation._links?.self?.href || index,
+      ],
       queryFn: async () => {
+        if (!token) throw new Error("Token manquant");
         const selfHref = invitation._links?.self?.href;
         if (!selfHref || invitation.participant) return null;
-        
         try {
           return await fetchInvitationParticipant(selfHref, token);
         } catch {
           return null;
         }
       },
-      enabled: !!invitation._links?.self?.href && !invitation.participant,
-    }))
+      enabled:
+        !!token && !!invitation._links?.self?.href && !invitation.participant,
+    })),
   });
 
-  const participantsLoading = participantQueries.some(query => query.isLoading);
+  const participantsLoading = participantQueries.some(
+    (query) => query.isLoading
+  );
 
   const enrichedInvitations = useMemo(() => {
     if (participantQueries.length !== invitations.length) {
       return invitations;
     }
-    
+
     return invitations.map((invitation, index) => {
       const query = participantQueries[index];
       const participant = query?.data;
-      
+
       if (participant) {
         return { ...invitation, participant };
       }
       return invitation;
     });
-  }, [invitations, participantQueries.map(q => q.data)]);
+  }, [invitations, participantQueries.map((q) => q.data)]);
 
   const acceptMutation = useMutation({
-    mutationFn: (invitation: Invitation) => acceptInvitation(invitation, token),
+    mutationFn: (invitation: Invitation) => {
+      if (!token) throw new Error("Token manquant");
+      return acceptInvitation(invitation, token);
+    },
     onSuccess: () => {
       toast.success("Invitation acceptée avec succès!");
       queryClient.invalidateQueries({ queryKey: ["user-invitations"] });
@@ -88,8 +96,10 @@ export default function InvitationsPage() {
   });
 
   const declineMutation = useMutation({
-    mutationFn: (invitation: Invitation) =>
-      declineInvitation(invitation, token),
+    mutationFn: (invitation: Invitation) => {
+      if (!token) throw new Error("Token manquant");
+      return declineInvitation(invitation, token);
+    },
     onSuccess: () => {
       toast.success("Invitation refusée avec succès!");
       queryClient.invalidateQueries({ queryKey: ["user-invitations"] });
@@ -135,16 +145,24 @@ export default function InvitationsPage() {
 
   const handleAccept = useCallback(
     (invitation: Invitation) => {
+      if (!token) {
+        toast.error("Vous devez être connecté.");
+        return;
+      }
       acceptMutation.mutate(invitation);
     },
-    [acceptMutation]
+    [acceptMutation, token]
   );
 
   const handleDecline = useCallback(
     (invitation: Invitation) => {
+      if (!token) {
+        toast.error("Vous devez être connecté.");
+        return;
+      }
       declineMutation.mutate(invitation);
     },
-    [declineMutation]
+    [declineMutation, token]
   );
 
   const handlePageChange = useCallback((page: number) => {

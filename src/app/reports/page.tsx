@@ -20,8 +20,7 @@ export default function ReportsPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const { getToken } = useAuth();
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { token } = useAuth();
 
   const {
     data: reportsResponse,
@@ -29,7 +28,10 @@ export default function ReportsPage() {
     error,
   } = useQuery<ReportsApiResponse>({
     queryKey: ["reports", currentPage],
-    queryFn: () => fetchReports(token, currentPage - 1, pageSize),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchReports(token, currentPage - 1, pageSize);
+    },
   });
 
   const reports = reportsResponse?._embedded?.reports || [];

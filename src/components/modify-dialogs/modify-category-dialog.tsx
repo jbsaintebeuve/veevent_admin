@@ -51,7 +51,7 @@ export function ModifyCategoryDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { token } = useAuth();
 
   useEffect(() => {
     if (category) {
@@ -113,6 +113,7 @@ export function ModifyCategoryDialog({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (!token) throw new Error("Token manquant");
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -135,7 +136,6 @@ export function ModifyCategoryDialog({
 
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
 
-      const token = getToken() || undefined;
       console.log(
         "🔧 Modification catégorie - Token:",
         token ? "Présent" : "Manquant"

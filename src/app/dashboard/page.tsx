@@ -9,11 +9,9 @@ import { fetchUsers } from "@/services/user-service";
 import { fetchReports } from "@/services/report-service";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { fetchUserInvitations } from "@/services/invitation-service";
-import { useMemo } from "react";
 
 export default function Page() {
-  const { getToken } = useAuth();
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { token } = useAuth();
   const user = useAuth().user;
   const role = user?.role?.toUpperCase();
 
@@ -25,7 +23,10 @@ export default function Page() {
     error: errorEvents,
   } = useQuery({
     queryKey: ["dashboard-events"],
-    queryFn: () => fetchEvents(token),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchEvents(token);
+    },
     enabled: isAdminLike,
   });
 
@@ -35,7 +36,10 @@ export default function Page() {
     error: errorUsers,
   } = useQuery({
     queryKey: ["dashboard-users"],
-    queryFn: () => fetchUsers(token),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchUsers(token);
+    },
     enabled: isAdminLike,
   });
 
@@ -45,7 +49,10 @@ export default function Page() {
     error: errorReports,
   } = useQuery({
     queryKey: ["dashboard-reports"],
-    queryFn: () => fetchReports(token, 0, 1000),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchReports(token, 0, 1000);
+    },
     enabled: isAdminLike,
   });
 
@@ -58,7 +65,10 @@ export default function Page() {
     error: errorMyEvents,
   } = useQuery({
     queryKey: ["dashboard-my-events", user?.id],
-    queryFn: () => fetchUserEvents(userEventsUrl, token),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchUserEvents(userEventsUrl, token);
+    },
     enabled: !!user?.id && !!userEventsUrl && role === "ORGANIZER",
     staleTime: 30000,
     refetchOnWindowFocus: false,
@@ -70,7 +80,10 @@ export default function Page() {
     error: errorMyInvitations,
   } = useQuery({
     queryKey: ["dashboard-my-invitations", user?.id],
-    queryFn: () => fetchUserInvitations(token),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchUserInvitations(token);
+    },
     enabled:
       !!token && !!user?.id && !!userInvitationsUrl && role === "ORGANIZER",
     staleTime: 30000,

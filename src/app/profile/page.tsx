@@ -50,7 +50,7 @@ interface Social {
 }
 
 export default function ProfilePage() {
-  const { user, loading: authLoading, getToken } = useAuth();
+  const { user, loading: authLoading, token } = useAuth();
 
   const [form, setForm] = useState({
     lastName: "",
@@ -73,11 +73,6 @@ export default function ProfilePage() {
   const router = useRouter();
 
   const queryClient = useQueryClient();
-
-  const token = useMemo(
-    () => (user ? getToken() : undefined),
-    [user, getToken]
-  );
 
   const {
     data: categoriesResponse,
@@ -102,7 +97,7 @@ export default function ProfilePage() {
   } = useQuery({
     queryKey: ["user", "me"],
     queryFn: () => {
-      if (!token) throw new Error("Utilisateur non connecté");
+      if (!token) throw new Error("Token manquant");
       return fetchUserMe(token);
     },
     enabled: !!token && !authLoading,

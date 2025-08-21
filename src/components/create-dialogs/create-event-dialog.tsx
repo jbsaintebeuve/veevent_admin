@@ -155,7 +155,7 @@ export function CreateEventDialog({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { token } = useAuth();
 
   const {
     data: citiesResponse,
@@ -163,7 +163,10 @@ export function CreateEventDialog({
     error: citiesError,
   } = useQuery({
     queryKey: ["cities"],
-    queryFn: () => fetchCities(getToken() || undefined),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCities(token);
+    },
     retry: 2,
     retryDelay: 1000,
     enabled: open,
@@ -171,14 +174,20 @@ export function CreateEventDialog({
 
   const { data: places, isLoading: placesLoading } = useQuery({
     queryKey: ["places", form.cityId],
-    queryFn: () => fetchPlacesByCity(form.cityId, getToken() || undefined),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchPlacesByCity(form.cityId, token);
+    },
     enabled: !!form.cityId && open,
     retry: 2,
   });
 
   const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
-    queryFn: () => fetchCategories(getToken() || undefined),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCategories(token);
+    },
     retry: 2,
     enabled: open,
   });
@@ -305,6 +314,7 @@ export function CreateEventDialog({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (!token) throw new Error("Token manquant");
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -337,7 +347,7 @@ export function CreateEventDialog({
       };
 
       console.log("📤 Envoi des données au backend:", payload);
-      await createEvent(payload, getToken() || undefined);
+      await createEvent(payload, token || undefined);
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
       toast.success("Événement créé avec succès");

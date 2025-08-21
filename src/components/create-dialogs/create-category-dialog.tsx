@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { CategoryCreateRequest } from "@/types/category";
 import { createCategory } from "@/services/category-service";
+import { useAuth } from "@/hooks/use-auth";
 
 export function CreateCategoryDialog() {
   const [open, setOpen] = useState(false);
@@ -41,6 +42,7 @@ export function CreateCategoryDialog() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { token } = useAuth();
   const queryClient = useQueryClient();
 
   const handleChange = (
@@ -91,6 +93,7 @@ export function CreateCategoryDialog() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (!token) throw new Error("Token manquant");
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -106,10 +109,6 @@ export function CreateCategoryDialog() {
       };
 
       console.log("🚀 Payload catégorie:", payload);
-
-      const token = document.cookie.includes("token=")
-        ? document.cookie.split("token=")[1]?.split(";")[0]
-        : undefined;
 
       const result = await createCategory(payload, token);
       console.log("✅ Catégorie créée:", result);

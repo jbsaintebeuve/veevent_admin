@@ -29,17 +29,19 @@ export function EventParticipantsDialog({
   isOpen,
   onOpenChange,
 }: EventParticipantsDialogProps) {
-  const { getToken } = useAuth();
-  const token = getToken();
+  const { token } = useAuth();
 
   const {
     data: participantsResponse,
     isLoading,
     error,
-    refetch
+    refetch,
   } = useQuery<EventParticipantsApiResponse>({
     queryKey: ["event-participants", eventSelfLink],
-    queryFn: () => fetchEventParticipants(eventSelfLink!, token || undefined),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchEventParticipants(eventSelfLink!, token);
+    },
     enabled: isOpen && !!eventSelfLink,
   });
 
@@ -69,7 +71,9 @@ export function EventParticipantsDialog({
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {error instanceof Error ? error.message : "Erreur lors du chargement des participants"}
+                {error instanceof Error
+                  ? error.message
+                  : "Erreur lors du chargement des participants"}
               </AlertDescription>
             </Alert>
           )}

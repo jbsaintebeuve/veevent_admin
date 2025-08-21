@@ -35,11 +35,11 @@ export default function ScanPage() {
     useState<VerificationResult | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showResult, setShowResult] = useState(false);
-
-  const { getToken, user } = useAuth();
-  const token = getToken() ?? undefined;
+  const { token, user } = useAuth();
 
   const handleVerification = async (verificationKey: string) => {
+    if (!token) throw new Error("Token manquant");
+
     setIsVerifying(true);
     setVerificationResult(null);
 

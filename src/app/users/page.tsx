@@ -32,9 +32,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const { getToken } = useAuth();
-
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { token } = useAuth();
 
   const queryClient = useQueryClient();
   const [banDialogOpen, setBanDialogOpen] = useState(false);
@@ -48,7 +46,10 @@ export default function UsersPage() {
     error,
   } = useQuery<UsersApiResponse>({
     queryKey: ["users", currentPage],
-    queryFn: () => fetchUsers(token, currentPage - 1, pageSize),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchUsers(token, currentPage - 1, pageSize);
+    },
   });
 
   const users = usersResponse?._embedded?.userResponses || [];
@@ -122,6 +123,7 @@ export default function UsersPage() {
   };
 
   const confirmBanToggle = async () => {
+    if (!token) throw new Error("Token manquant");
     if (!banTargetUser) return;
     setBanLoading(true);
     setBanError(null);

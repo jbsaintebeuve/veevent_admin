@@ -57,7 +57,7 @@ export function ModifyCityDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { token } = useAuth();
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
@@ -158,7 +158,7 @@ export function ModifyCityDialog({
     setLoading(true);
     setError("");
     try {
-      const token = getToken() || undefined;
+      if (!token) throw new Error("Token manquant");
       const patchUrl = city._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
 

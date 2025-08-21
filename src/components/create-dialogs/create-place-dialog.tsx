@@ -53,7 +53,7 @@ export function CreatePlaceDialog() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { token } = useAuth();
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
@@ -63,7 +63,7 @@ export function CreatePlaceDialog() {
     error: citiesError,
   } = useQuery<CitiesApiResponse>({
     queryKey: ["cities"],
-    queryFn: () => fetchCities(getToken() || undefined),
+    queryFn: () => fetchCities(token || undefined),
     retry: 2,
     retryDelay: 1000,
     enabled: open,
@@ -212,7 +212,7 @@ export function CreatePlaceDialog() {
         imageUrl: imageUrl,
         content: form.content.trim() || null,
       };
-      await createPlace(payload, getToken() || undefined);
+      await createPlace(payload, token || undefined);
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu créé avec succès !");
       setOpen(false);

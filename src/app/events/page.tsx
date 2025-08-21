@@ -22,9 +22,7 @@ export default function EventsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
-
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { token } = useAuth();
 
   const {
     data: eventsResponse,
@@ -32,13 +30,20 @@ export default function EventsPage() {
     error,
   } = useQuery<EventsApiResponse>({
     queryKey: ["events", currentPage],
-    queryFn: () => fetchEvents(token, currentPage - 1, pageSize),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchEvents(token, currentPage - 1, pageSize);
+    },
+    enabled: !!token,
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
 
   const deleteMutation = useMutation({
-    mutationFn: (deleteUrl: string) => deleteEvent(deleteUrl, token || ""),
+    mutationFn: (deleteUrl: string) => {
+      if (!token) throw new Error("Token manquant");
+      return deleteEvent(deleteUrl, token);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Événement supprimé avec succès");

@@ -56,14 +56,17 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
   });
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { token } = useAuth();
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const { data: citiesResponse, isLoading: citiesLoading } =
     useQuery<CitiesApiResponse>({
       queryKey: ["cities"],
-      queryFn: () => fetchCities(getToken() || undefined),
+      queryFn: () => {
+        if (!token) throw new Error("Token manquant");
+        return fetchCities(token);
+      },
       enabled: open,
     });
 
@@ -164,6 +167,7 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (!token) throw new Error("Token manquant");
     e.preventDefault();
     setLoading(true);
 
@@ -204,7 +208,6 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
 
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
 
-      const token = getToken() || undefined;
       console.log(
         "🔧 Modification lieu - Token:",
         token ? "Présent" : "Manquant"

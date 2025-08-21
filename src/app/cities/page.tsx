@@ -25,9 +25,7 @@ export default function CitiesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
-
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { token } = useAuth();
 
   const {
     data: citiesResponse,
@@ -35,7 +33,11 @@ export default function CitiesPage() {
     error,
   } = useQuery<CitiesApiResponse>({
     queryKey: ["cities", currentPage],
-    queryFn: () => fetchCities(token, currentPage - 1, pageSize),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCities(token, currentPage - 1, pageSize);
+    },
+    enabled: !!token,
   });
 
   const cities = citiesResponse?._embedded?.cityResponses || [];
@@ -45,7 +47,10 @@ export default function CitiesPage() {
   }, []);
 
   const deleteMutation = useMutation({
-    mutationFn: (deleteUrl: string) => deleteCity(deleteUrl, token),
+    mutationFn: (deleteUrl: string) => {
+      if (!token) throw new Error("Token manquant");
+      return deleteCity(deleteUrl, token);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville supprimée avec succès");

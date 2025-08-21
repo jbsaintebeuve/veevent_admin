@@ -45,7 +45,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
+  const { token } = useAuth();
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
@@ -124,6 +124,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (!token) throw new Error("Token manquant");
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -157,7 +158,6 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
       console.log("🔧 handleSubmit - final payload:", payload);
       console.log("🔧 handleSubmit - form.location:", form.location);
 
-      const token = getToken() || undefined;
       await createCity(payload, token);
 
       queryClient.invalidateQueries({ queryKey: ["cities"] });

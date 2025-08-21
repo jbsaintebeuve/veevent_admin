@@ -26,9 +26,7 @@ export default function CategoriesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const queryClient = useQueryClient();
-  const { getToken } = useAuth();
-
-  const token = useMemo(() => getToken() || undefined, [getToken]);
+  const { token } = useAuth();
 
   const {
     data: categoriesResponse,
@@ -36,7 +34,10 @@ export default function CategoriesPage() {
     error,
   } = useQuery<CategoriesApiResponse>({
     queryKey: ["categories", currentPage],
-    queryFn: () => fetchCategories(token, currentPage - 1, pageSize),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCategories(token, currentPage - 1, pageSize);
+    },
   });
 
   const {
@@ -45,7 +46,10 @@ export default function CategoriesPage() {
     error: errorCounts,
   } = useQuery<Record<string, number>>({
     queryKey: ["categories-counts"],
-    queryFn: () => fetchCategoriesCounts(token),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCategoriesCounts(token);
+    },
   });
 
   const categories = categoriesResponse?._embedded?.categories || [];
@@ -55,7 +59,10 @@ export default function CategoriesPage() {
   }, []);
 
   const deleteMutation = useMutation({
-    mutationFn: (deleteUrl: string) => deleteCategory(deleteUrl, token),
+    mutationFn: (deleteUrl: string) => {
+      if (!token) throw new Error("Token manquant");
+      return deleteCategory(deleteUrl, token);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie supprimée avec succès");
