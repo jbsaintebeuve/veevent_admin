@@ -118,15 +118,11 @@ export default function ProfilePage() {
       return finalPayload;
     },
     onSuccess: () => {
-      console.log("✅ Profil mis à jour avec succès");
       queryClient.invalidateQueries({ queryKey: ["user", "me"] });
       toast.success("Profil mis à jour avec succès !");
     },
     onError: (err: any) => {
-      console.error("Erreur complète:", err);
-      toast.error(
-        `Erreur: ${err.message || "Problème lors de la mise à jour du profil"}`
-      );
+      toast.error(`Erreur: ${"Problème lors de la mise à jour du profil"}`);
     },
   });
 

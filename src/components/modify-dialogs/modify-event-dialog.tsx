@@ -505,18 +505,18 @@ export function ModifyEventDialog({
                 Sur invitation uniquement
               </Label>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="isTrending"
-              name="isTrending"
-              checked={form.isTrending}
-              onCheckedChange={(checked) =>
-                setForm((prev) => ({ ...prev, isTrending: !!checked }))
-              }
-            />
-            <Label htmlFor="isTrending">Événement tendance</Label>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isTrending"
+                name="isTrending"
+                checked={form.isTrending}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({ ...prev, isTrending: !!checked }))
+                }
+              />
+              <Label htmlFor="isTrending">Événement tendance</Label>
+            </div>
           </div>
 
           <DialogFooter>
