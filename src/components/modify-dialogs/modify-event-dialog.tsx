@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogClose,
@@ -256,8 +257,22 @@ export function ModifyEventDialog({
     }
   };
 
-  if (!event) {
-    return null;
+  if (!event || eventDetailsLoading) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <div className="grid gap-4 py-4">
+            <Skeleton className="h-8 w-1/2 mb-2" />
+            <Skeleton className="h-8 w-full mb-2" />
+            <Skeleton className="h-8 w-full mb-2" />
+            <Skeleton className="h-8 w-full mb-2" />
+            <Skeleton className="h-8 w-full mb-2" />
+            <Skeleton className="h-32 w-full mb-2" />
+            <Skeleton className="h-10 w-1/3" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   return (
