@@ -105,8 +105,10 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
+  // Filtrage dynamique des liens selon le rôle et la config centralisée
   const filteredNavMain = data.navMain.filter((item) => {
     if (!user?.role) return false;
+    // Trouver la règle la plus spécifique pour l'URL
     const matched = Object.entries(routePermissions).find(([prefix]) =>
       item.url.startsWith(prefix)
     );
