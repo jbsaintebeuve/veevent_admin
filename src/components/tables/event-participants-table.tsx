@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useMemo } from "react";
 import { EventParticipant } from "@/types/event";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,7 +20,7 @@ export function EventParticipantsTable({
 }: EventParticipantsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredParticipants = React.useMemo(() => {
+  const filteredParticipants = useMemo(() => {
     const s = searchTerm.toLowerCase();
     return participants.filter((participant) => {
       const pseudo = (participant.pseudo ?? "").toLowerCase();

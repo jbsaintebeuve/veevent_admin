@@ -1,11 +1,6 @@
 "use client";
 
-import * as React from "react";
-import {
-  IconChevronDown,
-  IconGripVertical,
-  IconLayoutColumns,
-} from "@tabler/icons-react";
+import { IconChevronDown, IconLayoutColumns } from "@tabler/icons-react";
 import {
   ColumnDef,
   flexRender,
@@ -35,6 +30,7 @@ import { Report } from "@/types/report";
 import { Input } from "@/components/ui/input";
 import { Search, AlertTriangle, FileText } from "lucide-react";
 import { DragHandle } from "../ui/drag-handle";
+import { useState, useMemo } from "react";
 
 const COLUMN_LABELS: Record<string, string> = {
   reportType: "Type de signalement",
@@ -42,80 +38,6 @@ const COLUMN_LABELS: Record<string, string> = {
   date: "Date",
   priority: "Priorité",
 };
-
-// Définition des colonnes en dehors du composant pour éviter les re-créations
-const createColumns = (): ColumnDef<Report>[] => [
-  {
-    id: "drag",
-    header: () => null,
-    cell: () => <DragHandle />,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "reportType",
-    header: COLUMN_LABELS.reportType,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-        </div>
-        <div className="flex flex-col">
-          {(() => {
-            switch (row.original.reportType.toUpperCase()) {
-              case "INAPPROPRIATE_CONTENT":
-                return <Badge variant="destructive">Contenu inapproprié</Badge>;
-              case "SPAM":
-                return <Badge variant="secondary">Spam</Badge>;
-              case "HARASSMENT":
-                return <Badge variant="destructive">Harcèlement</Badge>;
-              case "FAKE_EVENT":
-                return <Badge variant="outline">Événement fictif</Badge>;
-              case "INAPPROPRIATE_BEHAVIOR":
-                return (
-                  <Badge variant="destructive">Comportement inapproprié</Badge>
-                );
-              default:
-                return (
-                  <Badge variant="outline">{row.original.reportType}</Badge>
-                );
-            }
-          })()}
-        </div>
-      </div>
-    ),
-    enableHiding: false,
-  },
-  {
-    accessorKey: "description",
-    header: COLUMN_LABELS.description,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <FileText className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm max-w-md truncate">
-          {row.original.description}
-        </span>
-      </div>
-    ),
-  },
-
-  {
-    accessorKey: "priority",
-    header: COLUMN_LABELS.priority,
-    cell: ({ row }) => {
-      const reportType = row.original.reportType.toUpperCase();
-      if (
-        reportType === "HARASSMENT" ||
-        reportType === "INAPPROPRIATE_BEHAVIOR"
-      ) {
-        return <Badge variant="destructive">Haute</Badge>;
-      } else if (reportType === "INAPPROPRIATE_CONTENT") {
-        return <Badge variant="default">Moyenne</Badge>;
-      } else {
-        return <Badge variant="secondary">Basse</Badge>;
-      }
-    },
-  },
-];
 
 export function ReportsTable({
   data,
@@ -126,14 +48,88 @@ export function ReportsTable({
   search: string;
   onSearchChange: (v: string) => void;
 }) {
-  // Mémorisation des colonnes pour éviter les re-créations
-  const columns = React.useMemo(() => createColumns(), []);
+  const columns: ColumnDef<Report>[] = useMemo(
+    () => [
+      {
+        id: "drag",
+        header: () => null,
+        cell: () => <DragHandle />,
+        enableHiding: false,
+      },
+      {
+        accessorKey: "reportType",
+        header: COLUMN_LABELS.reportType,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col">
+              {(() => {
+                switch (row.original.reportType.toUpperCase()) {
+                  case "INAPPROPRIATE_CONTENT":
+                    return (
+                      <Badge variant="destructive">Contenu inapproprié</Badge>
+                    );
+                  case "SPAM":
+                    return <Badge variant="secondary">Spam</Badge>;
+                  case "HARASSMENT":
+                    return <Badge variant="destructive">Harcèlement</Badge>;
+                  case "FAKE_EVENT":
+                    return <Badge variant="outline">Événement fictif</Badge>;
+                  case "INAPPROPRIATE_BEHAVIOR":
+                    return (
+                      <Badge variant="destructive">
+                        Comportement inapproprié
+                      </Badge>
+                    );
+                  default:
+                    return (
+                      <Badge variant="outline">{row.original.reportType}</Badge>
+                    );
+                }
+              })()}
+            </div>
+          </div>
+        ),
+        enableHiding: false,
+      },
+      {
+        accessorKey: "description",
+        header: COLUMN_LABELS.description,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm max-w-md truncate">
+              {row.original.description}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "priority",
+        header: COLUMN_LABELS.priority,
+        cell: ({ row }) => {
+          const reportType = row.original.reportType.toUpperCase();
+          if (
+            reportType === "HARASSMENT" ||
+            reportType === "INAPPROPRIATE_BEHAVIOR"
+          ) {
+            return <Badge variant="destructive">Haute</Badge>;
+          } else if (reportType === "INAPPROPRIATE_CONTENT") {
+            return <Badge variant="default">Moyenne</Badge>;
+          } else {
+            return <Badge variant="secondary">Basse</Badge>;
+          }
+        },
+      },
+    ],
+    []
+  );
 
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  // Filtrage des signalements selon la recherche
-  const filteredData = React.useMemo(() => {
+  const filteredData = useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
     return data.filter(

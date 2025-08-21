@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   IconChevronDown,
   IconDotsVertical,
@@ -46,6 +45,7 @@ import {
 import { ModifyCategoryDialog } from "@/components/modify-dialogs/modify-category-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 import { DragHandle } from "../ui/drag-handle";
+import { useMemo, useState } from "react";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Catégorie",
@@ -70,138 +70,140 @@ export function CategoriesTable({
   deleteLoading: boolean;
   eventCounts?: Record<string, number>;
 }) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [deleteTarget, setDeleteTarget] = React.useState<Category | null>(null);
-  const [modifyDialogOpen, setModifyDialogOpen] = React.useState(false);
-  const [modifyTarget, setModifyTarget] = React.useState<Category | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
+  const [modifyTarget, setModifyTarget] = useState<Category | null>(null);
 
-  const columns: ColumnDef<Category>[] = [
-    {
-      id: "drag",
-      header: () => null,
-      cell: () => <DragHandle />,
-      enableHiding: false,
-    },
-    {
-      accessorKey: "name",
-      header: COLUMN_LABELS.name,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-            <Tag className="h-4 w-4 text-muted-foreground" />
+  const columns: ColumnDef<Category>[] = useMemo(
+    () => [
+      {
+        id: "drag",
+        header: () => null,
+        cell: () => <DragHandle />,
+        enableHiding: false,
+      },
+      {
+        accessorKey: "name",
+        header: COLUMN_LABELS.name,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-medium">{row.original.name}</span>
+              <span className="text-xs text-muted-foreground">
+                Catégorie #{row.original.key}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="font-medium">{row.original.name}</span>
-            <span className="text-xs text-muted-foreground">
-              Catégorie #{row.original.key}
+        ),
+        enableHiding: false,
+      },
+      {
+        accessorKey: "description",
+        header: COLUMN_LABELS.description,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm max-w-xs truncate">
+              {row.original.description || "Aucune description"}
             </span>
           </div>
-        </div>
-      ),
-      enableHiding: false,
-    },
-    {
-      accessorKey: "description",
-      header: COLUMN_LABELS.description,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm max-w-xs truncate">
-            {row.original.description || "Aucune description"}
-          </span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "key",
-      header: COLUMN_LABELS.key,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Hash className="h-4 w-4 text-muted-foreground" />
-          <span className="font-mono text-sm">{row.original.key}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "trending",
-      header: COLUMN_LABELS.trending,
-      cell: ({ row }) => (
-        <div className="text-left">
-          {row.original.trending ? (
-            <Badge variant="default" className="gap-1">
-              <TrendingUp className="h-3 w-3" />
-              Tendance
-            </Badge>
-          ) : (
-            <Badge variant="secondary">Standard</Badge>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "eventCount",
-      header: "Nombre d'événements",
-      cell: ({ row }) => (
-        <Badge
-          variant={
-            (eventCounts?.[String(row.original.key)] ?? 0) > 0
-              ? "default"
-              : "outline"
-          }
-          className="text-xs min-w-[2rem] justify-center"
-        >
-          {eventCounts?.[String(row.original.key)] ?? 0}
-        </Badge>
-      ),
-      enableHiding: false,
-    },
-    {
-      id: "actions",
-      header: () => <div className="w-full text-right"></div>,
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            >
-              <IconDotsVertical />
-              <span className="sr-only">Ouvrir le menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setModifyTarget(row.original);
-                setModifyDialogOpen(true);
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Modifier
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setDeleteTarget(row.original);
-                setDeleteDialogOpen(true);
-              }}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Supprimer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        accessorKey: "key",
+        header: COLUMN_LABELS.key,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <Hash className="h-4 w-4 text-muted-foreground" />
+            <span className="font-mono text-sm">{row.original.key}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "trending",
+        header: COLUMN_LABELS.trending,
+        cell: ({ row }) => (
+          <div className="text-left">
+            {row.original.trending ? (
+              <Badge variant="default" className="gap-1">
+                <TrendingUp className="h-3 w-3" />
+                Tendance
+              </Badge>
+            ) : (
+              <Badge variant="secondary">Standard</Badge>
+            )}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "eventCount",
+        header: "Nombre d'événements",
+        cell: ({ row }) => (
+          <Badge
+            variant={
+              (eventCounts?.[String(row.original.key)] ?? 0) > 0
+                ? "default"
+                : "outline"
+            }
+            className="text-xs min-w-[2rem] justify-center"
+          >
+            {eventCounts?.[String(row.original.key)] ?? 0}
+          </Badge>
+        ),
+        enableHiding: false,
+      },
+      {
+        id: "actions",
+        header: () => <div className="w-full text-right"></div>,
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              >
+                <IconDotsVertical />
+                <span className="sr-only">Ouvrir le menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setModifyTarget(row.original);
+                  setModifyDialogOpen(true);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Modifier
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setDeleteTarget(row.original);
+                  setDeleteDialogOpen(true);
+                }}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    []
+  );
 
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  const filteredData = React.useMemo(() => {
+  const filteredData = useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
     return data.filter(

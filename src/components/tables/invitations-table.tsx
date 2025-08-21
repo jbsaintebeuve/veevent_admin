@@ -1,10 +1,8 @@
 "use client";
 
-import * as React from "react";
 import {
   IconChevronDown,
   IconDotsVertical,
-  IconGripVertical,
   IconLayoutColumns,
 } from "@tabler/icons-react";
 import {
@@ -47,6 +45,7 @@ import {
   FileText,
 } from "lucide-react";
 import { DragHandle } from "../ui/drag-handle";
+import { useState, useMemo } from "react";
 
 const COLUMN_LABELS: Record<string, string> = {
   participant: "Participant",
@@ -69,120 +68,137 @@ export function InvitationsTable({
   onDecline: (invitation: Invitation) => void;
   actionLoading: boolean;
 }) {
-  const columns: ColumnDef<Invitation>[] = [
-    {
-      id: "drag",
-      header: () => null,
-      cell: () => <DragHandle />,
-      enableHiding: false,
-      enableSorting: false,
-    },
-    {
-      id: "participant",
-      header: COLUMN_LABELS.participant,
-      cell: ({ row }) => {
-        const participant = row.original.participant;
-        if (!participant)
-          return <span className="text-muted-foreground italic">-</span>;
-        return (
-          <div className="flex items-center gap-2">
-            <Avatar>
-              {participant.imageUrl ? (
-                <AvatarImage
-                  src={participant.imageUrl}
-                  alt={participant.pseudo || "Avatar"}
-                />
-              ) : null}
-              <AvatarFallback>{participant.pseudo?.[0] || "?"}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="font-medium">
-                {participant.firstName} {participant.lastName}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                @{participant.pseudo}
-              </span>
+  const columns: ColumnDef<Invitation>[] = useMemo(
+    () => [
+      {
+        id: "drag",
+        header: () => null,
+        cell: () => <DragHandle />,
+        enableHiding: false,
+        enableSorting: false,
+      },
+      {
+        id: "participant",
+        header: COLUMN_LABELS.participant,
+        cell: ({ row }) => {
+          const participant = row.original.participant;
+          if (!participant)
+            return <span className="text-muted-foreground italic">-</span>;
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar>
+                {participant.imageUrl ? (
+                  <AvatarImage
+                    src={participant.imageUrl}
+                    alt={participant.pseudo || "Avatar"}
+                  />
+                ) : null}
+                <AvatarFallback>
+                  {participant.pseudo?.[0] || "?"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-medium">
+                  {participant.firstName} {participant.lastName}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  @{participant.pseudo}
+                </span>
+              </div>
             </div>
+          );
+        },
+        enableHiding: false,
+      },
+      {
+        accessorKey: "description",
+        header: COLUMN_LABELS.description,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm max-w-md truncate">
+              {row.original.description}
+            </span>
           </div>
-        );
+        ),
+        enableHiding: true,
       },
-      enableHiding: false,
-    },
-    {
-      accessorKey: "description",
-      header: COLUMN_LABELS.description,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm max-w-md truncate">
-            {row.original.description}
-          </span>
-        </div>
-      ),
-      enableHiding: true,
-    },
-    {
-      accessorKey: "status",
-      header: COLUMN_LABELS.status,
-      cell: ({ row }) => {
-        switch (row.original.status) {
-          case "SENT":
-            return (
-              <Badge variant="secondary" className="gap-1">
-                <Clock className="h-3 w-3" />
-                En attente
-              </Badge>
-            );
-          case "ACCEPTED":
-            return (
-              <Badge variant="default" className="gap-1">
-                <CheckCircle className="h-3 w-3" />
-                Acceptée
-              </Badge>
-            );
-          case "REJECTED":
-            return (
-              <Badge variant="destructive" className="gap-1">
-                <XCircle className="h-3 w-3" />
-                Refusée
-              </Badge>
-            );
-          default:
-            return <Badge variant="outline">{row.original.status}</Badge>;
-        }
+      {
+        accessorKey: "status",
+        header: COLUMN_LABELS.status,
+        cell: ({ row }) => {
+          switch (row.original.status) {
+            case "SENT":
+              return (
+                <Badge variant="secondary" className="gap-1">
+                  <Clock className="h-3 w-3" />
+                  En attente
+                </Badge>
+              );
+            case "ACCEPTED":
+              return (
+                <Badge variant="default" className="gap-1">
+                  <CheckCircle className="h-3 w-3" />
+                  Acceptée
+                </Badge>
+              );
+            case "REJECTED":
+              return (
+                <Badge variant="destructive" className="gap-1">
+                  <XCircle className="h-3 w-3" />
+                  Refusée
+                </Badge>
+              );
+            default:
+              return <Badge variant="outline">{row.original.status}</Badge>;
+          }
+        },
       },
-    },
-    {
-      id: "actions",
-      header: () => <div className="w-full text-right"></div>,
-      cell: ({ row }) => {
-        const status = row.original.status;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-                disabled={actionLoading}
-              >
-                <IconDotsVertical />
-                <span className="sr-only">Ouvrir le menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-              {status === "SENT" && (
-                <>
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      onAccept(row.original);
-                    }}
-                    disabled={actionLoading}
-                  >
-                    <Check className="h-4 w-4 mr-2" />
-                    Accepter
-                  </DropdownMenuItem>
+      {
+        id: "actions",
+        header: () => <div className="w-full text-right"></div>,
+        cell: ({ row }) => {
+          const status = row.original.status;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+                  disabled={actionLoading}
+                >
+                  <IconDotsVertical />
+                  <span className="sr-only">Ouvrir le menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-32">
+                {status === "SENT" && (
+                  <>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        onAccept(row.original);
+                      }}
+                      disabled={actionLoading}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Accepter
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        onDecline(row.original);
+                      }}
+                      className="text-destructive focus:text-destructive"
+                      disabled={actionLoading}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Refuser
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {status === "ACCEPTED" && (
                   <DropdownMenuItem
                     onSelect={(e) => {
                       e.preventDefault();
@@ -194,46 +210,33 @@ export function InvitationsTable({
                     <X className="h-4 w-4 mr-2" />
                     Refuser
                   </DropdownMenuItem>
-                </>
-              )}
-              {status === "ACCEPTED" && (
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    onDecline(row.original);
-                  }}
-                  className="text-destructive focus:text-destructive"
-                  disabled={actionLoading}
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Refuser
-                </DropdownMenuItem>
-              )}
-              {status === "REJECTED" && (
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    onAccept(row.original);
-                  }}
-                  disabled={actionLoading}
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Accepter
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
+                )}
+                {status === "REJECTED" && (
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      onAccept(row.original);
+                    }}
+                    disabled={actionLoading}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Accepter
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+        enableSorting: false,
+        enableHiding: false,
       },
-      enableSorting: false,
-      enableHiding: false,
-    },
-  ];
+    ],
+    []
+  );
 
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  const filteredData = React.useMemo(() => {
+  const filteredData = useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
     return data.filter((invitation) => {

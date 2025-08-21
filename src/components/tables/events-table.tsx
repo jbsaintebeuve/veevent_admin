@@ -1,11 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   IconChevronDown,
   IconDotsVertical,
-  IconGripVertical,
   IconLayoutColumns,
 } from "@tabler/icons-react";
 import {
@@ -42,9 +39,9 @@ import { Search, CalendarDays, Edit, Trash2, Users } from "lucide-react";
 import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { EventParticipantsDialog } from "@/components/dialogs/event-participants-dialog";
-// ...existing code...
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 import { DragHandle } from "../ui/drag-handle";
+import { useState, useMemo } from "react";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Nom",
@@ -73,162 +70,165 @@ export function EventsTable({
   hideDelete?: boolean;
 }) {
   // States pour dialogs centralisés
-  const [modifyDialogOpen, setModifyDialogOpen] = React.useState(false);
-  const [modifyTarget, setModifyTarget] = React.useState<Event | null>(null);
-  const [participantsDialogOpen, setParticipantsDialogOpen] =
-    React.useState(false);
-  const [participantsTarget, setParticipantsTarget] =
-    React.useState<Event | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [deleteTarget, setDeleteTarget] = React.useState<Event | null>(null);
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
+  const [modifyTarget, setModifyTarget] = useState<Event | null>(null);
+  const [participantsDialogOpen, setParticipantsDialogOpen] = useState(false);
+  const [participantsTarget, setParticipantsTarget] = useState<Event | null>(
+    null
+  );
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Event | null>(null);
 
-  const columns: ColumnDef<Event>[] = [
-    {
-      id: "drag",
-      header: () => null,
-      cell: () => <DragHandle />,
-      enableHiding: false,
-    },
-    {
-      accessorKey: "name",
-      header: COLUMN_LABELS.name,
-      cell: ({ row }) => (
-        <span className="font-semibold">{row.original.name}</span>
-      ),
-      enableHiding: false,
-    },
-    {
-      accessorKey: "date",
-      header: COLUMN_LABELS.date,
-      cell: ({ row }) =>
-        new Date(row.original.date).toLocaleDateString("fr-FR"),
-    },
-    {
-      accessorKey: "status",
-      header: COLUMN_LABELS.status,
-      cell: ({ row }) => {
-        switch (row.original.status) {
-          case "NOT_STARTED":
-            return <Badge variant="default">À venir</Badge>;
-          case "ONGOING":
-            return <Badge variant="secondary">En cours</Badge>;
-          case "COMPLETED":
-            return <Badge variant="outline">Terminé</Badge>;
-          case "CANCELLED":
-            return <Badge variant="destructive">Annulé</Badge>;
-          default:
-            return <Badge variant="outline">{row.original.status}</Badge>;
-        }
+  const columns: ColumnDef<Event>[] = useMemo(
+    () => [
+      {
+        id: "drag",
+        header: () => null,
+        cell: () => <DragHandle />,
+        enableHiding: false,
       },
-    },
-    {
-      accessorKey: "cityName",
-      header: COLUMN_LABELS.cityName,
-      cell: ({ row }) => row.original.cityName,
-    },
-    {
-      accessorKey: "placeName",
-      header: COLUMN_LABELS.placeName,
-      cell: ({ row }) => row.original.placeName,
-    },
-    {
-      accessorKey: "currentParticipants",
-      header: COLUMN_LABELS.currentParticipants,
-      cell: ({ row }) =>
-        `${row.original.currentParticipants} / ${row.original.maxCustomers}`,
-    },
-    {
-      accessorKey: "categories",
-      header: COLUMN_LABELS.categories,
-      cell: ({ row }) => (
-        <div className="flex flex-wrap gap-1">
-          {row.original.categories.map((cat) => (
-            <Badge key={cat.key} variant="secondary" className="text-xs">
-              {cat.name}
-            </Badge>
-          ))}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "organizer",
-      header: COLUMN_LABELS.organizer,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={row.original.organizer.imageUrl || undefined} />
-            <AvatarFallback>
-              {row.original.organizer.firstName?.[0]}
-              {row.original.organizer.lastName?.[0]}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-sm font-medium">
-            {row.original.organizer.pseudo ||
-              `${row.original.organizer.firstName} ${row.original.organizer.lastName}`}
-          </span>
-        </div>
-      ),
-    },
-    {
-      id: "actions",
-      header: () => <div className="w-full text-right"></div>,
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            >
-              <IconDotsVertical />
-              <span className="sr-only">Ouvrir le menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setModifyTarget(row.original);
-                setModifyDialogOpen(true);
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Modifier
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setParticipantsTarget(row.original);
-                setParticipantsDialogOpen(true);
-              }}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Voir les participants
-            </DropdownMenuItem>
-            {!hideDelete && (
+      {
+        accessorKey: "name",
+        header: COLUMN_LABELS.name,
+        cell: ({ row }) => (
+          <span className="font-semibold">{row.original.name}</span>
+        ),
+        enableHiding: false,
+      },
+      {
+        accessorKey: "date",
+        header: COLUMN_LABELS.date,
+        cell: ({ row }) =>
+          new Date(row.original.date).toLocaleDateString("fr-FR"),
+      },
+      {
+        accessorKey: "status",
+        header: COLUMN_LABELS.status,
+        cell: ({ row }) => {
+          switch (row.original.status) {
+            case "NOT_STARTED":
+              return <Badge variant="default">À venir</Badge>;
+            case "ONGOING":
+              return <Badge variant="secondary">En cours</Badge>;
+            case "COMPLETED":
+              return <Badge variant="outline">Terminé</Badge>;
+            case "CANCELLED":
+              return <Badge variant="destructive">Annulé</Badge>;
+            default:
+              return <Badge variant="outline">{row.original.status}</Badge>;
+          }
+        },
+      },
+      {
+        accessorKey: "cityName",
+        header: COLUMN_LABELS.cityName,
+        cell: ({ row }) => row.original.cityName,
+      },
+      {
+        accessorKey: "placeName",
+        header: COLUMN_LABELS.placeName,
+        cell: ({ row }) => row.original.placeName,
+      },
+      {
+        accessorKey: "currentParticipants",
+        header: COLUMN_LABELS.currentParticipants,
+        cell: ({ row }) =>
+          `${row.original.currentParticipants} / ${row.original.maxCustomers}`,
+      },
+      {
+        accessorKey: "categories",
+        header: COLUMN_LABELS.categories,
+        cell: ({ row }) => (
+          <div className="flex flex-wrap gap-1">
+            {row.original.categories.map((cat) => (
+              <Badge key={cat.key} variant="secondary" className="text-xs">
+                {cat.name}
+              </Badge>
+            ))}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "organizer",
+        header: COLUMN_LABELS.organizer,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <Avatar className="h-7 w-7">
+              <AvatarImage src={row.original.organizer.imageUrl || undefined} />
+              <AvatarFallback>
+                {row.original.organizer.firstName?.[0]}
+                {row.original.organizer.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium">
+              {row.original.organizer.pseudo ||
+                `${row.original.organizer.firstName} ${row.original.organizer.lastName}`}
+            </span>
+          </div>
+        ),
+      },
+      {
+        id: "actions",
+        header: () => <div className="w-full text-right"></div>,
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              >
+                <IconDotsVertical />
+                <span className="sr-only">Ouvrir le menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem
                 onSelect={(e) => {
                   e.preventDefault();
-                  setDeleteTarget(row.original);
-                  setDeleteDialogOpen(true);
+                  setModifyTarget(row.original);
+                  setModifyDialogOpen(true);
                 }}
-                className="text-destructive focus:text-destructive"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer
+                <Edit className="h-4 w-4 mr-2" />
+                Modifier
               </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setParticipantsTarget(row.original);
+                  setParticipantsDialogOpen(true);
+                }}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Voir les participants
+              </DropdownMenuItem>
+              {!hideDelete && (
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setDeleteTarget(row.original);
+                    setDeleteDialogOpen(true);
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    [hideDelete]
+  );
 
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   // Filtrage des événements selon la recherche
-  const filteredData = React.useMemo(() => {
+
+  const filteredData = useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
     return data.filter(
@@ -245,13 +245,8 @@ export function EventsTable({
     );
   }, [data, search]);
 
-  const [tableData, setTableData] = React.useState(() => filteredData);
-  React.useEffect(() => {
-    setTableData(filteredData);
-  }, [filteredData]);
-
   const table = useReactTable({
-    data: tableData,
+    data: filteredData,
     columns,
     state: {
       columnVisibility,

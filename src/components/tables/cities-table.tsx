@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   IconChevronDown,
   IconDotsVertical,
@@ -39,6 +38,7 @@ import { Search, MapPin, Building, Edit, Trash2 } from "lucide-react";
 import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 import { DragHandle } from "../ui/drag-handle";
+import { useState, useMemo } from "react";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Nom",
@@ -62,128 +62,130 @@ export function CitiesTable({
   onDelete: (deleteUrl: string, name: string) => void;
   deleteLoading: boolean;
 }) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [deleteTarget, setDeleteTarget] = React.useState<City | null>(null);
-  const [modifyDialogOpen, setModifyDialogOpen] = React.useState(false);
-  const [modifyTarget, setModifyTarget] = React.useState<City | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<City | null>(null);
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
+  const [modifyTarget, setModifyTarget] = useState<City | null>(null);
 
-  const columns: ColumnDef<City>[] = [
-    {
-      id: "drag",
-      header: () => null,
-      cell: () => <DragHandle />,
-      enableHiding: false,
-    },
-    {
-      accessorKey: "name",
-      header: COLUMN_LABELS.name,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <span className="truncate font-medium">{row.original.name}</span>
-        </div>
-      ),
-      enableHiding: false,
-    },
-    {
-      accessorKey: "region",
-      header: COLUMN_LABELS.region,
-      cell: ({ row }) => (
-        <Badge variant="outline" className="text-xs">
-          {row.original.region}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "country",
-      header: COLUMN_LABELS.country,
-      cell: ({ row }) => (
-        <Badge variant="secondary" className="text-xs">
-          {row.original.country}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "postalCode",
-      header: COLUMN_LABELS.postalCode,
-      cell: ({ row }) => (
-        <span className="text-muted-foreground text-sm">
-          {row.original.postalCode}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "eventsCount",
-      header: COLUMN_LABELS.eventsCount,
-      cell: ({ row }) => (
-        <Badge
-          variant={row.original.eventsCount > 0 ? "default" : "outline"}
-          className="text-xs min-w-[2rem] justify-center"
-        >
-          {row.original.eventsCount}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: "eventsPastCount",
-      header: COLUMN_LABELS.eventsPastCount,
-      cell: ({ row }) => (
-        <Badge
-          variant="outline"
-          className="text-xs min-w-[2rem] justify-center"
-        >
-          {row.original.eventsPastCount}
-        </Badge>
-      ),
-    },
-    {
-      id: "actions",
-      header: () => <div className="w-full text-right"></div>,
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            >
-              <IconDotsVertical />
-              <span className="sr-only">Ouvrir le menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setModifyTarget(row.original);
-                setModifyDialogOpen(true);
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Modifier
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setDeleteTarget(row.original);
-                setDeleteDialogOpen(true);
-              }}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Supprimer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+  const columns: ColumnDef<City>[] = useMemo(
+    () => [
+      {
+        id: "drag",
+        header: () => null,
+        cell: () => <DragHandle />,
+        enableHiding: false,
+      },
+      {
+        accessorKey: "name",
+        header: COLUMN_LABELS.name,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="truncate font-medium">{row.original.name}</span>
+          </div>
+        ),
+        enableHiding: false,
+      },
+      {
+        accessorKey: "region",
+        header: COLUMN_LABELS.region,
+        cell: ({ row }) => (
+          <Badge variant="outline" className="text-xs">
+            {row.original.region}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "country",
+        header: COLUMN_LABELS.country,
+        cell: ({ row }) => (
+          <Badge variant="secondary" className="text-xs">
+            {row.original.country}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "postalCode",
+        header: COLUMN_LABELS.postalCode,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground text-sm">
+            {row.original.postalCode}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "eventsCount",
+        header: COLUMN_LABELS.eventsCount,
+        cell: ({ row }) => (
+          <Badge
+            variant={row.original.eventsCount > 0 ? "default" : "outline"}
+            className="text-xs min-w-[2rem] justify-center"
+          >
+            {row.original.eventsCount}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "eventsPastCount",
+        header: COLUMN_LABELS.eventsPastCount,
+        cell: ({ row }) => (
+          <Badge
+            variant="outline"
+            className="text-xs min-w-[2rem] justify-center"
+          >
+            {row.original.eventsPastCount}
+          </Badge>
+        ),
+      },
+      {
+        id: "actions",
+        header: () => <div className="w-full text-right"></div>,
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              >
+                <IconDotsVertical />
+                <span className="sr-only">Ouvrir le menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setModifyTarget(row.original);
+                  setModifyDialogOpen(true);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Modifier
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setDeleteTarget(row.original);
+                  setDeleteDialogOpen(true);
+                }}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    []
+  );
 
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   // Filtrage des villes selon la recherche
-  const filteredData = React.useMemo(() => {
+  const filteredData = useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
     return data.filter(

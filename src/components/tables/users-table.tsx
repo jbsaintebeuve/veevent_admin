@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   IconChevronDown,
   IconDotsVertical,
@@ -39,6 +38,7 @@ import { Search, Users, User as UserIcon, Mail, Calendar } from "lucide-react";
 import { Check, Ban } from "lucide-react";
 import { DragHandle } from "../ui/drag-handle";
 import { CustomAlertDialog } from "@/components/dialogs/custom-alert-dialog";
+import { useState, useMemo } from "react";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Nom",
@@ -67,173 +67,176 @@ export function UsersTable({
   onBanToggle: (user: User) => void;
   banLoading?: boolean;
 }) {
-  const [banDialogOpen, setBanDialogOpen] = React.useState(false);
-  const [banTargetUser, setBanTargetUser] = React.useState<User | null>(null);
-  const columns: ColumnDef<User>[] = [
-    {
-      id: "drag",
-      header: () => null,
-      cell: () => <DragHandle />,
-      enableHiding: false,
-    },
-    {
-      accessorKey: "name",
-      header: COLUMN_LABELS.name,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage
-              src={row.original.imageUrl || undefined}
-              alt={`${row.original.firstName} ${row.original.lastName}`}
-            />
-            <AvatarFallback>
-              {`${row.original.firstName.charAt(
-                0
-              )}${row.original.lastName.charAt(0)}`}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="font-medium">
-              {row.original.firstName} {row.original.lastName}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              ID: {row.original.id}
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [banTargetUser, setBanTargetUser] = useState<User | null>(null);
+
+  const columns: ColumnDef<User>[] = useMemo(
+    () => [
+      {
+        id: "drag",
+        header: () => null,
+        cell: () => <DragHandle />,
+        enableHiding: false,
+      },
+      {
+        accessorKey: "name",
+        header: COLUMN_LABELS.name,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage
+                src={row.original.imageUrl || undefined}
+                alt={`${row.original.firstName} ${row.original.lastName}`}
+              />
+              <AvatarFallback>
+                {`${row.original.firstName.charAt(
+                  0
+                )}${row.original.lastName.charAt(0)}`}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-medium">
+                {row.original.firstName} {row.original.lastName}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                ID: {row.original.id}
+              </span>
+            </div>
+          </div>
+        ),
+        enableHiding: false,
+      },
+      {
+        accessorKey: "pseudo",
+        header: COLUMN_LABELS.pseudo,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <UserIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="font-mono text-sm">@{row.original.pseudo}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "email",
+        header: COLUMN_LABELS.email,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">{row.original.email}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "role",
+        header: COLUMN_LABELS.role,
+        cell: ({ row }) => {
+          // Vérification si role est défini
+          if (!row.original.role) {
+            return <Badge variant="outline">Non défini</Badge>;
+          }
+
+          switch (row.original.role.toUpperCase()) {
+            case "ADMIN":
+              return <Badge variant="destructive">Admin</Badge>;
+            case "ORGANIZER":
+              return <Badge variant="default">Organisateur</Badge>;
+            case "USER":
+              return <Badge variant="secondary">Utilisateur</Badge>;
+            case "AUTHSERVICE":
+              return <Badge variant="outline">Auth Service</Badge>;
+            case "BANNED":
+              return <Badge variant="outline">Banni</Badge>;
+            default:
+              return <Badge variant="outline">{row.original.role}</Badge>;
+          }
+        },
+      },
+      {
+        accessorKey: "eventsCount",
+        header: COLUMN_LABELS.eventsCount,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">
+              {row.original.eventsCount}
             </span>
           </div>
-        </div>
-      ),
-      enableHiding: false,
-    },
-    {
-      accessorKey: "pseudo",
-      header: COLUMN_LABELS.pseudo,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <UserIcon className="h-4 w-4 text-muted-foreground" />
-          <span className="font-mono text-sm">@{row.original.pseudo}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "email",
-      header: COLUMN_LABELS.email,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Mail className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">{row.original.email}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "role",
-      header: COLUMN_LABELS.role,
-      cell: ({ row }) => {
-        // Vérification si role est défini
-        if (!row.original.role) {
-          return <Badge variant="outline">Non défini</Badge>;
-        }
-
-        switch (row.original.role.toUpperCase()) {
-          case "ADMIN":
-            return <Badge variant="destructive">Admin</Badge>;
-          case "ORGANIZER":
-            return <Badge variant="default">Organisateur</Badge>;
-          case "USER":
-            return <Badge variant="secondary">Utilisateur</Badge>;
-          case "AUTHSERVICE":
-            return <Badge variant="outline">Auth Service</Badge>;
-          case "BANNED":
-            return <Badge variant="outline">Banni</Badge>;
-          default:
-            return <Badge variant="outline">{row.original.role}</Badge>;
-        }
+        ),
       },
-    },
-    {
-      accessorKey: "eventsCount",
-      header: COLUMN_LABELS.eventsCount,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+      {
+        accessorKey: "eventPastCount",
+        header: COLUMN_LABELS.eventPastCount,
+        cell: ({ row }) => (
           <span className="text-sm font-medium">
-            {row.original.eventsCount}
+            {row.original.eventPastCount}
           </span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "eventPastCount",
-      header: COLUMN_LABELS.eventPastCount,
-      cell: ({ row }) => (
-        <span className="text-sm font-medium">
-          {row.original.eventPastCount}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "phone",
-      header: COLUMN_LABELS.phone,
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.original.phone || "Non renseigné"}
-        </span>
-      ),
-    },
-    {
-      id: "actions",
-      header: () => <div className="w-full text-right"></div>,
-      cell: ({ row }) => {
-        const user = row.original;
-        const isBanned = (user.role ?? "").toLowerCase() === "banned";
-        const isAdmin = (user.role ?? "").toLowerCase() === "admin";
-        if (isAdmin) {
-          return null;
-        }
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-              >
-                <IconDotsVertical />
-                <span className="sr-only">Ouvrir le menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setBanTargetUser(user);
-                  setBanDialogOpen(true);
-                }}
-                className={
-                  isBanned ? "" : "text-destructive focus:text-destructive"
-                }
-              >
-                {isBanned ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Débannir
-                  </>
-                ) : (
-                  <>
-                    <Ban className="h-4 w-4 mr-2" />
-                    Bannir
-                  </>
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
+        ),
       },
-    },
-  ];
+      {
+        accessorKey: "phone",
+        header: COLUMN_LABELS.phone,
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {row.original.phone || "Non renseigné"}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: () => <div className="w-full text-right"></div>,
+        cell: ({ row }) => {
+          const user = row.original;
+          const isBanned = (user.role ?? "").toLowerCase() === "banned";
+          const isAdmin = (user.role ?? "").toLowerCase() === "admin";
+          if (isAdmin) {
+            return null;
+          }
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+                >
+                  <IconDotsVertical />
+                  <span className="sr-only">Ouvrir le menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setBanTargetUser(user);
+                    setBanDialogOpen(true);
+                  }}
+                  className={
+                    isBanned ? "" : "text-destructive focus:text-destructive"
+                  }
+                >
+                  {isBanned ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Débannir
+                    </>
+                  ) : (
+                    <>
+                      <Ban className="h-4 w-4 mr-2" />
+                      Bannir
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      },
+    ],
+    []
+  );
 
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const filteredData = React.useMemo(() => {
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const filteredData = useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
     return data.filter(
