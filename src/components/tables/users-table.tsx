@@ -52,6 +52,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Users, User as UserIcon, Mail, Calendar } from "lucide-react";
 import { Check, Ban } from "lucide-react";
 import { DragHandle } from "../ui/drag-handle";
+import { CustomAlertDialog } from "@/components/dialogs/custom-alert-dialog";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Nom",
@@ -70,6 +71,7 @@ export function UsersTable({
   onDelete,
   deleteLoading,
   onBanToggle,
+  banLoading,
 }: {
   data: User[];
   search: string;
@@ -77,7 +79,10 @@ export function UsersTable({
   onDelete: (deleteUrl: string, name: string) => void;
   deleteLoading: boolean;
   onBanToggle: (user: User) => void;
+  banLoading?: boolean;
 }) {
+  const [banDialogOpen, setBanDialogOpen] = React.useState(false);
+  const [banTargetUser, setBanTargetUser] = React.useState<User | null>(null);
   const columns: ColumnDef<User>[] = [
     {
       id: "drag",
@@ -214,7 +219,8 @@ export function UsersTable({
               <DropdownMenuItem
                 onSelect={(e) => {
                   e.preventDefault();
-                  onBanToggle(user);
+                  setBanTargetUser(user);
+                  setBanDialogOpen(true);
                 }}
                 className={
                   isBanned ? "" : "text-destructive focus:text-destructive"
@@ -417,6 +423,34 @@ export function UsersTable({
           </Table>
         </div>
       </TabsContent>
+
+      <CustomAlertDialog
+        isOpen={banDialogOpen}
+        onClose={() => setBanDialogOpen(false)}
+        title={
+          banTargetUser &&
+          (banTargetUser.role ?? "").toLowerCase() === "banned"
+            ? "Débannir l'utilisateur"
+            : "Bannir l'utilisateur"
+        }
+        description={
+          banTargetUser &&
+          (banTargetUser.role ?? "").toLowerCase() === "banned"
+            ? `Voulez-vous vraiment débannir l'utilisateur "${banTargetUser.firstName} ${banTargetUser.lastName}" ? Il pourra à nouveau accéder à la plateforme.`
+            : `Voulez-vous vraiment bannir l'utilisateur "${banTargetUser?.firstName} ${banTargetUser?.lastName}" ? Il ne pourra plus se connecter.`
+        }
+        action={
+          banTargetUser &&
+          (banTargetUser.role ?? "").toLowerCase() === "banned"
+            ? "Débannir"
+            : "Bannir"
+        }
+        onClick={() => {
+          if (banTargetUser) {
+            onBanToggle(banTargetUser);
+          }
+        }}
+      />
     </Tabs>
   );
 }

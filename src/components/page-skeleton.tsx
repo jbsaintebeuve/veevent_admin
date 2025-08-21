@@ -67,12 +67,7 @@ export function PageSkeleton({
               {(showSearchBar || showTableActions) && (
                 <div className="flex items-center justify-between mb-4">
                   {showSearchBar && <Skeleton className="h-9 w-64" />}
-                  {showTableActions && (
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-9 w-24" />
-                      <Skeleton className="h-9 w-32" />
-                    </div>
-                  )}
+                  {showTableActions && <Skeleton className="h-9 w-32" />}
                 </div>
               )}
 

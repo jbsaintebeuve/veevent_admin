@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 import { fetchCities, deleteCity } from "@/services/city-service";
 import { useAuth } from "@/hooks/use-auth";
-import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
 import { City, CitiesApiResponse } from "@/types/city";
 import { CitiesTable } from "@/components/tables/cities-table";
 import { PageSkeleton } from "@/components/page-skeleton";

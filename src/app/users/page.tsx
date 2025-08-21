@@ -15,16 +15,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { UsersTable } from "@/components/tables/users-table";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { banOrUnbanUser } from "@/services/user-service";
 import { useUsersCards } from "@/hooks/data-cards/use-users-cards";
 import { toast } from "sonner";
@@ -36,8 +26,6 @@ export default function UsersPage() {
   const { token } = useAuth();
 
   const queryClient = useQueryClient();
-  const [banDialogOpen, setBanDialogOpen] = useState(false);
-  const [banTargetUser, setBanTargetUser] = useState<User | null>(null);
 
   const {
     data: usersResponse,
@@ -127,8 +115,6 @@ export default function UsersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      setBanDialogOpen(false);
-      setBanTargetUser(null);
       toast.success("Utilisateur mis à jour avec succès");
     },
     onError: (error: any) => {
@@ -137,13 +123,7 @@ export default function UsersPage() {
   });
 
   const handleBanToggle = (user: User) => {
-    setBanTargetUser(user);
-    setBanDialogOpen(true);
-  };
-
-  const confirmBanToggle = () => {
-    if (!banTargetUser) return;
-    banMutation.mutate(banTargetUser);
+    banMutation.mutate(user);
   };
 
   if (isLoading) {
@@ -233,6 +213,7 @@ export default function UsersPage() {
               onDelete={handleDelete}
               deleteLoading={false}
               onBanToggle={handleBanToggle}
+              banLoading={banMutation.isPending}
             />
 
             {usersResponse?.page && usersResponse.page.totalPages > 1 && (
@@ -247,38 +228,6 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
-      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {banTargetUser &&
-              (banTargetUser.role ?? "").toLowerCase() === "banned"
-                ? "Débannir l'utilisateur"
-                : "Bannir l'utilisateur"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {banTargetUser &&
-              (banTargetUser.role ?? "").toLowerCase() === "banned"
-                ? `Voulez-vous vraiment débannir l'utilisateur "${banTargetUser.firstName} ${banTargetUser.lastName}" ? Il pourra à nouveau accéder à la plateforme.`
-                : `Voulez-vous vraiment bannir l'utilisateur "${banTargetUser?.firstName} ${banTargetUser?.lastName}" ? Il ne pourra plus se connecter.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              disabled={banMutation.isPending}
-              onClick={() => setBanDialogOpen(false)}
-            >
-              Annuler
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBanToggle} disabled={banMutation.isPending}>
-              {banTargetUser &&
-              (banTargetUser.role ?? "").toLowerCase() === "banned"
-                ? "Débannir"
-                : "Bannir"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
