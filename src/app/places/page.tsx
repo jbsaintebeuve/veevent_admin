@@ -87,7 +87,7 @@ export default function PlacesPage() {
   if (isLoading) {
     return (
       <PageSkeleton
-        cardsCount={3}
+        cardsCount={4}
         tableRowsCount={5}
         tableColumnsCount={6}
         showSearchBar={true}

@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -33,12 +32,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyPlaceDialogProps {
-  place: Place;
-  children?: React.ReactNode;
+  place: Place | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
-  const [open, setOpen] = useState(false);
+export function ModifyPlaceDialog({
+  place,
+  open,
+  onOpenChange,
+}: ModifyPlaceDialogProps) {
   const [form, setForm] = useState({
     name: "",
     address: "",
@@ -199,27 +202,16 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
         content: form.content.trim() || null,
       };
 
-      console.log("🔧 Modification lieu - Payload:", payload);
-      console.log("🔧 Modification lieu - Place:", place);
-      console.log("🔧 Modification lieu - _links:", place._links);
-
-      const patchUrl = place._links?.self?.href;
-      console.log("🔧 Modification lieu - Patch URL:", patchUrl);
+      const patchUrl = place?._links?.self?.href;
 
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-
-      console.log(
-        "🔧 Modification lieu - Token:",
-        token ? "Présent" : "Manquant"
-      );
 
       await modifyPlace(patchUrl, payload, token);
 
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu modifié avec succès !");
-      setOpen(false);
+      onOpenChange(false);
     } catch (error: any) {
-      console.error("❌ Erreur modification lieu:", error);
       toast.error(`Erreur: ${error.message}`);
     } finally {
       setLoading(false);
@@ -249,21 +241,18 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
+    onOpenChange(newOpen);
     if (!newOpen) {
       resetToInitialState();
     }
   };
 
+  if (!place) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4" />
-          </Button>
-        )}
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>

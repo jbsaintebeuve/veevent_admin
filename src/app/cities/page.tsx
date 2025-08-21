@@ -5,8 +5,6 @@ import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards } from "@/components/section-cards";
 import { useCitiesCards } from "@/hooks/data-cards/use-cities-cards";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -108,7 +106,7 @@ export default function CitiesPage() {
   if (isLoading) {
     return (
       <PageSkeleton
-        cardsCount={3}
+        cardsCount={4}
         tableRowsCount={5}
         tableColumnsCount={6}
         showSearchBar={true}

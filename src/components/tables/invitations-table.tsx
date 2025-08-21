@@ -348,16 +348,8 @@ export function InvitationsTable({
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell: any) => {
-                      const isActions = cell.column.id === "actions";
                       return (
-                        <TableCell
-                          key={cell.id}
-                          className={
-                            isActions
-                              ? "text-right w-0 min-w-[64px]"
-                              : undefined
-                          }
-                        >
+                        <TableCell key={cell.id}>
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()

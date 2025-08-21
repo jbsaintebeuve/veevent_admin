@@ -1,25 +1,11 @@
 "use client";
 
 import * as React from "react";
-import {
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type UniqueIdentifier,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   IconChevronDown,
   IconDotsVertical,
+  IconGripVertical,
   IconLayoutColumns,
 } from "@tabler/icons-react";
 import {
@@ -56,7 +42,7 @@ import { Search, CalendarDays, Edit, Trash2, Users } from "lucide-react";
 import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { EventParticipantsDialog } from "@/components/dialogs/event-participants-dialog";
-
+// ...existing code...
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 import { DragHandle } from "../ui/drag-handle";
 
@@ -86,11 +72,21 @@ export function EventsTable({
   deleteLoading: boolean;
   hideDelete?: boolean;
 }) {
+  // States pour dialogs centralisés
+  const [modifyDialogOpen, setModifyDialogOpen] = React.useState(false);
+  const [modifyTarget, setModifyTarget] = React.useState<Event | null>(null);
+  const [participantsDialogOpen, setParticipantsDialogOpen] =
+    React.useState(false);
+  const [participantsTarget, setParticipantsTarget] =
+    React.useState<Event | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<Event | null>(null);
+
   const columns: ColumnDef<Event>[] = [
     {
       id: "drag",
       header: () => null,
-      cell: ({ row }) => <DragHandle />,
+      cell: () => <DragHandle />,
       enableHiding: false,
     },
     {
@@ -176,99 +172,60 @@ export function EventsTable({
     {
       id: "actions",
       header: () => <div className="w-full text-right"></div>,
-      cell: ({ row }) => {
-        const modifyBtnRef = React.useRef<HTMLButtonElement>(null);
-        const [openDelete, setOpenDelete] = React.useState(false);
-        const [openParticipants, setOpenParticipants] = React.useState(false);
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-              >
-                <IconDotsVertical />
-                <span className="sr-only">Ouvrir le menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  modifyBtnRef.current?.click();
-                }}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Modifier
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setOpenParticipants(true);
-                }}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Voir les participants
-              </DropdownMenuItem>
-              {!hideDelete && (
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setOpenDelete(true);
-                  }}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-            {/* Dialog Modifier avec bouton trigger caché */}
-            <ModifyEventDialog event={row.original}>
-              <button
-                ref={modifyBtnRef}
-                style={{ display: "none" }}
-                type="button"
-                tabIndex={-1}
-              />
-            </ModifyEventDialog>
-            {/* Dialog Participants */}
-            <EventParticipantsDialog
-              eventSelfLink={row.original._links?.self?.href}
-              eventName={row.original.name}
-              isOpen={openParticipants}
-              onOpenChange={setOpenParticipants}
-            />
-            {/* Dialog Supprimer - seulement si hideDelete est false */}
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+            >
+              <IconDotsVertical />
+              <span className="sr-only">Ouvrir le menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setModifyTarget(row.original);
+                setModifyDialogOpen(true);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Modifier
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setParticipantsTarget(row.original);
+                setParticipantsDialogOpen(true);
+              }}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Voir les participants
+            </DropdownMenuItem>
             {!hideDelete && (
-              <CustomAlertDialog
-                isOpen={openDelete}
-                onClose={() => setOpenDelete(false)}
-                title="Supprimer l'événement"
-                description={` Êtes-vous sûr de vouloir supprimer "${row.original.name}" ?
-                      Cette action est irréversible.`}
-                action="Supprimer"
-                onClick={() => {
-                  onDelete(row.original._links?.self?.href, row.original.name);
-                  setOpenDelete(false);
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setDeleteTarget(row.original);
+                  setDeleteDialogOpen(true);
                 }}
-              />
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
+              </DropdownMenuItem>
             )}
-          </DropdownMenu>
-        );
-      },
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
     },
   ];
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  const sortableId = React.useId();
-  const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
-    useSensor(KeyboardSensor, {})
-  );
 
   // Filtrage des événements selon la recherche
   const filteredData = React.useMemo(() => {
@@ -292,11 +249,6 @@ export function EventsTable({
   React.useEffect(() => {
     setTableData(filteredData);
   }, [filteredData]);
-
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => tableData?.map(({ id }) => id) || [],
-    [tableData]
-  );
 
   const table = useReactTable({
     data: tableData,
@@ -390,14 +342,20 @@ export function EventsTable({
             </TableHeader>
             <TableBody className="**:data-[slot=table-cell]:first:w-8">
               {table.getRowModel().rows?.length ? (
-                <SortableContext
-                  items={dataIds}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {table.getRowModel().rows.map((row) => (
-                    <DraggableRow key={row.id} row={row} />
-                  ))}
-                </SortableContext>
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => {
+                      return (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))
               ) : (
                 <TableRow>
                   <TableCell
@@ -444,35 +402,44 @@ export function EventsTable({
           </Table>
         </div>
       </TabsContent>
-    </Tabs>
-  );
-}
 
-function DraggableRow({ row }: { row: any }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
-  });
-  return (
-    <TableRow
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
-    >
-      {row.getVisibleCells().map((cell: any) => {
-        const isActions = cell.column.id === "actions";
-        return (
-          <TableCell
-            key={cell.id}
-            className={isActions ? "text-right w-0 min-w-[64px]" : undefined}
-          >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </TableCell>
-        );
-      })}
-    </TableRow>
+      <EventParticipantsDialog
+        eventSelfLink={participantsTarget?._links?.self?.href}
+        eventName={participantsTarget?.name}
+        isOpen={participantsDialogOpen}
+        onOpenChange={setParticipantsDialogOpen}
+      />
+
+      {/* Dialog Supprimer Centralisé */}
+      {!hideDelete && (
+        <CustomAlertDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          title="Supprimer l'événement"
+          description={
+            deleteTarget
+              ? `Êtes-vous sûr de vouloir supprimer l'événement "${deleteTarget.name}" ? Cette action est irréversible.` +
+                (typeof deleteTarget.currentParticipants === "number" &&
+                deleteTarget.currentParticipants > 0
+                  ? `\n\nCet événement a ${deleteTarget.currentParticipants} participant(s) inscrit(s).`
+                  : "")
+              : ""
+          }
+          action="Supprimer"
+          onClick={() => {
+            if (deleteTarget) {
+              onDelete(deleteTarget._links?.self?.href, deleteTarget.name);
+            }
+          }}
+        />
+      )}
+
+      {/* Dialog Modifier Centralisé */}
+      <ModifyEventDialog
+        event={modifyTarget}
+        open={modifyDialogOpen}
+        onOpenChange={setModifyDialogOpen}
+      />
+    </Tabs>
   );
 }

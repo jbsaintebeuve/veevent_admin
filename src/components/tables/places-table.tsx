@@ -36,8 +36,6 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Place, placeTypes } from "@/types/place";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Building2, Edit, Trash2 } from "lucide-react";
-
-import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 import { DragHandle } from "../ui/drag-handle";
@@ -50,135 +48,6 @@ const COLUMN_LABELS: Record<string, string> = {
   eventsCount: "Événements actifs",
   eventsPastCount: "Événements passés",
 };
-
-const createColumns = (
-  onDelete: (deleteUrl: string, name: string) => void,
-  data: Place[]
-): ColumnDef<Place>[] => [
-  {
-    id: "drag",
-    header: () => null,
-    cell: () => <DragHandle />,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "name",
-    header: COLUMN_LABELS.name,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        <span className="truncate font-medium">{row.original.name}</span>
-      </div>
-    ),
-    enableHiding: false,
-  },
-  {
-    accessorKey: "type",
-    header: COLUMN_LABELS.type,
-    cell: ({ row }) => {
-      const label =
-        placeTypes.find((type) => type.value === row.original.type)?.label ||
-        "Non défini";
-      return (
-        <Badge variant="outline" className="text-xs">
-          {label}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "address",
-    header: COLUMN_LABELS.address,
-    cell: ({ row }) => (
-      <span
-        className="text-muted-foreground text-sm truncate block max-w-[180px]"
-        title={row.original.address}
-      >
-        {row.original.address}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "cityName",
-    header: COLUMN_LABELS.cityName,
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="text-xs">
-        {row.original.cityName}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "eventsCount",
-    header: COLUMN_LABELS.eventsCount,
-    cell: ({ row }) => (
-      <Badge
-        variant={row.original.eventsCount > 0 ? "default" : "outline"}
-        className="text-xs min-w-[2rem] justify-center"
-      >
-        {row.original.eventsCount}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "eventsPastCount",
-    header: COLUMN_LABELS.eventsPastCount,
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-xs min-w-[2rem] justify-center">
-        {row.original.eventsPastCount}
-      </Badge>
-    ),
-  },
-  {
-    id: "actions",
-    header: () => <div className="w-full text-right"></div>,
-    cell: ({ row }) => {
-      const [openDelete, setOpenDelete] = React.useState(false);
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            >
-              <IconDotsVertical />
-              <span className="sr-only">Ouvrir le menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <ModifyPlaceDialog place={row.original}>
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                <Edit className="h-4 w-4 mr-2" />
-                Modifier
-              </DropdownMenuItem>
-            </ModifyPlaceDialog>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setOpenDelete(true);
-              }}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Supprimer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-          <CustomAlertDialog
-            isOpen={openDelete}
-            onClose={() => setOpenDelete(false)}
-            title="Supprimer le lieu"
-            description={`Êtes-vous sûr de vouloir supprimer "${row.original.name}" ? Cette action est irréversible.`}
-            action="Supprimer"
-            onClick={() => {
-              onDelete(row.original._links?.self?.href, row.original.name);
-              setOpenDelete(false);
-            }}
-          />
-        </DropdownMenu>
-      );
-    },
-  },
-];
 
 export function PlacesTable({
   data,
@@ -193,16 +62,132 @@ export function PlacesTable({
   onDelete: (deleteUrl: string, name: string) => void;
   deleteLoading: boolean;
 }) {
-  // Mémorisation des colonnes pour éviter les re-créations
-  const columns = React.useMemo(
-    () => createColumns(onDelete, data),
-    [onDelete, data]
-  );
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<Place | null>(null);
+  const [modifyDialogOpen, setModifyDialogOpen] = React.useState(false);
+  const [modifyTarget, setModifyTarget] = React.useState<Place | null>(null);
+
+  const columns: ColumnDef<Place>[] = [
+    {
+      id: "drag",
+      header: () => null,
+      cell: () => <DragHandle />,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "name",
+      header: COLUMN_LABELS.name,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className="truncate font-medium">{row.original.name}</span>
+        </div>
+      ),
+      enableHiding: false,
+    },
+    {
+      accessorKey: "type",
+      header: COLUMN_LABELS.type,
+      cell: ({ row }) => {
+        const label =
+          placeTypes.find((type) => type.value === row.original.type)?.label ||
+          "Non défini";
+        return (
+          <Badge variant="secondary" className="text-xs">
+            {label}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "cityName",
+      header: COLUMN_LABELS.cityName,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">{row.original.cityName}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "address",
+      header: COLUMN_LABELS.address,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground max-w-xs truncate">
+          {row.original.address}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "eventsCount",
+      header: COLUMN_LABELS.eventsCount,
+      cell: ({ row }) => (
+        <Badge
+          variant={row.original.eventsCount > 0 ? "default" : "outline"}
+          className="text-xs min-w-[2rem] justify-center"
+        >
+          {row.original.eventsCount}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "eventsPastCount",
+      header: COLUMN_LABELS.eventsPastCount,
+      cell: ({ row }) => (
+        <Badge
+          variant="outline"
+          className="text-xs min-w-[2rem] justify-center"
+        >
+          {row.original.eventsPastCount}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <div className="w-full text-right"></div>,
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+            >
+              <IconDotsVertical />
+              <span className="sr-only">Ouvrir le menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setModifyTarget(row.original);
+                setModifyDialogOpen(true);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Modifier
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setDeleteTarget(row.original);
+                setDeleteDialogOpen(true);
+              }}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Supprimer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
 
-  // Filtrage des lieux selon la recherche
   const filteredData = React.useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
@@ -210,9 +195,7 @@ export function PlacesTable({
       (place) =>
         place.name.toLowerCase().includes(s) ||
         place.address.toLowerCase().includes(s) ||
-        place.cityName.toLowerCase().includes(s) ||
-        (place.type && place.type.toLowerCase().includes(s)) ||
-        (place.description && place.description.toLowerCase().includes(s))
+        place.cityName.toLowerCase().includes(s)
     );
   }, [data, search]);
 
@@ -311,16 +294,8 @@ export function PlacesTable({
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => {
-                      const isActions = cell.column.id === "actions";
                       return (
-                        <TableCell
-                          key={cell.id}
-                          className={
-                            isActions
-                              ? "text-right w-0 min-w-[64px]"
-                              : undefined
-                          }
-                        >
+                        <TableCell key={cell.id}>
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
@@ -363,9 +338,8 @@ export function PlacesTable({
                             Aucun lieu
                           </div>
                           <div className="mb-4 text-sm text-muted-foreground">
-                            Commencez par créer votre premier lieu.
+                            Aucun lieu n'a été créé pour le moment.
                           </div>
-                          <CreatePlaceDialog />
                         </>
                       )}
                     </div>
@@ -376,6 +350,31 @@ export function PlacesTable({
           </Table>
         </div>
       </TabsContent>
+
+      {/* Dialog Supprimer Centralisé */}
+      <CustomAlertDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        title="Supprimer le lieu"
+        description={
+          deleteTarget
+            ? `Êtes-vous sûr de vouloir supprimer "${deleteTarget.name}" ? Cette action est irréversible.`
+            : ""
+        }
+        action="Supprimer"
+        onClick={() => {
+          if (deleteTarget) {
+            onDelete(deleteTarget._links?.self?.href, deleteTarget.name);
+          }
+        }}
+      />
+
+      {/* Dialog Modifier Centralisé */}
+      <ModifyPlaceDialog
+        place={modifyTarget}
+        open={modifyDialogOpen}
+        onOpenChange={setModifyDialogOpen}
+      />
     </Tabs>
   );
 }

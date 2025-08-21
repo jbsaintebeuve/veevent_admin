@@ -5,7 +5,6 @@ import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AvatarGroup } from "@/components/ui/avatar-group";
 import { AlertCircle } from "lucide-react";
@@ -107,18 +106,16 @@ export default function UsersPage() {
     mutationFn: async (user: User) => {
       if (!token) throw new Error("Token manquant");
       const isBanned = (user.role ?? "").toLowerCase() === "banned";
-      return await banOrUnbanUser(
-        user.id,
-        isBanned ? "User" : "Banned",
-        token
-      );
+      return await banOrUnbanUser(user.id, isBanned ? "User" : "Banned", token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("Utilisateur mis à jour avec succès");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Erreur lors de la mise à jour de l'utilisateur");
+      toast.error(
+        error.message || "Erreur lors de la mise à jour de l'utilisateur"
+      );
     },
   });
 

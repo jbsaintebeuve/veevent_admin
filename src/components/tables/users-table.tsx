@@ -2,20 +2,6 @@
 
 import * as React from "react";
 import {
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type UniqueIdentifier,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
   IconChevronDown,
   IconDotsVertical,
   IconLayoutColumns,
@@ -87,7 +73,7 @@ export function UsersTable({
     {
       id: "drag",
       header: () => null,
-      cell: ({ row }) => <DragHandle />,
+      cell: () => <DragHandle />,
       enableHiding: false,
     },
     {
@@ -247,13 +233,6 @@ export function UsersTable({
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
-  const sortableId = React.useId();
-  const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
-    useSensor(KeyboardSensor, {})
-  );
-
   const filteredData = React.useMemo(() => {
     const s = (search ?? "").toLowerCase();
     if (!s) return data;
@@ -268,18 +247,8 @@ export function UsersTable({
     );
   }, [data, search]);
 
-  const [tableData, setTableData] = React.useState(() => filteredData);
-  React.useEffect(() => {
-    setTableData(filteredData);
-  }, [filteredData]);
-
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => tableData?.map(({ id }) => id) || [],
-    [tableData]
-  );
-
   const table = useReactTable({
-    data: tableData,
+    data: filteredData,
     columns,
     state: {
       columnVisibility,
@@ -370,14 +339,20 @@ export function UsersTable({
             </TableHeader>
             <TableBody className="**:data-[slot=table-cell]:first:w-8">
               {table.getRowModel().rows?.length ? (
-                <SortableContext
-                  items={dataIds}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {table.getRowModel().rows.map((row) => (
-                    <DraggableRow key={row.id} row={row} />
-                  ))}
-                </SortableContext>
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => {
+                      return (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))
               ) : (
                 <TableRow>
                   <TableCell
@@ -428,20 +403,17 @@ export function UsersTable({
         isOpen={banDialogOpen}
         onClose={() => setBanDialogOpen(false)}
         title={
-          banTargetUser &&
-          (banTargetUser.role ?? "").toLowerCase() === "banned"
+          banTargetUser && (banTargetUser.role ?? "").toLowerCase() === "banned"
             ? "Débannir l'utilisateur"
             : "Bannir l'utilisateur"
         }
         description={
-          banTargetUser &&
-          (banTargetUser.role ?? "").toLowerCase() === "banned"
+          banTargetUser && (banTargetUser.role ?? "").toLowerCase() === "banned"
             ? `Voulez-vous vraiment débannir l'utilisateur "${banTargetUser.firstName} ${banTargetUser.lastName}" ? Il pourra à nouveau accéder à la plateforme.`
             : `Voulez-vous vraiment bannir l'utilisateur "${banTargetUser?.firstName} ${banTargetUser?.lastName}" ? Il ne pourra plus se connecter.`
         }
         action={
-          banTargetUser &&
-          (banTargetUser.role ?? "").toLowerCase() === "banned"
+          banTargetUser && (banTargetUser.role ?? "").toLowerCase() === "banned"
             ? "Débannir"
             : "Bannir"
         }
@@ -452,34 +424,5 @@ export function UsersTable({
         }}
       />
     </Tabs>
-  );
-}
-
-function DraggableRow({ row }: { row: any }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
-  });
-  return (
-    <TableRow
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
-    >
-      {row.getVisibleCells().map((cell: any) => {
-        const isActions = cell.column.id === "actions";
-        return (
-          <TableCell
-            key={cell.id}
-            className={isActions ? "text-right w-0 min-w-[64px]" : undefined}
-          >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </TableCell>
-        );
-      })}
-    </TableRow>
   );
 }

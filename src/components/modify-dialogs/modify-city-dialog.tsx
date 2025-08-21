@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,17 +26,18 @@ import { uploadImage } from "@/utils/upload-image";
 import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyCityDialogProps {
-  city: City;
+  city: City | null;
   cities: City[];
-  children?: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function ModifyCityDialog({
   city,
   cities,
-  children,
+  open,
+  onOpenChange,
 }: ModifyCityDialogProps) {
-  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     location: {
@@ -159,7 +159,7 @@ export function ModifyCityDialog({
     setError("");
     try {
       if (!token) throw new Error("Token manquant");
-      const patchUrl = city._links?.self?.href;
+      const patchUrl = city?._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
 
       let bannerUrl = form.bannerUrl;
@@ -187,7 +187,7 @@ export function ModifyCityDialog({
       await modifyCity(patchUrl, payload, token);
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville modifiée avec succès !");
-      setOpen(false);
+      onOpenChange(false);
     } catch (err: any) {
       setError(err.message);
       toast.error(`Erreur: ${err.message}`);
@@ -221,21 +221,18 @@ export function ModifyCityDialog({
   }, [city]);
 
   const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
+    onOpenChange(newOpen);
     if (!newOpen) {
       resetToInitialState();
     }
   };
 
+  if (!city) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4" />
-          </Button>
-        )}
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -427,7 +424,7 @@ export function ModifyCityDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOpen(false)}
+                onClick={() => onOpenChange(false)}
               >
                 Annuler
               </Button>

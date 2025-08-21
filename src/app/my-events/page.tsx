@@ -3,9 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { SectionCards, type CardData } from "@/components/section-cards";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SectionCards } from "@/components/section-cards";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { fetchUserEvents } from "@/services/event-service";
@@ -110,6 +108,7 @@ export default function MyEventsPage() {
   const handleDelete = (deleteUrl: string, name: string) => {
     console.log("Supprimer événement:", name, deleteUrl);
   };
+
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -217,6 +216,7 @@ export default function MyEventsPage() {
           </div>
         </div>
       </div>
+
     </>
   );
 }

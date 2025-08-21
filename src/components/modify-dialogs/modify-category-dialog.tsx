@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,15 +32,16 @@ import { modifyCategory } from "@/services/category-service";
 import { useAuth } from "@/hooks/use-auth";
 
 interface ModifyCategoryDialogProps {
-  category: Category;
-  children?: React.ReactNode;
+  category: Category | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function ModifyCategoryDialog({
   category,
-  children,
+  open,
+  onOpenChange,
 }: ModifyCategoryDialogProps) {
-  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -127,28 +127,16 @@ export function ModifyCategoryDialog({
         trending: form.trending,
       };
 
-      console.log("🔧 Modification catégorie - Payload:", payload);
-      console.log("🔧 Modification catégorie - Category:", category);
-      console.log("🔧 Modification catégorie - _links:", category._links);
-
-      const patchUrl = category._links?.self?.href;
-      console.log("🔧 Modification catégorie - Patch URL:", patchUrl);
+      const patchUrl = category?._links?.self?.href;
 
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
 
-      console.log(
-        "🔧 Modification catégorie - Token:",
-        token ? "Présent" : "Manquant"
-      );
-
       const result = await modifyCategory(patchUrl, payload, token);
-      console.log("🔧 Modification catégorie - Résultat:", result);
 
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie modifiée avec succès !");
-      setOpen(false);
+      onOpenChange(false);
     } catch (err: any) {
-      console.error("❌ Erreur modification catégorie:", err);
       setError(err.message);
       toast.error(`Erreur: ${err.message}`);
     } finally {
@@ -157,21 +145,18 @@ export function ModifyCategoryDialog({
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
+    onOpenChange(newOpen);
     if (!newOpen) {
       resetForm();
     }
   };
 
+  if (!category) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4" />
-          </Button>
-        )}
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>

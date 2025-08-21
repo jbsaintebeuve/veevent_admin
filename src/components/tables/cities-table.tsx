@@ -36,7 +36,6 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { City } from "@/types/city";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Building, Edit, Trash2 } from "lucide-react";
-import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
 import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 import { DragHandle } from "../ui/drag-handle";
@@ -49,131 +48,6 @@ const COLUMN_LABELS: Record<string, string> = {
   eventsCount: "Événements actifs",
   eventsPastCount: "Événements passés",
 };
-
-// Définition des colonnes en dehors du composant pour éviter les re-créations
-const createColumns = (
-  onDelete: (deleteUrl: string, name: string) => void,
-  data: City[]
-): ColumnDef<City>[] => [
-  {
-    id: "drag",
-    header: () => null,
-    cell: () => <DragHandle />,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "name",
-    header: COLUMN_LABELS.name,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        <span className="truncate font-medium">{row.original.name}</span>
-      </div>
-    ),
-    enableHiding: false,
-  },
-  {
-    accessorKey: "region",
-    header: COLUMN_LABELS.region,
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-xs">
-        {row.original.region}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "country",
-    header: COLUMN_LABELS.country,
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="text-xs">
-        {row.original.country}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "postalCode",
-    header: COLUMN_LABELS.postalCode,
-    cell: ({ row }) => (
-      <span className="text-muted-foreground text-sm">
-        {row.original.postalCode}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "eventsCount",
-    header: COLUMN_LABELS.eventsCount,
-    cell: ({ row }) => (
-      <Badge
-        variant={row.original.eventsCount > 0 ? "default" : "outline"}
-        className="text-xs min-w-[2rem] justify-center"
-      >
-        {row.original.eventsCount}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "eventsPastCount",
-    header: COLUMN_LABELS.eventsPastCount,
-    cell: ({ row }) => (
-      <Badge variant="outline" className="text-xs min-w-[2rem] justify-center">
-        {row.original.eventsPastCount}
-      </Badge>
-    ),
-  },
-  {
-    id: "actions",
-    header: () => <div className="w-full text-right"></div>,
-    cell: ({ row }) => {
-      const [openDelete, setOpenDelete] = React.useState(false);
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            >
-              <IconDotsVertical />
-              <span className="sr-only">Ouvrir le menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <ModifyCityDialog city={row.original} cities={data}>
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                <Edit className="h-4 w-4 mr-2" />
-                Modifier
-              </DropdownMenuItem>
-            </ModifyCityDialog>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                setOpenDelete(true);
-              }}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Supprimer
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-          {/* Dialog Supprimer */}
-
-          <CustomAlertDialog
-            isOpen={openDelete}
-            onClose={() => setOpenDelete(false)}
-            title="Supprimer la ville"
-            description={` Êtes-vous sûr de vouloir supprimer "${row.original.name}" ?
-                  Cette action est irréversible.`}
-            action="Supprimer"
-            onClick={() => {
-              onDelete(row.original._links?.self?.href, row.original.name);
-              setOpenDelete(false);
-            }}
-          />
-        </DropdownMenu>
-      );
-    },
-  },
-];
 
 export function CitiesTable({
   data,
@@ -188,14 +62,126 @@ export function CitiesTable({
   onDelete: (deleteUrl: string, name: string) => void;
   deleteLoading: boolean;
 }) {
-  // Mémorisation des colonnes pour éviter les re-créations
-  const columns = React.useMemo(
-    () => createColumns(onDelete, data),
-    [onDelete, data]
-  );
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<City | null>(null);
+  const [modifyDialogOpen, setModifyDialogOpen] = React.useState(false);
+  const [modifyTarget, setModifyTarget] = React.useState<City | null>(null);
+
+  const columns: ColumnDef<City>[] = [
+    {
+      id: "drag",
+      header: () => null,
+      cell: () => <DragHandle />,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "name",
+      header: COLUMN_LABELS.name,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className="truncate font-medium">{row.original.name}</span>
+        </div>
+      ),
+      enableHiding: false,
+    },
+    {
+      accessorKey: "region",
+      header: COLUMN_LABELS.region,
+      cell: ({ row }) => (
+        <Badge variant="outline" className="text-xs">
+          {row.original.region}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "country",
+      header: COLUMN_LABELS.country,
+      cell: ({ row }) => (
+        <Badge variant="secondary" className="text-xs">
+          {row.original.country}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "postalCode",
+      header: COLUMN_LABELS.postalCode,
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-sm">
+          {row.original.postalCode}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "eventsCount",
+      header: COLUMN_LABELS.eventsCount,
+      cell: ({ row }) => (
+        <Badge
+          variant={row.original.eventsCount > 0 ? "default" : "outline"}
+          className="text-xs min-w-[2rem] justify-center"
+        >
+          {row.original.eventsCount}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "eventsPastCount",
+      header: COLUMN_LABELS.eventsPastCount,
+      cell: ({ row }) => (
+        <Badge
+          variant="outline"
+          className="text-xs min-w-[2rem] justify-center"
+        >
+          {row.original.eventsPastCount}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <div className="w-full text-right"></div>,
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+            >
+              <IconDotsVertical />
+              <span className="sr-only">Ouvrir le menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setModifyTarget(row.original);
+                setModifyDialogOpen(true);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Modifier
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setDeleteTarget(row.original);
+                setDeleteDialogOpen(true);
+              }}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Supprimer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
+
   // Filtrage des villes selon la recherche
   const filteredData = React.useMemo(() => {
     const s = (search ?? "").toLowerCase();
@@ -304,16 +290,8 @@ export function CitiesTable({
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => {
-                      const isActions = cell.column.id === "actions";
                       return (
-                        <TableCell
-                          key={cell.id}
-                          className={
-                            isActions
-                              ? "text-right w-0 min-w-[64px]"
-                              : undefined
-                          }
-                        >
+                        <TableCell key={cell.id}>
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
@@ -356,9 +334,8 @@ export function CitiesTable({
                             Aucune ville
                           </div>
                           <div className="mb-4 text-sm text-muted-foreground">
-                            Commencez par créer votre première ville.
+                            Aucune ville n'a été créée pour le moment.
                           </div>
-                          <CreateCityDialog cities={data} />
                         </>
                       )}
                     </div>
@@ -369,6 +346,32 @@ export function CitiesTable({
           </Table>
         </div>
       </TabsContent>
+
+      {/* Dialog Supprimer Centralisé */}
+      <CustomAlertDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        title="Supprimer la ville"
+        description={
+          deleteTarget
+            ? `Êtes-vous sûr de vouloir supprimer "${deleteTarget.name}" ? Cette action est irréversible.`
+            : ""
+        }
+        action="Supprimer"
+        onClick={() => {
+          if (deleteTarget) {
+            onDelete(deleteTarget._links?.self?.href, deleteTarget.name);
+          }
+        }}
+      />
+
+      {/* Dialog Modifier Centralisé */}
+      <ModifyCityDialog
+        city={modifyTarget}
+        cities={data}
+        open={modifyDialogOpen}
+        onOpenChange={setModifyDialogOpen}
+      />
     </Tabs>
   );
 }

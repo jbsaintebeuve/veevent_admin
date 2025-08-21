@@ -70,6 +70,7 @@ export default function EventsPage() {
     [deleteMutation]
   );
 
+
   const { upcomingEvents, totalParticipants, averageParticipants } =
     useMemo(() => {
       const stats = {
@@ -173,6 +174,7 @@ export default function EventsPage() {
           </div>
         </div>
       </div>
+
     </>
   );
 }

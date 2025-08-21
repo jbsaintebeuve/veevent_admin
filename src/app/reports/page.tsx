@@ -3,13 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { SectionCards, type CardData } from "@/components/section-cards";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SectionCards } from "@/components/section-cards";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { fetchReports } from "@/services/report-service";
-import { Report, ReportsApiResponse } from "@/types/report";
+import { ReportsApiResponse } from "@/types/report";
 import { useAuth } from "@/hooks/use-auth";
 import { ReportsTable } from "@/components/tables/reports-table";
 import { PageSkeleton } from "@/components/page-skeleton";

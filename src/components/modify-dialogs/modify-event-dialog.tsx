@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,12 +42,16 @@ import {
 import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyEventDialogProps {
-  event: Event;
-  children?: React.ReactNode;
+  event: Event | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
-  const [open, setOpen] = useState(false);
+export function ModifyEventDialog({
+  event,
+  open,
+  onOpenChange,
+}: ModifyEventDialogProps) {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -83,12 +86,12 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
   const categories = categoriesResponse?._embedded?.categories || [];
 
   const { data: eventDetails, isLoading: eventDetailsLoading } = useQuery({
-    queryKey: ["eventDetails", event.id],
+    queryKey: ["eventDetails", event?.id],
     queryFn: () => {
       if (!token) throw new Error("Token manquant");
-      return fetchEventDetails(event.id, token);
+      return fetchEventDetails(event!.id, token);
     },
-    enabled: open && !!event.id,
+    enabled: open && !!event?.id,
   });
 
   useEffect(() => {
@@ -194,9 +197,7 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
 
       let cloudinaryImageUrl = form.imageUrl;
       if (imageFile) {
-        console.log("🔄 Upload de la nouvelle image vers Cloudinary...");
         cloudinaryImageUrl = await uploadImage(imageFile);
-        console.log("✅ Image uploadée avec succès:", cloudinaryImageUrl);
       }
 
       const payload: EventUpdateRequest = {
@@ -216,20 +217,18 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
         isTrending: form.isTrending,
       };
 
-      const patchUrl = event._links?.self?.href;
+      const patchUrl = event?._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
       const token = document.cookie.includes("token=")
         ? document.cookie.split("token=")[1]?.split(";")[0]
         : undefined;
 
-      console.log("📤 Envoi des données de modification au backend:", payload);
       await modifyEvent(patchUrl, payload, token);
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
       toast.success("Événement modifié avec succès");
-      setOpen(false);
+      onOpenChange(false);
     } catch (err: any) {
-      console.error("❌ Erreur lors de la modification:", err);
       setError(err.message);
       toast.error(`Erreur: ${err.message}`);
     } finally {
@@ -281,21 +280,18 @@ export function ModifyEventDialog({ event, children }: ModifyEventDialogProps) {
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
+    onOpenChange(newOpen);
     if (!newOpen) {
       resetToInitialState();
     }
   };
 
+  if (!event) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4" />
-          </Button>
-        )}
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>

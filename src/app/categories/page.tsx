@@ -106,7 +106,7 @@ export default function CategoriesPage() {
   if (isLoading || isLoadingCounts) {
     return (
       <PageSkeleton
-        cardsCount={3}
+        cardsCount={4}
         tableRowsCount={5}
         tableColumnsCount={5}
         showSearchBar={true}
