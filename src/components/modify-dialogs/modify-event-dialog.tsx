@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NovelEditor } from "@/components/ui/novel-editor";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -71,8 +70,6 @@ export function ModifyEventDialog({
     isTrending: false,
   };
   const [form, setForm] = useState(initialForm);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { token } = useAuth();
   const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery({
@@ -167,11 +164,8 @@ export function ModifyEventDialog({
     );
   }, [form]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
+  const mutation = useMutation({
+    mutationFn: async () => {
       const getDateTimeISO = () => {
         if (!form.date || !form.time) return "";
         const [hours, minutes] = form.time.split(":");
@@ -224,16 +218,21 @@ export function ModifyEventDialog({
         : undefined;
 
       await modifyEvent(patchUrl, payload, token);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
       toast.success("Événement modifié avec succès");
       onOpenChange(false);
-    } catch (err: any) {
-      setError(err.message);
+    },
+    onError: (err: any) => {
       toast.error(`Erreur: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate();
   };
 
   const resetToInitialState = () => {
@@ -310,7 +309,7 @@ export function ModifyEventDialog({
                 value={form.name}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -322,7 +321,7 @@ export function ModifyEventDialog({
                 value={form.description}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
                 placeholder="Description courte de l'événement"
               />
             </div>
@@ -367,7 +366,7 @@ export function ModifyEventDialog({
                       setForm((prev) => ({ ...prev, time: e.target.value }))
                     }
                     required
-                    disabled={loading}
+                    disabled={mutation.isPending}
                     className="pl-8 appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
                   />
                 </div>
@@ -382,7 +381,7 @@ export function ModifyEventDialog({
                 value={form.address}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -398,7 +397,7 @@ export function ModifyEventDialog({
                   value={form.price}
                   onChange={handleChange}
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -411,7 +410,7 @@ export function ModifyEventDialog({
                   value={form.maxCustomers}
                   onChange={handleChange}
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -424,7 +423,7 @@ export function ModifyEventDialog({
               currentImageUrl={event.imageUrl}
               onFileChange={handleImageChange}
               onRemove={handleImageRemove}
-              disabled={loading}
+              disabled={mutation.isPending}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -472,7 +471,7 @@ export function ModifyEventDialog({
                         onCheckedChange={(checked) =>
                           handleCategoryChange(cat.key, checked as boolean)
                         }
-                        disabled={loading}
+                        disabled={mutation.isPending}
                       />
                       <Label
                         htmlFor={`${cat.key}-${i}`}
@@ -534,21 +533,14 @@ export function ModifyEventDialog({
             <Label htmlFor="isTrending">Événement tendance</Label>
           </div>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={loading}>
+              <Button variant="outline" disabled={mutation.isPending}>
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
-              {loading ? (
+            <Button type="submit" disabled={mutation.isPending || !isFormValid}>
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Modification...

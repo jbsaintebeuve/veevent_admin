@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,7 +48,6 @@ export function ModifyCategoryDialog({
     key: "",
     trending: false,
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { token } = useAuth();
@@ -112,13 +111,9 @@ export function ModifyCategoryDialog({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    if (!token) throw new Error("Token manquant");
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    try {
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!token) throw new Error("Token manquant");
       validateForm();
       const payload: CategoryUpdateRequest = {
         name: form.name.trim(),
@@ -126,22 +121,24 @@ export function ModifyCategoryDialog({
         key: form.key.trim(),
         trending: form.trending,
       };
-
       const patchUrl = category?._links?.self?.href;
-
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-
-      const result = await modifyCategory(patchUrl, payload, token);
-
+      await modifyCategory(patchUrl, payload, token);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie modifiée avec succès !");
-      onOpenChange(false);
-    } catch (err: any) {
+      setTimeout(() => onOpenChange(false), 300);
+    },
+    onError: (err: any) => {
       setError(err.message);
       toast.error(`Erreur: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate();
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -179,7 +176,7 @@ export function ModifyCategoryDialog({
                 onChange={handleChange}
                 placeholder="Sport, Musique, Conférence..."
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -195,7 +192,7 @@ export function ModifyCategoryDialog({
                 onChange={handleChange}
                 placeholder="sport, musique, conference..."
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
               <p className="text-xs text-muted-foreground">
                 Identifiant unique en minuscules, sans espaces ni caractères
@@ -216,7 +213,7 @@ export function ModifyCategoryDialog({
                 placeholder="Décrivez cette catégorie d'événements..."
                 rows={3}
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -225,7 +222,7 @@ export function ModifyCategoryDialog({
                 id="trending"
                 checked={form.trending}
                 onCheckedChange={handleCheckboxChange}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
               <div className="grid gap-1.5 leading-none">
                 <Label
@@ -252,12 +249,12 @@ export function ModifyCategoryDialog({
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={loading}>
+              <Button variant="outline" disabled={mutation.isPending}>
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
-              {loading ? (
+            <Button type="submit" disabled={mutation.isPending || !isFormValid}>
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Modification...

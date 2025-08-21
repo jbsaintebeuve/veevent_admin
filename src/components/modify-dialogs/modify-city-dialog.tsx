@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,9 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Loader2, Edit, AlertCircle, MapPin, Globe } from "lucide-react";
+import { Loader2, Edit, MapPin, Globe } from "lucide-react";
 import { City, CityUpdateRequest } from "@/types/city";
 import { modifyCity } from "@/services/city-service";
 import { useAuth } from "@/hooks/use-auth";
@@ -54,12 +53,50 @@ export function ModifyCityDialog({
     content: "",
     nearestCities: [] as number[],
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { token } = useAuth();
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!token) throw new Error("Token manquant");
+      const patchUrl = city?._links?.self?.href;
+      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+
+      let bannerUrl = form.bannerUrl;
+      let imageUrl = form.imageUrl;
+      if (form.bannerFile) {
+        bannerUrl = await uploadImage(form.bannerFile);
+      }
+      if (form.imageFile) {
+        imageUrl = await uploadImage(form.imageFile);
+      }
+
+      const payload = {
+        name: form.name.trim(),
+        latitude: form.location.latitude,
+        longitude: form.location.longitude,
+        region: form.region.trim(),
+        postalCode: form.postalCode.trim(),
+        country: form.country.trim(),
+        bannerUrl: bannerUrl?.trim() || null,
+        imageUrl: imageUrl?.trim() || null,
+        content: form.content?.trim() || null,
+        nearestCityIds: form.nearestCities,
+      } as CityUpdateRequest;
+
+      await modifyCity(patchUrl, payload, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cities"] });
+      toast.success("Ville modifiée avec succès !");
+      setTimeout(() => onOpenChange(false), 300);
+    },
+    onError: (err: any) => {
+      toast.error(`Erreur: ${err.message}`);
+    },
+  });
 
   const allCities = cities || [];
 
@@ -99,15 +136,6 @@ export function ModifyCityDialog({
     } else {
       setForm({ ...form, [name]: value });
     }
-  };
-
-  const handleNearestCitiesChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const selected = Array.from(e.target.selectedOptions, (option) =>
-      Number(option.value)
-    );
-    setForm({ ...form, nearestCities: selected });
   };
 
   const isFormValid = useMemo(() => {
@@ -153,47 +181,9 @@ export function ModifyCityDialog({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      if (!token) throw new Error("Token manquant");
-      const patchUrl = city?._links?.self?.href;
-      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-
-      let bannerUrl = form.bannerUrl;
-      let imageUrl = form.imageUrl;
-      if (form.bannerFile) {
-        bannerUrl = await uploadImage(form.bannerFile);
-      }
-      if (form.imageFile) {
-        imageUrl = await uploadImage(form.imageFile);
-      }
-
-      const payload = {
-        name: form.name.trim(),
-        latitude: form.location.latitude,
-        longitude: form.location.longitude,
-        region: form.region.trim(),
-        postalCode: form.postalCode.trim(),
-        country: form.country.trim(),
-        bannerUrl: bannerUrl?.trim() || null,
-        imageUrl: imageUrl?.trim() || null,
-        content: form.content?.trim() || null,
-        nearestCityIds: form.nearestCities,
-      } as CityUpdateRequest;
-
-      await modifyCity(patchUrl, payload, token);
-      queryClient.invalidateQueries({ queryKey: ["cities"] });
-      toast.success("Ville modifiée avec succès !");
-      onOpenChange(false);
-    } catch (err: any) {
-      setError(err.message);
-      toast.error(`Erreur: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+    mutation.mutate();
   };
 
   const resetToInitialState = useCallback(() => {
@@ -214,7 +204,6 @@ export function ModifyCityDialog({
         content: city.content || "",
         nearestCities: city.nearestCities || [],
       });
-      setError("");
       setPreviewBannerUrl(null);
       setPreviewImageUrl(null);
     }
@@ -256,7 +245,7 @@ export function ModifyCityDialog({
                   onChange={handleChange}
                   placeholder="Menton, Nice, Cannes..."
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -271,7 +260,7 @@ export function ModifyCityDialog({
                   onChange={handleChange}
                   placeholder="Provence Alpes Côte d'azur"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -286,7 +275,7 @@ export function ModifyCityDialog({
                   onChange={handleChange}
                   placeholder="France"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -298,7 +287,7 @@ export function ModifyCityDialog({
                   onChange={handleChange}
                   placeholder="06500"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -314,7 +303,7 @@ export function ModifyCityDialog({
                   onChange={handleChange}
                   placeholder="43.7"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -327,7 +316,7 @@ export function ModifyCityDialog({
                   onChange={handleChange}
                   placeholder="7.25"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -341,7 +330,7 @@ export function ModifyCityDialog({
                 currentImageUrl={form.bannerUrl}
                 onFileChange={handleFileChange}
                 onRemove={() => handleRemoveImage("banner")}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
               <ImageUpload
                 id="imageFile"
@@ -351,7 +340,7 @@ export function ModifyCityDialog({
                 currentImageUrl={form.imageUrl}
                 onFileChange={handleFileChange}
                 onRemove={() => handleRemoveImage("image")}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
             <div className="grid gap-2">
@@ -363,7 +352,7 @@ export function ModifyCityDialog({
                 onChange={handleChange}
                 rows={3}
                 placeholder="Description détaillée de la ville"
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
             <div className="grid gap-2">
@@ -394,7 +383,7 @@ export function ModifyCityDialog({
                                   ),
                             }));
                           }}
-                          disabled={loading}
+                          disabled={mutation.isPending}
                         />
                         <Label
                           htmlFor={`nearestCity-${city.id}`}
@@ -410,13 +399,6 @@ export function ModifyCityDialog({
                 Sélectionnez une ou plusieurs villes proches
               </span>
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </div>
 
           <DialogFooter>
@@ -429,8 +411,8 @@ export function ModifyCityDialog({
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={!isFormValid || loading}>
-              {loading ? (
+            <Button type="submit" disabled={!isFormValid || mutation.isPending}>
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Modification...

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -57,7 +57,7 @@ export function ModifyPlaceDialog({
     bannerFile: null as File | null,
     imageFile: null as File | null,
   });
-  const [loading, setLoading] = useState(false);
+  // Le loading sera géré par useMutation
   const queryClient = useQueryClient();
   const { token } = useAuth();
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
@@ -169,12 +169,9 @@ export function ModifyPlaceDialog({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    if (!token) throw new Error("Token manquant");
-    e.preventDefault();
-    setLoading(true);
-
-    try {
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!token) throw new Error("Token manquant");
       let bannerUrl = form.bannerUrl;
       let imageUrl = form.imageUrl;
 
@@ -203,19 +200,22 @@ export function ModifyPlaceDialog({
       };
 
       const patchUrl = place?._links?.self?.href;
-
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-
       await modifyPlace(patchUrl, payload, token);
-
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu modifié avec succès !");
       onOpenChange(false);
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       toast.error(`Erreur: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate();
   };
 
   const resetToInitialState = () => {
@@ -271,7 +271,7 @@ export function ModifyPlaceDialog({
                 value={form.name}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -280,7 +280,7 @@ export function ModifyPlaceDialog({
               <Select
                 value={form.type}
                 onValueChange={(value) => handleSelectChange("type", value)}
-                disabled={loading}
+                disabled={mutation.isPending}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir un type" />
@@ -300,7 +300,7 @@ export function ModifyPlaceDialog({
               <Select
                 value={form.cityId}
                 onValueChange={(value) => handleSelectChange("cityId", value)}
-                disabled={loading || citiesLoading}
+                disabled={mutation.isPending || citiesLoading}
               >
                 <SelectTrigger>
                   <SelectValue
@@ -325,7 +325,7 @@ export function ModifyPlaceDialog({
                 value={form.address}
                 onChange={handleChange}
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -340,7 +340,7 @@ export function ModifyPlaceDialog({
                   value={form.latitude}
                   onChange={handleChange}
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -353,7 +353,7 @@ export function ModifyPlaceDialog({
                   value={form.longitude}
                   onChange={handleChange}
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -367,7 +367,7 @@ export function ModifyPlaceDialog({
                 currentImageUrl={form.bannerUrl}
                 onFileChange={handleFileChange}
                 onRemove={() => handleRemoveImage("banner")}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
               <ImageUpload
                 id="imageFile"
@@ -377,7 +377,7 @@ export function ModifyPlaceDialog({
                 currentImageUrl={form.imageUrl}
                 onFileChange={handleFileChange}
                 onRemove={() => handleRemoveImage("image")}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -389,7 +389,7 @@ export function ModifyPlaceDialog({
                 value={form.description}
                 onChange={handleChange}
                 placeholder="Description courte du lieu"
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -402,19 +402,19 @@ export function ModifyPlaceDialog({
                 onChange={handleChange}
                 placeholder="Description détaillée du lieu, équipements, accès..."
                 rows={3}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={loading}>
+              <Button variant="outline" disabled={mutation.isPending}>
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
-              {loading ? (
+            <Button type="submit" disabled={mutation.isPending || !isFormValid}>
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Modification...
