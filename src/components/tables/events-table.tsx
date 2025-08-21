@@ -37,7 +37,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Search, CalendarDays, Edit, Trash2, Users } from "lucide-react";
 import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
-import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { EventParticipantsDialog } from "@/components/dialogs/event-participants-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 import { DragHandle } from "../ui/drag-handle";
@@ -381,9 +380,8 @@ export function EventsTable({
                             Aucun événement
                           </div>
                           <div className="mb-4 text-sm text-muted-foreground">
-                            Commencez par créer votre premier événement.
+                            Aucun événement n'a été créé pour le moment.
                           </div>
-                          <CreateEventDialog />
                         </>
                       )}
                     </div>

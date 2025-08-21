@@ -99,6 +99,7 @@ export function useAuth() {
         setUser(userData);
 
         toast.success(`Bienvenue ${userData.firstName} !`);
+
         setLoginSuccess(redirectUrl);
       } catch (err) {
         toast.error("Erreur de connexion");
@@ -160,8 +161,10 @@ export function useAuth() {
 
   useEffect(() => {
     if (loginSuccess) {
-      router.replace(loginSuccess);
-      setLoginSuccess(null);
+      setTimeout(() => {
+        router.replace(loginSuccess);
+        setLoginSuccess(null);
+      }, 0);
     }
   }, [loginSuccess, router]);
 
