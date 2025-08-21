@@ -14,25 +14,19 @@ export function useAuth() {
   const getInitialUser = () => {
     if (typeof window === "undefined") return null;
     const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        return JSON.parse(userStr) as User;
-      } catch {
-        localStorage.removeItem("user");
-      }
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr) as User;
+    } catch {
+      localStorage.removeItem("user");
+      return null;
     }
-    return null;
   };
 
   const [user, setUser] = useState<User | null>(getInitialUser());
-  const [loading, setLoading] = useState(() => {
-    const token =
-      typeof window !== "undefined"
-        ? document.cookie.includes("token=")
-        : false;
-    const cachedUser = getInitialUser();
-    return !(token && cachedUser);
-  });
+  const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState<string | null>(null);
 
   const getToken = useCallback(() => {
     if (typeof document === "undefined") return null;
@@ -57,27 +51,62 @@ export function useAuth() {
         setLoading(true);
         const { token } = await authenticate(email, password);
         const userData = await getMe(token);
+
         if (!isRoleAllowed(userData.role)) {
           throw new Error(
             `Accès refusé. Rôle "${userData.role}" non autorisé.`
           );
         }
+
         document.cookie = `token=${token}; path=/; max-age=${
           7 * 24 * 60 * 60
         }; SameSite=Lax`;
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
+
         toast.success(`Bienvenue ${userData.firstName} !`);
 
-        setTimeout(() => {
-          window.location.href = redirectUrl;
-        }, 0);
-      } catch (err: any) {
+        setLoginSuccess(redirectUrl);
+      } catch (err) {
         toast.error("Erreur de connexion");
         clearAuth();
         throw err;
       } finally {
         setLoading(false);
+        setAuthChecked(true);
+      }
+    },
+    [clearAuth]
+  );
+
+  const loginWithToken = useCallback(
+    async (token: string, redirectUrl = "/dashboard") => {
+      try {
+        setLoading(true);
+
+        const userData = await getMe(token);
+
+        if (!isRoleAllowed(userData.role)) {
+          throw new Error(
+            `Accès refusé. Rôle "${userData.role}" non autorisé.`
+          );
+        }
+
+        document.cookie = `token=${token}; path=/; max-age=${
+          7 * 24 * 60 * 60
+        }; SameSite=Lax`;
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData);
+
+        toast.success(`Bienvenue ${userData.firstName} !`);
+        setLoginSuccess(redirectUrl);
+      } catch (err) {
+        toast.error("Erreur de connexion");
+        clearAuth();
+        throw err;
+      } finally {
+        setLoading(false);
+        setAuthChecked(true);
       }
     },
     [clearAuth]
@@ -86,21 +115,13 @@ export function useAuth() {
   const logout = useCallback(() => {
     clearAuth();
     toast.success("Vous avez été déconnecté.");
+    router.replace("/auth/login");
+  }, [clearAuth, router]);
 
-    setTimeout(() => {
-      window.location.href = "/auth/login";
-    }, 0);
-  }, [clearAuth]);
-
+  // Vérification initiale de l'auth
   useEffect(() => {
-    let didFallbackToCache = false;
-    let retryCount = 0;
-    const maxRetries = 3;
-
     const checkAuth = async () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (abortControllerRef.current) abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
 
       try {
@@ -108,78 +129,51 @@ export function useAuth() {
         if (!token) {
           setUser(null);
           setLoading(false);
+          setAuthChecked(true);
           return;
         }
 
-        const userStr = localStorage.getItem("user");
-        let userData: User | null = null;
-        if (userStr) {
-          try {
-            userData = JSON.parse(userStr);
-          } catch (parseError) {
-            localStorage.removeItem("user");
-            userData = null;
-          }
-        }
-
-        if (userData && isRoleAllowed(userData.role)) {
-          setUser(userData);
-          setLoading(false);
-          didFallbackToCache = true;
-        }
-
-        const attemptApiCall = async (): Promise<User> => {
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Timeout")), 8000);
-          });
-          const apiPromise = getMe(token);
-          return (await Promise.race([apiPromise, timeoutPromise])) as User;
-        };
-
+        // Vérification API
         try {
-          const freshUserData = await attemptApiCall();
-          if (!isRoleAllowed(freshUserData.role)) {
+          const freshUser = await getMe(token);
+          if (!isRoleAllowed(freshUser.role)) {
             clearAuth();
             setUser(null);
-            setLoading(false);
-            return;
+          } else {
+            localStorage.setItem("user", JSON.stringify(freshUser));
+            setUser(freshUser);
           }
-          localStorage.setItem("user", JSON.stringify(freshUserData));
-          setUser(freshUserData);
-          setLoading(false);
-        } catch (apiError) {
-          if (didFallbackToCache) return;
-          if (retryCount < maxRetries - 1) {
-            retryCount++;
-            setTimeout(() => checkAuth(), 2000);
-            return;
-          }
-          clearAuth();
-          setUser(null);
-          setLoading(false);
+        } catch {
+          const cachedUser = getInitialUser();
+          if (!cachedUser) clearAuth();
+          else setUser(cachedUser);
         }
-      } catch (error) {
-        clearAuth();
-        setUser(null);
+      } finally {
         setLoading(false);
+        setAuthChecked(true);
       }
     };
 
     checkAuth();
-
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
+    return () => abortControllerRef.current?.abort();
   }, [getToken, clearAuth]);
+
+  useEffect(() => {
+    if (loginSuccess) {
+      router.replace(loginSuccess);
+      setLoginSuccess(null);
+    }
+  }, [loginSuccess, router]);
 
   return {
     user,
     loading,
+    authChecked,
+    loginSuccess,
     isAuthenticated: !!user && !!getToken(),
     token: getToken(),
     login,
+    loginWithToken,
     logout,
     clearAuth,
   };

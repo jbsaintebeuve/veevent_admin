@@ -12,21 +12,22 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, loading, authChecked, isAuthenticated, loginSuccess } =
+    useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (loading) return;
+    // On attend que l'auth soit vérifiée
+    if (loading || !authChecked || loginSuccess) return;
 
     if (!isAuthenticated || !user) {
-      router.replace(
-        `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`
-      );
+      router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
-    // Vérifier les permissions pour la route courante
+
+    // Vérification des permissions pour la route courante
     const matched = Object.entries(routePermissions).find(([prefix]) =>
       pathname.startsWith(prefix)
     );
@@ -40,10 +41,20 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       router.replace("/auth/login?error=insufficient-permissions");
       return;
     }
-    setIsAuthorized(true);
-  }, [user, loading, isAuthenticated, router, pathname]);
 
-  if (loading || isAuthorized === null) {
+    setIsAuthorized(true);
+  }, [
+    user,
+    loading,
+    authChecked,
+    isAuthenticated,
+    loginSuccess,
+    router,
+    pathname,
+  ]);
+
+  // Affichage fallback tant que l'auth n'est pas vérifiée
+  if (loading || !authChecked || isAuthorized === null || loginSuccess) {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">
@@ -57,6 +68,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       )
     );
   }
+
   if (!isAuthorized) return null;
 
   return <>{children}</>;

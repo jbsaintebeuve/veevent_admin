@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { loginWithToken } = useAuth();
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -22,14 +22,14 @@ function AuthCallbackContent() {
       return;
     }
 
-    login(token, token, redirectUrl).catch(() => {
+    loginWithToken(token, redirectUrl).catch(() => {
       router.replace(
         `/auth/login?error=auth_failed&redirect=${encodeURIComponent(
           redirectUrl
         )}`
       );
     });
-  }, [searchParams, router, login]);
+  }, [searchParams, router, loginWithToken]);
 
   return null;
 }
