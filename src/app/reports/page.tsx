@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { fetchReports } from "@/lib/fetch-reports";
+import { fetchReports } from "@/services/report-service";
 import { Report, ReportsApiResponse } from "@/types/report";
 import { useAuth } from "@/hooks/use-auth";
 import { ReportsTable } from "@/components/tables/reports-table";

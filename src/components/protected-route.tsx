@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { routePermissions } from "@/lib/route-permissions";
-import { clearLocalStoragePreservingTheme } from "@/lib/utils";
+import { routePermissions } from "@/utils/route-permissions";
+import { isRoleAllowed } from "@/utils/auth-roles";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,37 +12,36 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, loading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (loading) return;
+
     if (!isAuthenticated || !user) {
-      router.replace(
-        `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`
-      );
+      router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
-    // Vérifier les permissions pour la route courante
+
+    if (!isRoleAllowed(user.role)) {
+      logout();
+      return;
+    }
+
     const matched = Object.entries(routePermissions).find(([prefix]) =>
       pathname.startsWith(prefix)
     );
-    const allowedRoles = matched ? matched[1] : [];
-    if (!allowedRoles.includes(user.role.toLowerCase())) {
-      document.cookie =
-        "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
-      localStorage.removeItem("user");
-      clearLocalStoragePreservingTheme();
-
-      router.replace("/auth/login?error=insufficient-permissions");
+    if (matched && !matched[1].includes(user.role.toLowerCase())) {
+      logout();
       return;
     }
-    setIsAuthorized(true);
-  }, [user, loading, isAuthenticated, router, pathname]);
 
-  if (loading || isAuthorized === null) {
+    setIsAuthorized(true);
+  }, [user, loading, isAuthenticated, router, pathname, logout]);
+
+  if (loading) {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">
@@ -56,6 +55,8 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       )
     );
   }
+
   if (!isAuthorized) return null;
+
   return <>{children}</>;
 }

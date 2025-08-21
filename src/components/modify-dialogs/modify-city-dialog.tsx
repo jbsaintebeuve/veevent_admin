@@ -20,10 +20,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Loader2, Edit, AlertCircle, MapPin, Globe } from "lucide-react";
 import { City, CityUpdateRequest } from "@/types/city";
-import { modifyCity } from "@/lib/fetch-cities";
+import { modifyCity } from "@/services/city-service";
 import { useAuth } from "@/hooks/use-auth";
 import { Checkbox } from "@/components/ui/checkbox";
-import { uploadImage } from "@/lib/upload-image";
+import { uploadImage } from "@/utils/upload-image";
 import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyCityDialogProps {

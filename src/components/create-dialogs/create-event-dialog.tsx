@@ -38,11 +38,11 @@ import {
   ClockIcon,
   ChevronDownIcon,
 } from "lucide-react";
-import { fetchCities } from "@/lib/fetch-cities";
-import { fetchPlacesByCity } from "@/lib/fetch-places";
-import { fetchCategories } from "@/lib/fetch-categories";
-import { uploadImage } from "@/lib/upload-image";
-import { createEvent } from "@/lib/fetch-events";
+import { fetchCities } from "@/services/city-service";
+import { fetchPlacesByCity } from "@/services/place-service";
+import { fetchCategories } from "@/services/category-service";
+import { uploadImage } from "@/utils/upload-image";
+import { createEvent } from "@/services/event-service";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";

@@ -2,6 +2,13 @@ import { TicketVerificationRequest, TicketVerificationResponse } from "@/types/t
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// =============================================================================
+// VÉRIFICATION DE TICKETS
+// =============================================================================
+
+/**
+ * Vérifie la validité d'un ticket via sa clé de vérification
+ */
 export async function verifyTicket(
   verificationKey: string,
   token?: string,
@@ -160,6 +167,14 @@ export async function verifyTicket(
   }
 }
 
+// =============================================================================
+// UTILITAIRES
+// =============================================================================
+
+/**
+ * Parse une clé de vérification pour extraire les IDs
+ * Format attendu: VV-{eventId}-{orderId}-{ticketId}
+ */
 export function parseVerificationKey(verificationKey: string): {
   eventId: number;
   orderId: number;
@@ -178,4 +193,4 @@ export function parseVerificationKey(verificationKey: string): {
     orderId: parseInt(match[2], 10),
     ticketId: parseInt(match[3], 10),
   };
-} 
+}

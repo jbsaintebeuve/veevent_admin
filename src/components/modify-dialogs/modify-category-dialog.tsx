@@ -29,7 +29,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Category, CategoryUpdateRequest } from "@/types/category";
-import { modifyCategory } from "@/lib/fetch-categories";
+import { modifyCategory } from "@/services/category-service";
 import { useAuth } from "@/hooks/use-auth";
 
 interface ModifyCategoryDialogProps {

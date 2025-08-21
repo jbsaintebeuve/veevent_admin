@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { fetchUserEvents } from "@/lib/fetch-events";
+import { fetchUserEvents } from "@/services/event-service";
 import { useAuth } from "@/hooks/use-auth";
 import { EventsApiResponse } from "@/types/event";
 import { EventsTable } from "@/components/tables/events-table";

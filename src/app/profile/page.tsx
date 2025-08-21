@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { fetchUserMe } from "@/lib/fetch-user-me";
+import { fetchUserMe } from "@/services/user-service";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,10 +38,10 @@ import {
   Camera,
   Edit,
 } from "lucide-react";
-import { fetchCategories } from "@/lib/fetch-categories";
-import { updateUserProfile } from "@/lib/fetch-user-me";
+import { fetchCategories } from "@/services/category-service";
+import { updateUserProfile } from "@/services/user-service";
 import { Category as CategoryType } from "@/types/category";
-import { uploadImage } from "@/lib/upload-image";
+import { uploadImage } from "@/utils/upload-image";
 import { ImageUpload } from "@/components/ui/image-upload";
 
 interface Social {

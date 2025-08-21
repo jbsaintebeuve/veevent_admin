@@ -29,7 +29,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { CategoryCreateRequest } from "@/types/category";
-import { createCategory } from "@/lib/fetch-categories";
+import { createCategory } from "@/services/category-service";
 
 export function CreateCategoryDialog() {
   const [open, setOpen] = useState(false);

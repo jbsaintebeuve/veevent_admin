@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { cn, clearLocalStoragePreservingTheme } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
+import { cn } from "@/utils/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,15 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { authenticateUser, fetchUserMe } from "@/lib/fetch-user-me";
-import { User } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
-import { isRoleAllowed } from "@/lib/auth-roles";
-
-interface LoginResponse {
-  token: string;
-  user: User;
-}
 
 export function LoginForm({
   className,
@@ -35,31 +27,15 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const redirectUri = `${
     process.env.NEXT_PUBLIC_FRONTEND_URL
   }/auth/callback?redirect=${encodeURIComponent(redirectUrl)}`;
-  const { storeAuthAndRedirect, clearAuth } = useAuth();
+  const { login } = useAuth();
   const backendGoogleLoginUrl = `${
     process.env.NEXT_PUBLIC_BACK_URL
   }/oauth2/authorize/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-  // Gestion des erreurs de permissions et d'authentification OAuth
-  useEffect(() => {
-    if (searchParams.get("error") === "insufficient-permissions") {
-      setError(
-        "Accès refusé. Votre rôle ne permet pas d'accéder à cette interface d'administration."
-      );
-    } else if (searchParams.get("error") === "auth_failed") {
-      setError(
-        "Vous n'avez pas le rôle nécessaire pour accéder à cette interface."
-      );
-    }
-  }, [searchParams]);
-
-  // Utilisation de clearAuth du hook de login
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -67,71 +43,13 @@ export function LoginForm({
     setLoading(true);
 
     try {
-      // Authentification avec retry
-      let token: string | undefined;
-      let retryCount = 0;
-      const maxRetries = 2;
-
-      while (retryCount <= maxRetries) {
-        try {
-          const authResponse = await authenticateUser({ email, password });
-          token = authResponse.token;
-          break;
-        } catch (authError: any) {
-          retryCount++;
-          if (retryCount > maxRetries) {
-            throw authError;
-          }
-          console.log(
-            `🔄 Tentative d'authentification ${retryCount}/${
-              maxRetries + 1
-            } échouée, nouvelle tentative...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // Attendre 1s avant de retenter
-        }
-      }
-
-      // Récupération et vérification du profil avec retry
-      let userData: User | undefined;
-      retryCount = 0;
-
-      while (retryCount <= maxRetries) {
-        try {
-          if (!token) throw new Error("Token manquant");
-          userData = await fetchUserMe(token);
-          break;
-        } catch (profileError: any) {
-          retryCount++;
-          if (retryCount > maxRetries) {
-            throw profileError;
-          }
-          console.log(
-            `🔄 Tentative de récupération du profil ${retryCount}/${
-              maxRetries + 1
-            } échouée, nouvelle tentative...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-
-      if (!userData || !isRoleAllowed(userData.role)) {
-        throw new Error(
-          "Vous n'avez pas le rôle nécessaire pour accéder à cette interface."
-        );
-      }
-
-      // Stockage et redirection
-      // Utiliser notre hook pour stocker l'authentification et rediriger
-      if (!token) throw new Error("Token manquant");
-      await storeAuthAndRedirect(token, userData!, redirectUrl);
+      await login(email, password, redirectUrl);
     } catch (err: any) {
-      clearAuth();
       const errorMessage =
-        err.name === "TypeError" && err.message.includes("fetch")
-          ? "Impossible de contacter le serveur. Vérifiez que l'API backend est démarrée et redémarrez l'application."
-          : err.message || "Une erreur est survenue";
-      setError(errorMessage);
-      toast.error("Connexion refusée");
+        err.message || "Une erreur est survenue lors de la connexion";
+      setError(
+        "Vos informations de connexion sont incorrectes. Veuillez réessayer."
+      );
     } finally {
       setLoading(false);
     }

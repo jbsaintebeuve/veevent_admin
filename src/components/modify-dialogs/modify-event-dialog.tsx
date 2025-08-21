@@ -27,9 +27,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Event, EventUpdateRequest } from "@/types/event";
-import { modifyEvent, fetchEventDetails } from "@/lib/fetch-events";
-import { uploadImage } from "@/lib/upload-image";
-import { fetchCategories } from "@/lib/fetch-categories";
+import { modifyEvent, fetchEventDetails } from "@/services/event-service";
+import { uploadImage } from "@/utils/upload-image";
+import { fetchCategories } from "@/services/category-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";

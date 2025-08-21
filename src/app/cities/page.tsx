@@ -11,14 +11,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { CreateCityDialog } from "@/components/create-dialogs/create-city-dialog";
-import { fetchCities, deleteCity } from "@/lib/fetch-cities";
+import { fetchCities, deleteCity } from "@/services/city-service";
 import { useAuth } from "@/hooks/use-auth";
 import { ModifyCityDialog } from "@/components/modify-dialogs/modify-city-dialog";
 import { City, CitiesApiResponse } from "@/types/city";
 import { CitiesTable } from "@/components/tables/cities-table";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import { getDeleteErrorMessage, EntityTypes } from "@/lib/error-messages";
+import { getDeleteErrorMessage, EntityTypes } from "@/utils/error-messages";
 
 export default function CitiesPage() {
   const [search, setSearch] = useState("");

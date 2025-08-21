@@ -19,7 +19,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { verifyTicket } from "@/lib/fetch-tickets";
+import { verifyTicket } from "@/services/ticket-service";
 import { TicketVerificationResponse } from "@/types/ticket";
 
 interface VerificationResult {

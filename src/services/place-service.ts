@@ -1,7 +1,10 @@
-import { Place, PlacesApiResponse, PlaceCreateRequest } from "@/types/place";
-import { PlaceUpdateRequest } from "@/types/place";
+import { Place, PlacesApiResponse, PlaceCreateRequest, PlaceUpdateRequest } from "@/types/place";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// ============================================================================
+// PLACE FETCHING
+// ============================================================================
 
 export async function fetchPlaces(
   token?: string,
@@ -54,6 +57,10 @@ export async function fetchPlacesByCity(
     return [];
   }
 }
+
+// ============================================================================
+// PLACE MANAGEMENT
+// ============================================================================
 
 export async function createPlace(payload: PlaceCreateRequest, token?: string) {
   const res = await fetch(`${API_URL}/places`, {

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { EventParticipant } from "@/types/event";
-import { useEventParticipants } from "@/hooks/use-event-participants";
+import { useQuery } from "@tanstack/react-query";
+import { EventParticipant, EventParticipantsApiResponse } from "@/types/event";
+import { fetchEventParticipants } from "@/services/event-service";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Dialog,
   DialogClose,
@@ -28,11 +29,22 @@ export function EventParticipantsDialog({
   isOpen,
   onOpenChange,
 }: EventParticipantsDialogProps) {
-  const { participants, totalElements, isLoading, error, refresh } =
-    useEventParticipants({
-      eventSelfLink,
-      autoLoad: isOpen,
-    });
+  const { getToken } = useAuth();
+  const token = getToken();
+
+  const {
+    data: participantsResponse,
+    isLoading,
+    error,
+    refetch
+  } = useQuery<EventParticipantsApiResponse>({
+    queryKey: ["event-participants", eventSelfLink],
+    queryFn: () => fetchEventParticipants(eventSelfLink!, token || undefined),
+    enabled: isOpen && !!eventSelfLink,
+  });
+
+  const participants = participantsResponse?._embedded?.userSummaries || [];
+  const totalElements = participants.length;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -56,7 +68,9 @@ export function EventParticipantsDialog({
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                {error instanceof Error ? error.message : "Erreur lors du chargement des participants"}
+              </AlertDescription>
             </Alert>
           )}
 

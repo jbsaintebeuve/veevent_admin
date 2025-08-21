@@ -11,13 +11,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { CreatePlaceDialog } from "@/components/create-dialogs/create-place-dialog";
 import { ModifyPlaceDialog } from "@/components/modify-dialogs/modify-place-dialog";
-import { fetchPlaces, deletePlace } from "@/lib/fetch-places";
+import { fetchPlaces, deletePlace } from "@/services/place-service";
 import { useAuth } from "@/hooks/use-auth";
 import { PlacesApiResponse } from "@/types/place";
 import { PlacesTable } from "@/components/tables/places-table";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import { getDeleteErrorMessage, EntityTypes } from "@/lib/error-messages";
+import { getDeleteErrorMessage, EntityTypes } from "@/utils/error-messages";
 import { usePlacesCards } from "@/hooks/data-cards/use-places-cards";
 
 export default function PlacesPage() {

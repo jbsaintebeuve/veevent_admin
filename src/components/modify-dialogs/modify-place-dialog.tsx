@@ -27,8 +27,8 @@ import { toast } from "sonner";
 import { Edit, Loader2 } from "lucide-react";
 import { Place, PlaceUpdateRequest, placeTypes } from "@/types/place";
 import { City, CitiesApiResponse } from "@/types/city";
-import { fetchCities } from "@/lib/fetch-cities";
-import { modifyPlace } from "@/lib/fetch-places";
+import { fetchCities } from "@/services/city-service";
+import { modifyPlace } from "@/services/place-service";
 import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "@/components/ui/image-upload";
 
@@ -173,11 +173,11 @@ export function ModifyPlaceDialog({ place, children }: ModifyPlaceDialogProps) {
 
       // Upload des nouvelles images si elles existent
       if (form.bannerFile) {
-        const { uploadImage } = await import("@/lib/upload-image");
+        const { uploadImage } = await import("@/utils/upload-image");
         bannerUrl = await uploadImage(form.bannerFile);
       }
       if (form.imageFile) {
-        const { uploadImage } = await import("@/lib/upload-image");
+        const { uploadImage } = await import("@/utils/upload-image");
         imageUrl = await uploadImage(form.imageFile);
       }
 

@@ -9,8 +9,6 @@ import {
   IconMoon,
 } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { toast } from "sonner";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -35,20 +33,8 @@ export function NavUser() {
   const { user, logout, isAuthenticated } = useAuth();
 
   if (!isAuthenticated || !user) {
-    console.log("❌ NavUser: No authenticated user");
     return null;
   }
-
-  const handleLogout = async () => {
-    try {
-      console.log("🚪 Déconnexion demandée");
-      toast.success("Déconnexion réussie");
-      logout(); // Utilise la fonction logout du hook useAuth
-    } catch (error) {
-      console.error("❌ Erreur lors de la déconnexion:", error);
-      toast.error("Erreur lors de la déconnexion");
-    }
-  };
 
   const toggleTheme = () => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
@@ -141,7 +127,7 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={handleLogout}
+              onClick={logout}
               className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
             >
               <IconLogout className="mr-2 h-4 w-4" />

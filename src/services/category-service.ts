@@ -1,4 +1,3 @@
-// Fonction utilitaire pour récupérer les catégories depuis l'API
 import {
   CategoriesApiResponse,
   Category,
@@ -7,6 +6,10 @@ import {
 } from "@/types/category";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// ============================================================================
+// CATEGORY FETCHING
+// ============================================================================
 
 export async function fetchCategories(
   token?: string,
@@ -26,6 +29,23 @@ export async function fetchCategories(
   if (!res.ok) throw new Error("Erreur lors du chargement des catégories");
   return await res.json();
 }
+
+export async function fetchCategoriesCounts(
+  token?: string
+): Promise<Record<string, number>> {
+  const res = await fetch(`${API_URL}/categories/counts`, {
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  if (!res.ok)
+    throw new Error("Erreur lors du chargement des comptes de catégories");
+  return await res.json();
+}
+
+// ============================================================================
+// CATEGORY MANAGEMENT
+// ============================================================================
 
 export async function createCategory(
   payload: CategoryCreateRequest,
@@ -100,17 +120,4 @@ export async function deleteCategory(deleteUrl: string, token?: string) {
 
     throw new Error(errorMessage);
   }
-}
-
-export async function fetchCategoriesCounts(
-  token?: string
-): Promise<Record<string, number>> {
-  const res = await fetch(`${API_URL}/categories/counts`, {
-    headers: {
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-  if (!res.ok)
-    throw new Error("Erreur lors du chargement des comptes de catégories");
-  return await res.json();
 }

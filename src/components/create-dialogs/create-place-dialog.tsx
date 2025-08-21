@@ -29,9 +29,9 @@ import { Plus, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { PlaceCreateRequest, placeTypes } from "@/types/place";
 import { CitiesApiResponse } from "@/types/city";
-import { fetchCities } from "@/lib/fetch-cities";
-import { createPlace } from "@/lib/fetch-places";
-import { uploadImage } from "@/lib/upload-image";
+import { fetchCities } from "@/services/city-service";
+import { createPlace } from "@/services/place-service";
+import { uploadImage } from "@/utils/upload-image";
 import { ImageUpload } from "@/components/ui/image-upload";
 
 export function CreatePlaceDialog() {

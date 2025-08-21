@@ -7,6 +7,10 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// ============================================================================
+// CITY FETCHING
+// ============================================================================
+
 export async function fetchCities(
   token?: string,
   page = 0,
@@ -25,6 +29,10 @@ export async function fetchCities(
   if (!res.ok) throw new Error("Erreur lors du chargement des villes");
   return await res.json();
 }
+
+// ============================================================================
+// CITY MANAGEMENT
+// ============================================================================
 
 export async function createCity(payload: any, token?: string) {
   const res = await fetch(`${API_URL}/cities`, {

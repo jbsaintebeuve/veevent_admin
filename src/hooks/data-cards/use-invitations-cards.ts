@@ -11,7 +11,6 @@ interface UseInvitationsCardsProps {
 }
 
 export function useInvitationsCards({
-  invitations,
   totalInvitations,
   pendingCount,
   acceptedCount,

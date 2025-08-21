@@ -2,6 +2,13 @@ import { Report, ReportsApiResponse } from "@/types/report";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+// =============================================================================
+// RÉCUPÉRATION DES SIGNALEMENTS
+// =============================================================================
+
+/**
+ * Récupère tous les signalements avec pagination
+ */
 export async function fetchReports(
   token?: string,
   page = 0,
@@ -17,6 +24,7 @@ export async function fetchReports(
       ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
+  
   if (!res.ok) throw new Error("Erreur lors du chargement des signalements");
   return await res.json();
 }

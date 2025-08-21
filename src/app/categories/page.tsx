@@ -13,13 +13,13 @@ import {
   fetchCategories,
   deleteCategory,
   fetchCategoriesCounts,
-} from "@/lib/fetch-categories";
+} from "@/services/category-service";
 import { useAuth } from "@/hooks/use-auth";
 import { CategoriesApiResponse } from "@/types/category";
 import { CategoriesTable } from "@/components/tables/categories-table";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import { getDeleteErrorMessage, EntityTypes } from "@/lib/error-messages";
+import { getDeleteErrorMessage, EntityTypes } from "@/utils/error-messages";
 
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");

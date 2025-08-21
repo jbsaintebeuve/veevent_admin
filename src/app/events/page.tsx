@@ -9,12 +9,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
-import { fetchEvents, deleteEvent } from "@/lib/fetch-events";
+import { fetchEvents, deleteEvent } from "@/services/event-service";
 import { useAuth } from "@/hooks/use-auth";
 import { EventsApiResponse } from "@/types/event";
 import { EventsTable } from "@/components/tables/events-table";
 import { PageSkeleton } from "@/components/page-skeleton";
-import { getDeleteErrorMessage, EntityTypes } from "@/lib/error-messages";
+import { getDeleteErrorMessage, EntityTypes } from "@/utils/error-messages";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 
 export default function EventsPage() {

@@ -9,7 +9,7 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Toggle } from "@/components/ui/toggle";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import {
   Bold,
   Italic,

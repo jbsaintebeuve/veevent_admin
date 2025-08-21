@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AvatarGroup } from "@/components/ui/avatar-group";
 import { AlertCircle } from "lucide-react";
-import { fetchUsers } from "@/lib/fetch-users";
+import { fetchUsers } from "@/services/user-service";
 import { User, UsersApiResponse } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
 import { UsersTable } from "@/components/tables/users-table";
@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { banOrUnbanUser } from "@/lib/fetch-users";
+import { banOrUnbanUser } from "@/services/user-service";
 import { useUsersCards } from "@/hooks/data-cards/use-users-cards";
 
 export default function UsersPage() {

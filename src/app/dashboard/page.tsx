@@ -4,11 +4,11 @@ import { SectionCards, type CardData } from "@/components/section-cards";
 import { SiteHeader } from "@/components/site-header";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { fetchEvents, fetchUserEvents } from "@/lib/fetch-events";
-import { fetchUsers } from "@/lib/fetch-users";
-import { fetchReports } from "@/lib/fetch-reports";
+import { fetchEvents, fetchUserEvents } from "@/services/event-service";
+import { fetchUsers } from "@/services/user-service";
+import { fetchReports } from "@/services/report-service";
 import { PageSkeleton } from "@/components/page-skeleton";
-import { fetchUserInvitations } from "@/lib/fetch-invitations";
+import { fetchUserInvitations } from "@/services/invitation-service";
 import { useMemo } from "react";
 
 export default function Page() {
