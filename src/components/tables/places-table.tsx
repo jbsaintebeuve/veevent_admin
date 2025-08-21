@@ -160,8 +160,7 @@ export function PlacesTable({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
               <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
+                onSelect={() => {
                   setModifyTarget(row.original);
                   setModifyDialogOpen(true);
                 }}
@@ -170,8 +169,7 @@ export function PlacesTable({
                 Modifier
               </DropdownMenuItem>
               <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
+                onSelect={() => {
                   setDeleteTarget(row.original);
                   setDeleteDialogOpen(true);
                 }}

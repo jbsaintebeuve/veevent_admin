@@ -68,7 +68,10 @@ export function useAuth() {
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
         toast.success(`Bienvenue ${userData.firstName} !`);
-        router.push(redirectUrl);
+
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 0);
       } catch (err: any) {
         toast.error("Erreur de connexion");
         clearAuth();
@@ -77,14 +80,17 @@ export function useAuth() {
         setLoading(false);
       }
     },
-    [router, clearAuth]
+    [clearAuth]
   );
 
   const logout = useCallback(() => {
     clearAuth();
     toast.success("Vous avez été déconnecté.");
-    router.push("/auth/login");
-  }, [router, clearAuth]);
+
+    setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 0);
+  }, [clearAuth]);
 
   useEffect(() => {
     let didFallbackToCache = false;

@@ -176,8 +176,7 @@ export function InvitationsTable({
                 {status === "SENT" && (
                   <>
                     <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
+                      onSelect={() => {
                         onAccept(row.original);
                       }}
                       disabled={actionLoading}
@@ -186,8 +185,7 @@ export function InvitationsTable({
                       Accepter
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
+                      onSelect={() => {
                         onDecline(row.original);
                       }}
                       className="text-destructive focus:text-destructive"
@@ -200,8 +198,7 @@ export function InvitationsTable({
                 )}
                 {status === "ACCEPTED" && (
                   <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
+                    onSelect={() => {
                       onDecline(row.original);
                     }}
                     className="text-destructive focus:text-destructive"
@@ -213,8 +210,7 @@ export function InvitationsTable({
                 )}
                 {status === "REJECTED" && (
                   <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
+                    onSelect={() => {
                       onAccept(row.original);
                     }}
                     disabled={actionLoading}

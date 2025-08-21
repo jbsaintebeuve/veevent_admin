@@ -205,8 +205,7 @@ export function UsersTable({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-32">
                 <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
+                  onSelect={() => {
                     setBanTargetUser(user);
                     setBanDialogOpen(true);
                   }}

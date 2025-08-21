@@ -19,6 +19,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (loading) return;
+
     if (!isAuthenticated || !user) {
       router.replace(
         `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`
@@ -57,5 +58,6 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     );
   }
   if (!isAuthorized) return null;
+
   return <>{children}</>;
 }
