@@ -333,7 +333,6 @@ export function CreatePlaceDialog() {
               />
             </div>
 
-            {/* Description */}
             <div className="grid gap-2">
               <Label htmlFor="description">Description courte</Label>
               <Input

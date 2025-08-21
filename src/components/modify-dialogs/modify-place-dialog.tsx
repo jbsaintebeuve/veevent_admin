@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogClose,
@@ -81,7 +80,7 @@ export function ModifyPlaceDialog({
   };
 
   useEffect(() => {
-    if (place && cities.length > 0) {
+    if (place) {
       setForm({
         name: place.name || "",
         address: place.address || "",
@@ -90,14 +89,23 @@ export function ModifyPlaceDialog({
           latitude: place.location?.latitude ?? null,
           longitude: place.location?.longitude ?? null,
         },
-        cityId: findCityIdByName(place.cityName),
+        cityId: "",
         cityName: place.cityName || "",
         content: place.content || "",
         description: place.description || "",
       });
       images.resetAll(place.bannerUrl || "", place.imageUrl || "");
     }
-  }, [place, cities.length]);
+  }, [place]);
+
+  useEffect(() => {
+    if (place && cities.length > 0) {
+      setForm((prev) => ({
+        ...prev,
+        cityId: findCityIdByName(place.cityName),
+      }));
+    }
+  }, [cities.length, place]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -142,7 +150,6 @@ export function ModifyPlaceDialog({
     );
   }, [form]);
 
-  // Handlers pour images (comme dans city)
   const handleBannerChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       images.banner.handleFileChange(e);
@@ -224,22 +231,8 @@ export function ModifyPlaceDialog({
     }
   };
 
-  if (!place || citiesLoading) {
-    return (
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <div className="grid gap-4 py-4">
-            <Skeleton className="h-8 w-1/2 mb-2" />
-            <Skeleton className="h-8 w-full mb-2" />
-            <Skeleton className="h-8 w-full mb-2" />
-            <Skeleton className="h-8 w-full mb-2" />
-            <Skeleton className="h-8 w-full mb-2" />
-            <Skeleton className="h-32 w-full mb-2" />
-            <Skeleton className="h-10 w-1/3" />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
+  if (!place) {
+    return null;
   }
 
   return (
@@ -287,14 +280,28 @@ export function ModifyPlaceDialog({
               <SelectScrollable
                 value={form.cityId}
                 onValueChange={(value) => handleSelectChange("cityId", value)}
-                disabled={mutation.isPending || citiesLoading}
-                placeholder={form.cityName || "Choisir une ville"}
+                disabled={mutation.isPending}
+                placeholder={
+                  citiesLoading
+                    ? "Chargement..."
+                    : form.cityName || "Choisir une ville"
+                }
               >
-                {cities?.map((city: City) => (
-                  <SelectItem key={city.id} value={city.id.toString()}>
-                    {city.name}
+                {citiesLoading ? (
+                  <SelectItem value="loading" disabled>
+                    Chargement...
                   </SelectItem>
-                ))}
+                ) : Array.isArray(cities) && cities.length > 0 ? (
+                  cities.map((city: City) => (
+                    <SelectItem key={city.id} value={city.id.toString()}>
+                      {city.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-cities-available" disabled>
+                    Aucune ville disponible
+                  </SelectItem>
+                )}
               </SelectScrollable>
             </div>
 
