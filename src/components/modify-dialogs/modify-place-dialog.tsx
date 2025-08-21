@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import { fetchCities } from "@/services/city-service";
 import { modifyPlace } from "@/services/place-service";
 import { useAuth } from "@/hooks/use-auth";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { useMultipleImages } from "@/hooks/use-image-upload";
 
 interface ModifyPlaceDialogProps {
   place: Place | null;
@@ -45,17 +46,15 @@ export function ModifyPlaceDialog({
     longitude: "",
     cityId: "",
     cityName: "",
-    bannerUrl: "",
-    imageUrl: "",
     content: "",
     description: "",
-    bannerFile: null as File | null,
-    imageFile: null as File | null,
   });
   const queryClient = useQueryClient();
   const { token } = useAuth();
-  const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const images = useMultipleImages(
+    place?.bannerUrl || "",
+    place?.imageUrl || ""
+  );
 
   const { data: citiesResponse, isLoading: citiesLoading } =
     useQuery<CitiesApiResponse>({
@@ -65,6 +64,8 @@ export function ModifyPlaceDialog({
         return fetchCities(token, 0, 50);
       },
       enabled: open,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
     });
 
   const cities = citiesResponse?._embedded?.cityResponses || [];
@@ -87,15 +88,12 @@ export function ModifyPlaceDialog({
         longitude: place.location?.longitude?.toString() || "",
         cityId: findCityIdByName(place.cityName),
         cityName: place.cityName || "",
-        bannerUrl: place.bannerUrl || "",
-        imageUrl: place.imageUrl || "",
         content: place.content || "",
         description: place.description || "",
-        bannerFile: null,
-        imageFile: null,
       });
+      images.resetAll(place.bannerUrl || "", place.imageUrl || "");
     }
-  }, [place, citiesResponse]);
+  }, [place, citiesResponse, images]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -131,53 +129,37 @@ export function ModifyPlaceDialog({
     );
   }, [form]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target;
-    const file = files?.[0] || null;
-    setForm((prev) => ({ ...prev, [name]: file }));
-    if (name === "bannerFile") {
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreviewBannerUrl(url);
-      } else {
-        setPreviewBannerUrl(null);
-      }
-    }
-    if (name === "imageFile") {
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreviewImageUrl(url);
-      } else {
-        setPreviewImageUrl(null);
-      }
-    }
-  };
+  const handleBannerChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      images.banner.handleFileChange(e);
+    },
+    [images.banner]
+  );
 
-  const handleRemoveImage = (type: "banner" | "image") => {
-    if (type === "banner") {
-      setForm((prev) => ({ ...prev, bannerFile: null }));
-      setPreviewBannerUrl(null);
-    } else {
-      setForm((prev) => ({ ...prev, imageFile: null }));
-      setPreviewImageUrl(null);
-    }
-  };
+  const handleImageChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      images.image.handleFileChange(e);
+    },
+    [images.image]
+  );
+
+  const handleRemoveBanner = useCallback(() => {
+    images.banner.handleRemove();
+  }, [images.banner]);
+
+  const handleRemoveImage = useCallback(() => {
+    images.image.handleRemove();
+  }, [images.image]);
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error("Token manquant");
-      let bannerUrl = form.bannerUrl;
-      let imageUrl = form.imageUrl;
+      let bannerUrl = images.banner.currentUrl;
+      let imageUrl = images.image.currentUrl;
 
       // Upload des nouvelles images si elles existent
-      if (form.bannerFile) {
-        const { uploadImage } = await import("@/utils/upload-image");
-        bannerUrl = await uploadImage(form.bannerFile);
-      }
-      if (form.imageFile) {
-        const { uploadImage } = await import("@/utils/upload-image");
-        imageUrl = await uploadImage(form.imageFile);
-      }
+      const { bannerUrl: newBannerUrl, imageUrl: newImageUrl } =
+        await images.uploadAll();
 
       const payload: PlaceUpdateRequest = {
         name: form.name.trim(),
@@ -203,7 +185,7 @@ export function ModifyPlaceDialog({
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast.error(`Erreur: ${error.message}`);
+      toast.error(`Erreur lors de la modification du lieu`);
     },
   });
 
@@ -212,7 +194,7 @@ export function ModifyPlaceDialog({
     mutation.mutate();
   };
 
-  const resetToInitialState = () => {
+  const resetToInitialState = useCallback(() => {
     if (place) {
       setForm({
         name: place.name || "",
@@ -222,17 +204,12 @@ export function ModifyPlaceDialog({
         longitude: place.location?.longitude?.toString() || "",
         cityId: findCityIdByName(place.cityName),
         cityName: place.cityName || "",
-        bannerUrl: place.bannerUrl || "",
-        imageUrl: place.imageUrl || "",
         content: place.content || "",
         description: place.description || "",
-        bannerFile: null,
-        imageFile: null,
       });
-      setPreviewBannerUrl(null);
-      setPreviewImageUrl(null);
+      images.resetAll(place.bannerUrl || "", place.imageUrl || "");
     }
-  };
+  }, [place, images, cities]);
 
   const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
@@ -346,21 +323,21 @@ export function ModifyPlaceDialog({
               <ImageUpload
                 id="bannerFile"
                 label="Bannière"
-                file={form.bannerFile}
-                previewUrl={previewBannerUrl}
-                currentImageUrl={form.bannerUrl}
-                onFileChange={handleFileChange}
-                onRemove={() => handleRemoveImage("banner")}
+                file={images.banner.file}
+                previewUrl={images.banner.previewUrl}
+                currentImageUrl={images.banner.currentUrl}
+                onFileChange={handleBannerChange}
+                onRemove={handleRemoveBanner}
                 disabled={mutation.isPending}
               />
               <ImageUpload
                 id="imageFile"
                 label="Image principale"
-                file={form.imageFile}
-                previewUrl={previewImageUrl}
-                currentImageUrl={form.imageUrl}
-                onFileChange={handleFileChange}
-                onRemove={() => handleRemoveImage("image")}
+                file={images.image.file}
+                previewUrl={images.image.previewUrl}
+                currentImageUrl={images.image.currentUrl}
+                onFileChange={handleImageChange}
+                onRemove={handleRemoveImage}
                 disabled={mutation.isPending}
               />
             </div>

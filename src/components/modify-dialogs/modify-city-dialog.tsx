@@ -21,7 +21,7 @@ import { City, CityUpdateRequest } from "@/types/city";
 import { modifyCity } from "@/services/city-service";
 import { useAuth } from "@/hooks/use-auth";
 import { Checkbox } from "@/components/ui/checkbox";
-import { uploadImage } from "@/utils/upload-image";
+import { useMultipleImages } from "@/hooks/use-image-upload";
 import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyCityDialogProps {
@@ -48,15 +48,15 @@ export function ModifyCityDialog({
     country: "France",
     bannerUrl: "",
     imageUrl: "",
-    bannerFile: null as File | null,
-    imageFile: null as File | null,
     content: "",
     nearestCities: [] as number[],
   });
   const queryClient = useQueryClient();
   const { token } = useAuth();
-  const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const imageUploads = useMultipleImages(
+    city?.bannerUrl || "",
+    city?.imageUrl || ""
+  );
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -64,14 +64,7 @@ export function ModifyCityDialog({
       const patchUrl = city?._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
 
-      let bannerUrl = form.bannerUrl;
-      let imageUrl = form.imageUrl;
-      if (form.bannerFile) {
-        bannerUrl = await uploadImage(form.bannerFile);
-      }
-      if (form.imageFile) {
-        imageUrl = await uploadImage(form.imageFile);
-      }
+      const { bannerUrl, imageUrl } = await imageUploads.uploadAll();
 
       const payload = {
         name: form.name.trim(),
@@ -94,7 +87,7 @@ export function ModifyCityDialog({
       setTimeout(() => onOpenChange(false), 300);
     },
     onError: (err: any) => {
-      toast.error(`Erreur: ${err.message}`);
+      toast.error(`Erreur lors de la modification de la ville`);
     },
   });
 
@@ -113,8 +106,6 @@ export function ModifyCityDialog({
         country: city.country || "France",
         bannerUrl: city.bannerUrl || "",
         imageUrl: city.imageUrl || "",
-        bannerFile: null,
-        imageFile: null,
         content: city.content || "",
         nearestCities: city.nearestCities || [],
       });
@@ -149,38 +140,6 @@ export function ModifyCityDialog({
     );
   }, [form]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target;
-    const file = files?.[0] || null;
-    setForm((prev) => ({ ...prev, [name]: file }));
-    if (name === "bannerFile") {
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreviewBannerUrl(url);
-      } else {
-        setPreviewBannerUrl(null);
-      }
-    }
-    if (name === "imageFile") {
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreviewImageUrl(url);
-      } else {
-        setPreviewImageUrl(null);
-      }
-    }
-  };
-
-  const handleRemoveImage = (type: "banner" | "image") => {
-    if (type === "banner") {
-      setForm((prev) => ({ ...prev, bannerFile: null }));
-      setPreviewBannerUrl(null);
-    } else {
-      setForm((prev) => ({ ...prev, imageFile: null }));
-      setPreviewImageUrl(null);
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     mutation.mutate();
@@ -199,13 +158,10 @@ export function ModifyCityDialog({
         country: city.country || "France",
         bannerUrl: city.bannerUrl || "",
         imageUrl: city.imageUrl || "",
-        bannerFile: null,
-        imageFile: null,
         content: city.content || "",
         nearestCities: city.nearestCities || [],
       });
-      setPreviewBannerUrl(null);
-      setPreviewImageUrl(null);
+      imageUploads.resetAll(city.bannerUrl || "", city.imageUrl || "");
     }
   }, [city]);
 
@@ -325,21 +281,21 @@ export function ModifyCityDialog({
               <ImageUpload
                 id="bannerFile"
                 label="Bannière"
-                file={form.bannerFile}
-                previewUrl={previewBannerUrl}
-                currentImageUrl={form.bannerUrl}
-                onFileChange={handleFileChange}
-                onRemove={() => handleRemoveImage("banner")}
+                file={imageUploads.banner.file}
+                previewUrl={imageUploads.banner.previewUrl}
+                currentImageUrl={imageUploads.banner.currentUrl}
+                onFileChange={imageUploads.banner.handleFileChange}
+                onRemove={imageUploads.banner.handleRemove}
                 disabled={mutation.isPending}
               />
               <ImageUpload
                 id="imageFile"
                 label="Image principale"
-                file={form.imageFile}
-                previewUrl={previewImageUrl}
-                currentImageUrl={form.imageUrl}
-                onFileChange={handleFileChange}
-                onRemove={() => handleRemoveImage("image")}
+                file={imageUploads.image.file}
+                previewUrl={imageUploads.image.previewUrl}
+                currentImageUrl={imageUploads.image.currentUrl}
+                onFileChange={imageUploads.image.handleFileChange}
+                onRemove={imageUploads.image.handleRemove}
                 disabled={mutation.isPending}
               />
             </div>

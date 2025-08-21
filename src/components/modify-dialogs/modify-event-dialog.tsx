@@ -19,14 +19,13 @@ import { toast } from "sonner";
 import {
   Loader2,
   Edit,
-  AlertCircle,
   CalendarIcon,
   ClockIcon,
   ChevronDown,
 } from "lucide-react";
 import { Event, EventUpdateRequest } from "@/types/event";
 import { modifyEvent, fetchEventDetails } from "@/services/event-service";
-import { uploadImage } from "@/utils/upload-image";
+import { useImageUpload } from "@/hooks/use-image-upload";
 import { fetchCategories } from "@/services/category-service";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,8 +51,7 @@ export function ModifyEventDialog({
   onOpenChange,
 }: ModifyEventDialogProps) {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const imageUpload = useImageUpload(event?.imageUrl || "");
   const initialForm = {
     name: "",
     description: "",
@@ -131,25 +129,6 @@ export function ModifyEventDialog({
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setImagePreviewUrl(url);
-      setForm((prev) => ({ ...prev, imageUrl: url }));
-    }
-  };
-
-  const handleImageRemove = () => {
-    setImageFile(null);
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
-    setImagePreviewUrl(null);
-    setForm((prev) => ({ ...prev, imageUrl: "" }));
-  };
-
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
@@ -189,10 +168,7 @@ export function ModifyEventDialog({
         ? extractIdFromUrl(eventDetails._links.places.href)
         : 0;
 
-      let cloudinaryImageUrl = form.imageUrl;
-      if (imageFile) {
-        cloudinaryImageUrl = await uploadImage(imageFile);
-      }
+      const cloudinaryImageUrl = await imageUpload.uploadIfNeeded();
 
       const payload: EventUpdateRequest = {
         name: form.name.trim(),
@@ -226,7 +202,7 @@ export function ModifyEventDialog({
       onOpenChange(false);
     },
     onError: (err: any) => {
-      toast.error(`Erreur: ${err.message}`);
+      toast.error(`Erreur lors de la modification de l'événement`);
     },
   });
 
@@ -236,13 +212,8 @@ export function ModifyEventDialog({
   };
 
   const resetToInitialState = () => {
-    setImageFile(null);
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
-    setImagePreviewUrl(null);
-
     if (event) {
+      imageUpload.reset(event.imageUrl || "");
       const eventDate = event.date ? new Date(event.date) : undefined;
       const eventTime = eventDate
         ? eventDate.toLocaleTimeString("fr-FR", {
@@ -418,11 +389,11 @@ export function ModifyEventDialog({
             <ImageUpload
               id="imageUrl"
               label="Image"
-              file={imageFile}
-              previewUrl={imagePreviewUrl}
+              file={imageUpload.file}
+              previewUrl={imageUpload.previewUrl}
               currentImageUrl={event.imageUrl}
-              onFileChange={handleImageChange}
-              onRemove={handleImageRemove}
+              onFileChange={imageUpload.handleFileChange}
+              onRemove={imageUpload.handleRemove}
               disabled={mutation.isPending}
             />
 

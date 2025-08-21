@@ -36,7 +36,7 @@ import {
 import { fetchCities } from "@/services/city-service";
 import { fetchPlacesByCity } from "@/services/place-service";
 import { fetchCategories } from "@/services/category-service";
-import { uploadImage } from "@/utils/upload-image";
+import { useImageUpload } from "@/hooks/use-image-upload";
 import { createEvent } from "@/services/event-service";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
@@ -120,11 +120,9 @@ export function CreateEventDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const imageUpload = useImageUpload();
 
   const queryClient = useQueryClient();
   const { token } = useAuth();
@@ -168,15 +166,6 @@ export function CreateEventDialog({
   const categories = categoriesResponse?._embedded?.categories || [];
   const placesList = Array.isArray(places) ? places : [];
 
-  console.log("Cities data:", cities, "Is array:", Array.isArray(cities));
-  console.log("Places data:", places, "Is array:", Array.isArray(places));
-  console.log(
-    "Categories data:",
-    categories,
-    "Is array:",
-    Array.isArray(categories)
-  );
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -204,25 +193,6 @@ export function CreateEventDialog({
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setImagePreviewUrl(url);
-      setForm((prev) => ({ ...prev, imageUrl: url }));
-    }
-  };
-
-  const handleImageRemove = () => {
-    setImageFile(null);
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
-    setImagePreviewUrl(null);
-    setForm((prev) => ({ ...prev, imageUrl: "" }));
-  };
-
   const isFormValid = useMemo(() => {
     return (
       form.name.trim() !== "" &&
@@ -241,12 +211,7 @@ export function CreateEventDialog({
 
   const resetForm = () => {
     setForm(initialForm);
-    setError("");
-    setImageFile(null);
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
-    setImagePreviewUrl(null);
+    imageUpload.reset();
   };
 
   const validateForm = () => {
@@ -289,17 +254,11 @@ export function CreateEventDialog({
     if (!token) throw new Error("Token manquant");
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
       validateForm();
 
-      let cloudinaryImageUrl = form.imageUrl;
-      if (imageFile) {
-        console.log("🔄 Upload de l'image vers Cloudinary...");
-        cloudinaryImageUrl = await uploadImage(imageFile);
-        console.log("✅ Image uploadée avec succès:", cloudinaryImageUrl);
-      }
+      const cloudinaryImageUrl = await imageUpload.uploadIfNeeded();
 
       const payload = {
         name: form.name.trim(),
@@ -318,7 +277,6 @@ export function CreateEventDialog({
         isTrending: form.isTrending,
       };
 
-      console.log("📤 Envoi des données au backend:", payload);
       await createEvent(payload, token || undefined);
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["my-events"] });
@@ -326,9 +284,7 @@ export function CreateEventDialog({
       setOpen(false);
       resetForm();
     } catch (err: any) {
-      console.error("❌ Erreur lors de la création:", err);
-      setError(err.message);
-      toast.error(err.message);
+      toast.error("Erreur lors de la création de l'événement");
     } finally {
       setLoading(false);
     }
@@ -466,10 +422,10 @@ export function CreateEventDialog({
             <ImageUpload
               id="imageUrl"
               label="Image"
-              file={imageFile}
-              previewUrl={imagePreviewUrl}
-              onFileChange={handleImageChange}
-              onRemove={handleImageRemove}
+              file={imageUpload.file}
+              previewUrl={imageUpload.previewUrl}
+              onFileChange={imageUpload.handleFileChange}
+              onRemove={imageUpload.handleRemove}
               disabled={loading}
             />
 
@@ -629,13 +585,6 @@ export function CreateEventDialog({
               />
               <Label htmlFor="isTrending">Événement tendance</Label>
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </div>
 
           <DialogFooter>

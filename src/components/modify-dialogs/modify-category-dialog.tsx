@@ -16,17 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import {
-  Edit,
-  Loader2,
-  AlertCircle,
-  Tag,
-  Hash,
-  FileText,
-  TrendingUp,
-} from "lucide-react";
+import { Edit, Loader2, Tag, Hash, FileText, TrendingUp } from "lucide-react";
 import { Category, CategoryUpdateRequest } from "@/types/category";
 import { modifyCategory } from "@/services/category-service";
 import { useAuth } from "@/hooks/use-auth";
@@ -48,7 +39,6 @@ export function ModifyCategoryDialog({
     key: "",
     trending: false,
   });
-  const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { token } = useAuth();
 
@@ -91,7 +81,6 @@ export function ModifyCategoryDialog({
         trending: category.trending || false,
       });
     }
-    setError("");
   };
 
   const validateForm = () => {
@@ -131,8 +120,7 @@ export function ModifyCategoryDialog({
       setTimeout(() => onOpenChange(false), 300);
     },
     onError: (err: any) => {
-      setError(err.message);
-      toast.error(`Erreur: ${err.message}`);
+      toast.error("Erreur lors de la modification de la catégorie");
     },
   });
 
@@ -238,13 +226,6 @@ export function ModifyCategoryDialog({
                 </p>
               </div>
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </div>
 
           <DialogFooter>

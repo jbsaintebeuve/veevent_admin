@@ -17,17 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import {
-  Plus,
-  Loader2,
-  AlertCircle,
-  Tag,
-  Hash,
-  FileText,
-  TrendingUp,
-} from "lucide-react";
+import { Plus, Loader2, Tag, Hash, FileText, TrendingUp } from "lucide-react";
 import { CategoryCreateRequest } from "@/types/category";
 import { createCategory } from "@/services/category-service";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,7 +32,6 @@ export function CreateCategoryDialog() {
     trending: false,
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const { token } = useAuth();
   const queryClient = useQueryClient();
 
@@ -71,7 +61,6 @@ export function CreateCategoryDialog() {
       key: "",
       trending: false,
     });
-    setError("");
   };
 
   const validateForm = () => {
@@ -96,7 +85,6 @@ export function CreateCategoryDialog() {
     if (!token) throw new Error("Token manquant");
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
       validateForm();
@@ -108,19 +96,14 @@ export function CreateCategoryDialog() {
         trending: form.trending,
       };
 
-      console.log("🚀 Payload catégorie:", payload);
-
       const result = await createCategory(payload, token);
-      console.log("✅ Catégorie créée:", result);
 
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie créée avec succès !");
       setOpen(false);
       resetForm();
     } catch (err: any) {
-      console.error("❌ Erreur complète:", err);
-      setError(err.message);
-      toast.error(`Erreur: ${err.message}`);
+      toast.error(`Erreur lors de la création de la catégorie`);
     } finally {
       setLoading(false);
     }
@@ -230,14 +213,6 @@ export function CreateCategoryDialog() {
                 </p>
               </div>
             </div>
-
-            {/* Erreur */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </div>
 
           <DialogFooter>

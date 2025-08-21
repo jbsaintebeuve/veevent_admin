@@ -16,12 +16,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Plus, Loader2, AlertCircle, MapPin, Globe } from "lucide-react";
+import { Plus, Loader2, MapPin, Globe } from "lucide-react";
 import { City } from "@/types/city";
 import { createCity } from "@/services/city-service";
-import { uploadImage } from "@/utils/upload-image";
+import { useMultipleImages } from "@/hooks/use-image-upload";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { CityCreateRequest } from "@/types/city";
@@ -33,8 +32,6 @@ const initialForm = {
   region: "",
   postalCode: "",
   country: "France",
-  bannerFile: null as File | null,
-  imageFile: null as File | null,
   content: "",
   nearestCities: [] as number[],
 };
@@ -43,11 +40,9 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const queryClient = useQueryClient();
   const { token } = useAuth();
-  const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const imageUploads = useMultipleImages();
 
   const allCities = cities || [];
 
@@ -55,11 +50,9 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    console.log("🔧 handleChange - name:", name, "value:", value);
 
     if (name === "latitude" || name === "longitude") {
       const newValue = value === "" ? null : parseFloat(value);
-      console.log("🔧 handleChange - setting location", name, "to:", newValue);
 
       setForm({
         ...form,
@@ -70,38 +63,6 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
       });
     } else {
       setForm({ ...form, [name]: value });
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target;
-    const file = files?.[0] || null;
-    setForm((prev) => ({ ...prev, [name]: file }));
-    if (name === "bannerFile") {
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreviewBannerUrl(url);
-      } else {
-        setPreviewBannerUrl(null);
-      }
-    }
-    if (name === "imageFile") {
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setPreviewImageUrl(url);
-      } else {
-        setPreviewImageUrl(null);
-      }
-    }
-  };
-
-  const handleRemoveImage = (type: "banner" | "image") => {
-    if (type === "banner") {
-      setForm((prev) => ({ ...prev, bannerFile: null }));
-      setPreviewBannerUrl(null);
-    } else {
-      setForm((prev) => ({ ...prev, imageFile: null }));
-      setPreviewImageUrl(null);
     }
   };
 
@@ -118,29 +79,16 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
 
   const resetForm = () => {
     setForm(initialForm);
-    setError("");
-    setPreviewBannerUrl(null);
-    setPreviewImageUrl(null);
+    imageUploads.resetAll();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     if (!token) throw new Error("Token manquant");
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
-      // Upload des images si elles existent
-      let bannerUrl = null;
-      let imageUrl = null;
-
-      if (form.bannerFile) {
-        bannerUrl = await uploadImage(form.bannerFile);
-      }
-
-      if (form.imageFile) {
-        imageUrl = await uploadImage(form.imageFile);
-      }
+      const { bannerUrl, imageUrl } = await imageUploads.uploadAll();
 
       const payload = {
         name: form.name.trim(),
@@ -155,9 +103,6 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
         nearestCityIds: form.nearestCities,
       } as CityCreateRequest;
 
-      console.log("🔧 handleSubmit - final payload:", payload);
-      console.log("🔧 handleSubmit - form.location:", form.location);
-
       await createCity(payload, token);
 
       queryClient.invalidateQueries({ queryKey: ["cities"] });
@@ -165,8 +110,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
       setOpen(false);
       resetForm();
     } catch (err: any) {
-      setError(err.message || "Erreur lors de la création de la ville");
-      toast.error("Erreur lors de la création");
+      toast.error("Erreur lors de la création de la ville");
     } finally {
       setLoading(false);
     }
@@ -289,19 +233,19 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
               <ImageUpload
                 id="bannerFile"
                 label="Bannière"
-                file={form.bannerFile}
-                previewUrl={previewBannerUrl}
-                onFileChange={handleFileChange}
-                onRemove={() => handleRemoveImage("banner")}
+                file={imageUploads.banner.file}
+                previewUrl={imageUploads.banner.previewUrl}
+                onFileChange={imageUploads.banner.handleFileChange}
+                onRemove={imageUploads.banner.handleRemove}
                 disabled={loading}
               />
               <ImageUpload
                 id="imageFile"
                 label="Image principale"
-                file={form.imageFile}
-                previewUrl={previewImageUrl}
-                onFileChange={handleFileChange}
-                onRemove={() => handleRemoveImage("image")}
+                file={imageUploads.image.file}
+                previewUrl={imageUploads.image.previewUrl}
+                onFileChange={imageUploads.image.handleFileChange}
+                onRemove={imageUploads.image.handleRemove}
                 disabled={loading}
               />
             </div>
@@ -356,13 +300,6 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                 Sélectionnez une ou plusieurs villes proches
               </span>
             </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
           </div>
 
           <DialogFooter>
