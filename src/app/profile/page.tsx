@@ -89,9 +89,13 @@ export default function ProfilePage() {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { payload: any; imageFile: File | null; bannerFile: File | null }) => {
+    mutationFn: async (data: {
+      payload: any;
+      imageFile: File | null;
+      bannerFile: File | null;
+    }) => {
       const { payload, imageFile, bannerFile } = data;
-      
+
       let imageUrl = payload.imageUrl;
       let bannerUrl = payload.bannerUrl;
 
@@ -110,7 +114,7 @@ export default function ProfilePage() {
 
       console.log("Payload envoyé:", finalPayload);
       await updateUserProfile(finalPayload, token || "");
-      
+
       return finalPayload;
     },
     onSuccess: () => {
@@ -646,7 +650,11 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-6">
-                  <Button type="submit" disabled={updateProfileMutation.isPending} className="flex-1">
+                  <Button
+                    type="submit"
+                    disabled={updateProfileMutation.isPending}
+                    className="flex-1"
+                  >
                     {updateProfileMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
