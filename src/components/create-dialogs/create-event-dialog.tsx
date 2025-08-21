@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useState, useMemo, memo } from "react";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -119,13 +119,27 @@ export function CreateEventDialog({
   children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const { token } = useAuth();
+  const mutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (!token) throw new Error("Token manquant");
+      return createEvent(payload, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["my-events"] });
+      toast.success("Événement créé avec succès");
+      setOpen(false);
+      resetForm();
+    },
+    onError: () => {
+      toast.error("Erreur lors de la création de l'événement");
+    },
+  });
   const [form, setForm] = useState(initialForm);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const imageUpload = useImageUpload();
-
-  const queryClient = useQueryClient();
-  const { token } = useAuth();
 
   const {
     data: citiesResponse,
@@ -251,43 +265,27 @@ export function CreateEventDialog({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    if (!token) throw new Error("Token manquant");
     e.preventDefault();
-    setLoading(true);
+    validateForm();
 
-    try {
-      validateForm();
-
-      const cloudinaryImageUrl = await imageUpload.uploadIfNeeded();
-
-      const payload = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        date: getDateTimeISO(),
-        address: form.address.trim(),
-        price: parseFloat(form.price),
-        maxCustomers: parseInt(form.maxCustomers, 10),
-        status: form.status,
-        imageUrl: cloudinaryImageUrl?.trim() || undefined,
-        contentHtml: form.contentHtml.trim() || undefined,
-        placeId: parseInt(form.placeId, 10),
-        cityId: parseInt(form.cityId, 10),
-        categoryKeys: form.categoryIds,
-        isInvitationOnly: form.isInvitationOnly,
-        isTrending: form.isTrending,
-      };
-
-      await createEvent(payload, token || undefined);
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["my-events"] });
-      toast.success("Événement créé avec succès");
-      setOpen(false);
-      resetForm();
-    } catch (err: any) {
-      toast.error("Erreur lors de la création de l'événement");
-    } finally {
-      setLoading(false);
-    }
+    const cloudinaryImageUrl = await imageUpload.uploadIfNeeded();
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      date: getDateTimeISO(),
+      address: form.address.trim(),
+      price: parseFloat(form.price),
+      maxCustomers: parseInt(form.maxCustomers, 10),
+      status: form.status,
+      imageUrl: cloudinaryImageUrl?.trim() || undefined,
+      contentHtml: form.contentHtml.trim() || undefined,
+      placeId: parseInt(form.placeId, 10),
+      cityId: parseInt(form.cityId, 10),
+      categoryKeys: form.categoryIds,
+      isInvitationOnly: form.isInvitationOnly,
+      isTrending: form.isTrending,
+    };
+    mutation.mutate(payload);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -323,7 +321,7 @@ export function CreateEventDialog({
               placeholder="Concert sous les étoiles"
               value={form.name}
               onChange={handleChange}
-              disabled={loading}
+              disabled={mutation.isPending}
               required
             />
             <InputField
@@ -332,7 +330,7 @@ export function CreateEventDialog({
               placeholder="Une soirée exceptionnelle..."
               value={form.description}
               onChange={handleChange}
-              disabled={loading}
+              disabled={mutation.isPending}
               required
             />
 
@@ -376,7 +374,7 @@ export function CreateEventDialog({
                       setForm((prev) => ({ ...prev, time: e.target.value }))
                     }
                     required
-                    disabled={loading}
+                    disabled={mutation.isPending}
                     className="pl-8 appearance-none [&::-webkit-calendar-picker-indicator]:hidden"
                   />
                 </div>
@@ -389,7 +387,7 @@ export function CreateEventDialog({
               placeholder="Parc Central, Avenue des Arts"
               value={form.address}
               onChange={handleChange}
-              disabled={loading}
+              disabled={mutation.isPending}
               required
             />
 
@@ -403,7 +401,7 @@ export function CreateEventDialog({
                 placeholder="20.00"
                 value={form.price}
                 onChange={handleChange}
-                disabled={loading}
+                disabled={mutation.isPending}
                 required
               />
               <InputField
@@ -414,7 +412,7 @@ export function CreateEventDialog({
                 placeholder="250"
                 value={form.maxCustomers}
                 onChange={handleChange}
-                disabled={loading}
+                disabled={mutation.isPending}
                 required
               />
             </div>
@@ -426,7 +424,7 @@ export function CreateEventDialog({
               previewUrl={imageUpload.previewUrl}
               onFileChange={imageUpload.handleFileChange}
               onRemove={imageUpload.handleRemove}
-              disabled={loading}
+              disabled={mutation.isPending}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -435,7 +433,7 @@ export function CreateEventDialog({
                 <SelectScrollable
                   value={form.cityId}
                   onValueChange={handleCityChange}
-                  disabled={loading || citiesLoading}
+                  disabled={mutation.isPending || citiesLoading}
                   placeholder={
                     citiesLoading ? "Chargement..." : "Sélectionner une ville"
                   }
@@ -470,7 +468,7 @@ export function CreateEventDialog({
                 <SelectScrollable
                   value={form.placeId}
                   onValueChange={handlePlaceChange}
-                  disabled={loading || !form.cityId || placesLoading}
+                  disabled={mutation.isPending || !form.cityId || placesLoading}
                   placeholder={
                     !form.cityId
                       ? "Sélectionnez d'abord une ville"
@@ -525,7 +523,7 @@ export function CreateEventDialog({
                         onCheckedChange={(checked) =>
                           handleCategoryChange(cat.key, checked as boolean)
                         }
-                        disabled={loading}
+                        disabled={mutation.isPending}
                       />
                       <Label
                         htmlFor={`${cat.key}-${i}`}
@@ -589,12 +587,12 @@ export function CreateEventDialog({
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={loading}>
+              <Button variant="outline" disabled={mutation.isPending}>
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
-              {loading ? (
+            <Button type="submit" disabled={mutation.isPending || !isFormValid}>
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Création...

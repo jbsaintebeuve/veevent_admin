@@ -42,8 +42,10 @@ export function ModifyPlaceDialog({
     name: "",
     address: "",
     type: "",
-    latitude: "",
-    longitude: "",
+    location: {
+      latitude: null as number | null,
+      longitude: null as number | null,
+    },
     cityId: "",
     cityName: "",
     content: "",
@@ -64,10 +66,9 @@ export function ModifyPlaceDialog({
         return fetchCities(token, 0, 50);
       },
       enabled: open,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
     });
-
   const cities = citiesResponse?._embedded?.cityResponses || [];
 
   const findCityIdByName = (cityName: string): string => {
@@ -84,8 +85,10 @@ export function ModifyPlaceDialog({
         name: place.name || "",
         address: place.address || "",
         type: place.type || "",
-        latitude: place.location?.latitude?.toString() || "",
-        longitude: place.location?.longitude?.toString() || "",
+        location: {
+          latitude: place.location?.latitude ?? null,
+          longitude: place.location?.longitude ?? null,
+        },
         cityId: findCityIdByName(place.cityName),
         cityName: place.cityName || "",
         content: place.content || "",
@@ -93,12 +96,23 @@ export function ModifyPlaceDialog({
       });
       images.resetAll(place.bannerUrl || "", place.imageUrl || "");
     }
-  }, [place, citiesResponse, images]);
+  }, [place, cities.length]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "latitude" || name === "longitude") {
+      setForm({
+        ...form,
+        location: {
+          ...form.location,
+          [name]: value === "" ? null : parseFloat(value),
+        },
+      });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -121,32 +135,28 @@ export function ModifyPlaceDialog({
       form.name.trim() !== "" &&
       form.address.trim() !== "" &&
       form.type.trim() !== "" &&
-      form.latitude.trim() !== "" &&
-      form.longitude.trim() !== "" &&
       form.cityId.trim() !== "" &&
-      !isNaN(parseFloat(form.latitude)) &&
-      !isNaN(parseFloat(form.longitude))
+      form.location.latitude !== null &&
+      form.location.longitude !== null
     );
   }, [form]);
 
+  // Handlers pour images (comme dans city)
   const handleBannerChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       images.banner.handleFileChange(e);
     },
     [images.banner]
   );
-
+  const handleRemoveBanner = useCallback(() => {
+    images.banner.handleRemove();
+  }, [images.banner]);
   const handleImageChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       images.image.handleFileChange(e);
     },
     [images.image]
   );
-
-  const handleRemoveBanner = useCallback(() => {
-    images.banner.handleRemove();
-  }, [images.banner]);
-
   const handleRemoveImage = useCallback(() => {
     images.image.handleRemove();
   }, [images.image]);
@@ -154,37 +164,30 @@ export function ModifyPlaceDialog({
   const mutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error("Token manquant");
-      let bannerUrl = images.banner.currentUrl;
-      let imageUrl = images.image.currentUrl;
-
-      // Upload des nouvelles images si elles existent
-      const { bannerUrl: newBannerUrl, imageUrl: newImageUrl } =
-        await images.uploadAll();
-
-      const payload: PlaceUpdateRequest = {
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        address: form.address.trim(),
-        cityName: form.cityName,
-        cityId: parseInt(form.cityId),
-        type: form.type || null,
-        latitude: form.latitude ? parseFloat(form.latitude) : null,
-        longitude: form.longitude ? parseFloat(form.longitude) : null,
-        bannerUrl: bannerUrl?.trim() || null,
-        imageUrl: imageUrl?.trim() || null,
-        content: form.content.trim() || null,
-      };
-
       const patchUrl = place?._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+      const { bannerUrl, imageUrl } = await images.uploadAll();
+      const payload: PlaceUpdateRequest = {
+        name: form.name.trim(),
+        address: form.address.trim(),
+        type: form.type,
+        latitude: form.location.latitude,
+        longitude: form.location.longitude,
+        cityId: form.cityId ? parseInt(form.cityId) : 0,
+        cityName: form.cityName,
+        bannerUrl: bannerUrl?.trim() || null,
+        imageUrl: imageUrl?.trim() || null,
+        content: form.content?.trim() || null,
+        description: form.description?.trim() || undefined,
+      };
       await modifyPlace(patchUrl, payload, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu modifié avec succès !");
-      onOpenChange(false);
+      setTimeout(() => onOpenChange(false), 300);
     },
-    onError: (error: any) => {
+    onError: (err: any) => {
       toast.error(`Erreur lors de la modification du lieu`);
     },
   });
@@ -200,8 +203,10 @@ export function ModifyPlaceDialog({
         name: place.name || "",
         address: place.address || "",
         type: place.type || "",
-        latitude: place.location?.latitude?.toString() || "",
-        longitude: place.location?.longitude?.toString() || "",
+        location: {
+          latitude: place.location?.latitude ?? null,
+          longitude: place.location?.longitude ?? null,
+        },
         cityId: findCityIdByName(place.cityName),
         cityName: place.cityName || "",
         content: place.content || "",
@@ -298,7 +303,7 @@ export function ModifyPlaceDialog({
                   name="latitude"
                   type="number"
                   step="0.000001"
-                  value={form.latitude}
+                  value={form.location.latitude ?? ""}
                   onChange={handleChange}
                   required
                   disabled={mutation.isPending}
@@ -311,7 +316,7 @@ export function ModifyPlaceDialog({
                   name="longitude"
                   type="number"
                   step="0.000001"
-                  value={form.longitude}
+                  value={form.location.longitude ?? ""}
                   onChange={handleChange}
                   required
                   disabled={mutation.isPending}

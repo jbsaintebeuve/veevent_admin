@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,10 +39,25 @@ const initialForm = {
 export function CreateCityDialog({ cities }: { cities: City[] }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
-  const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
   const { token } = useAuth();
   const imageUploads = useMultipleImages();
+
+  const mutation = useMutation({
+    mutationFn: async (payload: CityCreateRequest) => {
+      if (!token) throw new Error("Token manquant");
+      return createCity(payload, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cities"] });
+      toast.success("Ville créée avec succès !");
+      setOpen(false);
+      resetForm();
+    },
+    onError: () => {
+      toast.error("Erreur lors de la création de la ville");
+    },
+  });
 
   const allCities = cities || [];
 
@@ -83,37 +98,24 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    if (!token) throw new Error("Token manquant");
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      const { bannerUrl, imageUrl } = await imageUploads.uploadAll();
+    let bannerUrl, imageUrl;
+    ({ bannerUrl, imageUrl } = await imageUploads.uploadAll());
 
-      const payload = {
-        name: form.name.trim(),
-        latitude: form.location.latitude,
-        longitude: form.location.longitude,
-        region: form.region.trim(),
-        postalCode: form.postalCode.trim(),
-        country: form.country.trim(),
-        bannerUrl: bannerUrl,
-        imageUrl: imageUrl,
-        content: form.content?.trim() || null,
-        nearestCityIds: form.nearestCities,
-      } as CityCreateRequest;
-
-      await createCity(payload, token);
-
-      queryClient.invalidateQueries({ queryKey: ["cities"] });
-      toast.success("Ville créée avec succès !");
-      setOpen(false);
-      resetForm();
-    } catch (err: any) {
-      toast.error("Erreur lors de la création de la ville");
-    } finally {
-      setLoading(false);
-    }
+    const payload = {
+      name: form.name.trim(),
+      latitude: form.location.latitude,
+      longitude: form.location.longitude,
+      region: form.region.trim(),
+      postalCode: form.postalCode.trim(),
+      country: form.country.trim(),
+      bannerUrl: bannerUrl,
+      imageUrl: imageUrl,
+      content: form.content?.trim() || null,
+      nearestCityIds: form.nearestCities,
+    } as CityCreateRequest;
+    mutation.mutate(payload);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -153,7 +155,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                   onChange={handleChange}
                   placeholder="Menton, Nice, Cannes..."
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -168,7 +170,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                   onChange={handleChange}
                   placeholder="PAC"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -183,7 +185,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                   onChange={handleChange}
                   placeholder="France"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -195,7 +197,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                   onChange={handleChange}
                   placeholder="06500"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -211,7 +213,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                   onChange={handleChange}
                   placeholder="43.7"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -224,7 +226,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                   onChange={handleChange}
                   placeholder="7.25"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -237,7 +239,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                 previewUrl={imageUploads.banner.previewUrl}
                 onFileChange={imageUploads.banner.handleFileChange}
                 onRemove={imageUploads.banner.handleRemove}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
               <ImageUpload
                 id="imageFile"
@@ -246,7 +248,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                 previewUrl={imageUploads.image.previewUrl}
                 onFileChange={imageUploads.image.handleFileChange}
                 onRemove={imageUploads.image.handleRemove}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
             <div className="grid gap-2">
@@ -258,7 +260,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                 onChange={handleChange}
                 rows={3}
                 placeholder="Description détaillée de la ville"
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
             <div className="grid gap-2">
@@ -284,7 +286,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
                                 ),
                           }));
                         }}
-                        disabled={loading}
+                        disabled={mutation.isPending}
                       />
                       <Label
                         htmlFor={`nearestCity-${city.id}`}
@@ -304,12 +306,17 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={resetForm}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetForm}
+                disabled={mutation.isPending}
+              >
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={!isFormValid || loading}>
-              {loading ? (
+            <Button type="submit" disabled={!isFormValid || mutation.isPending}>
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Création...

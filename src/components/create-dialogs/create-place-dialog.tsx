@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { PlaceCreateRequest, placeTypes } from "@/types/place";
 import { CitiesApiResponse } from "@/types/city";
@@ -42,10 +42,25 @@ export function CreatePlaceDialog() {
     content: "",
   };
   const [form, setForm] = useState(initialForm);
-  const [loading, setLoading] = useState(false);
-  const queryClient = useQueryClient();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const imageUploads = useMultipleImages();
+
+  const mutation = useMutation({
+    mutationFn: async (payload: PlaceCreateRequest) => {
+      if (!token) throw new Error("Token manquant");
+      return createPlace(payload, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["places"] });
+      toast.success("Lieu créé avec succès !");
+      setOpen(false);
+      resetForm();
+    },
+    onError: () => {
+      toast.error("Erreur lors de la création du lieu");
+    },
+  });
 
   const {
     data: citiesResponse,
@@ -141,38 +156,25 @@ export function CreatePlaceDialog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!validateForm()) return;
 
-    if (!validateForm()) {
-      setLoading(false);
-      return;
-    }
+    let bannerUrl, imageUrl;
+    ({ bannerUrl, imageUrl } = await imageUploads.uploadAll());
 
-    try {
-      const { bannerUrl, imageUrl } = await imageUploads.uploadAll();
-      const payload: PlaceCreateRequest = {
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        address: form.address.trim(),
-        cityName: form.cityName,
-        cityId: parseInt(form.cityId),
-        type: form.type || null,
-        latitude: form.latitude ? parseFloat(form.latitude) : null,
-        longitude: form.longitude ? parseFloat(form.longitude) : null,
-        bannerUrl: bannerUrl,
-        imageUrl: imageUrl,
-        content: form.content.trim() || null,
-      };
-      await createPlace(payload, token || undefined);
-      queryClient.invalidateQueries({ queryKey: ["places"] });
-      toast.success("Lieu créé avec succès !");
-      setOpen(false);
-      resetForm();
-    } catch (err: any) {
-      toast.error("Erreur lors de la création du lieu");
-    } finally {
-      setLoading(false);
-    }
+    const payload: PlaceCreateRequest = {
+      name: form.name.trim(),
+      description: form.description.trim() || undefined,
+      address: form.address.trim(),
+      cityName: form.cityName,
+      cityId: parseInt(form.cityId),
+      type: form.type || null,
+      latitude: form.latitude ? parseFloat(form.latitude) : null,
+      longitude: form.longitude ? parseFloat(form.longitude) : null,
+      bannerUrl: bannerUrl,
+      imageUrl: imageUrl,
+      content: form.content.trim() || null,
+    };
+    mutation.mutate(payload);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -208,7 +210,7 @@ export function CreatePlaceDialog() {
                 onChange={handleChange}
                 placeholder="Palais des Festivals"
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -217,7 +219,7 @@ export function CreatePlaceDialog() {
               <SelectScrollable
                 value={form.type}
                 onValueChange={(value) => handleSelectChange("type", value)}
-                disabled={loading}
+                disabled={mutation.isPending}
                 placeholder="Choisir un type"
               >
                 {placeTypes.map((type) => (
@@ -233,7 +235,7 @@ export function CreatePlaceDialog() {
               <SelectScrollable
                 value={form.cityId}
                 onValueChange={(value) => handleSelectChange("cityId", value)}
-                disabled={loading || citiesLoading}
+                disabled={mutation.isPending || citiesLoading}
                 placeholder={
                   citiesLoading ? "Chargement..." : "Choisir une ville"
                 }
@@ -275,7 +277,7 @@ export function CreatePlaceDialog() {
                 onChange={handleChange}
                 placeholder="1 Boulevard de la Croisette, 06400 Cannes"
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -291,7 +293,7 @@ export function CreatePlaceDialog() {
                   onChange={handleChange}
                   placeholder="43.548346"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
@@ -305,7 +307,7 @@ export function CreatePlaceDialog() {
                   onChange={handleChange}
                   placeholder="7.017369"
                   required
-                  disabled={loading}
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
@@ -318,7 +320,7 @@ export function CreatePlaceDialog() {
                 previewUrl={imageUploads.banner.previewUrl}
                 onFileChange={imageUploads.banner.handleFileChange}
                 onRemove={imageUploads.banner.handleRemove}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
               <ImageUpload
                 id="imageFile"
@@ -327,7 +329,7 @@ export function CreatePlaceDialog() {
                 previewUrl={imageUploads.image.previewUrl}
                 onFileChange={imageUploads.image.handleFileChange}
                 onRemove={imageUploads.image.handleRemove}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -340,7 +342,7 @@ export function CreatePlaceDialog() {
                 value={form.description}
                 onChange={handleChange}
                 placeholder="Description courte du lieu"
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -353,19 +355,19 @@ export function CreatePlaceDialog() {
                 onChange={handleChange}
                 placeholder="Description détaillée du lieu, équipements, accès..."
                 rows={3}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={loading}>
+              <Button variant="outline" disabled={mutation.isPending}>
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
-              {loading ? (
+            <Button type="submit" disabled={mutation.isPending || !isFormValid}>
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Création...

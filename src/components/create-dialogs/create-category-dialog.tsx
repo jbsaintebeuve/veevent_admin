@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,9 +31,24 @@ export function CreateCategoryDialog() {
     key: "",
     trending: false,
   });
-  const [loading, setLoading] = useState(false);
   const { token } = useAuth();
   const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (payload: CategoryCreateRequest) => {
+      if (!token) throw new Error("Token manquant");
+      return createCategory(payload, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Catégorie créée avec succès !");
+      setOpen(false);
+      resetForm();
+    },
+    onError: () => {
+      toast.error(`Erreur lors de la création de la catégorie`);
+    },
+  });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -82,31 +97,16 @@ export function CreateCategoryDialog() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    if (!token) throw new Error("Token manquant");
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      validateForm();
-
-      const payload: CategoryCreateRequest = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        key: form.key.trim(),
-        trending: form.trending,
-      };
-
-      const result = await createCategory(payload, token);
-
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success("Catégorie créée avec succès !");
-      setOpen(false);
-      resetForm();
-    } catch (err: any) {
-      toast.error(`Erreur lors de la création de la catégorie`);
-    } finally {
-      setLoading(false);
-    }
+    validateForm();
+    const payload: CategoryCreateRequest = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      key: form.key.trim(),
+      trending: form.trending,
+    };
+    mutation.mutate(payload);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -148,7 +148,7 @@ export function CreateCategoryDialog() {
                 onChange={handleChange}
                 placeholder="Sport, Musique, Conférence..."
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -165,7 +165,7 @@ export function CreateCategoryDialog() {
                 onChange={handleChange}
                 placeholder="sport, musique, conference..."
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
               <p className="text-xs text-muted-foreground">
                 Identifiant unique en minuscules, sans espaces ni caractères
@@ -187,7 +187,7 @@ export function CreateCategoryDialog() {
                 placeholder="Décrivez cette catégorie d'événements..."
                 rows={3}
                 required
-                disabled={loading}
+                disabled={mutation.isPending}
               />
             </div>
 
@@ -197,7 +197,7 @@ export function CreateCategoryDialog() {
                 id="trending"
                 checked={form.trending}
                 onCheckedChange={handleCheckboxChange}
-                disabled={loading}
+                disabled={mutation.isPending}
               />
               <div className="grid gap-1.5 leading-none">
                 <Label
@@ -217,12 +217,12 @@ export function CreateCategoryDialog() {
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={loading}>
+              <Button variant="outline" disabled={mutation.isPending}>
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !isFormValid}>
-              {loading ? (
+            <Button type="submit" disabled={mutation.isPending || !isFormValid}>
+              {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Création...
