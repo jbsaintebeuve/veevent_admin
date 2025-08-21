@@ -18,13 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NovelEditor } from "@/components/ui/novel-editor";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
+import { SelectScrollable } from "@/components/ui/select-scrollable";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -115,29 +110,6 @@ const InputField = memo(
         {...props}
       />
     </div>
-  )
-);
-
-const MemoizedSelect = memo(
-  ({
-    value,
-    onValueChange,
-    disabled,
-    placeholder,
-    children,
-  }: {
-    value: string;
-    onValueChange: (value: string) => void;
-    disabled: boolean;
-    placeholder: string;
-    children: React.ReactNode;
-  }) => (
-    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>{children}</SelectContent>
-    </Select>
   )
 );
 
@@ -504,13 +476,14 @@ export function CreateEventDialog({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Ville *</Label>
-                <MemoizedSelect
+                <SelectScrollable
                   value={form.cityId}
                   onValueChange={handleCityChange}
                   disabled={loading || citiesLoading}
                   placeholder={
                     citiesLoading ? "Chargement..." : "Sélectionner une ville"
                   }
+                  className=""
                 >
                   {Array.isArray(cities) && cities.length > 0 ? (
                     cities.map((city) => (
@@ -528,7 +501,7 @@ export function CreateEventDialog({
                         : "Aucune ville disponible"}
                     </SelectItem>
                   )}
-                </MemoizedSelect>
+                </SelectScrollable>
                 {citiesError && (
                   <p className="text-xs text-destructive">
                     Erreur lors du chargement des villes
@@ -538,7 +511,7 @@ export function CreateEventDialog({
 
               <div className="grid gap-2">
                 <Label>Lieu *</Label>
-                <MemoizedSelect
+                <SelectScrollable
                   value={form.placeId}
                   onValueChange={handlePlaceChange}
                   disabled={loading || !form.cityId || placesLoading}
@@ -549,6 +522,7 @@ export function CreateEventDialog({
                       ? "Chargement..."
                       : "Sélectionner un lieu"
                   }
+                  className=""
                 >
                   {Array.isArray(placesList) && placesList.length > 0 ? (
                     placesList.map((place) => (
@@ -572,7 +546,7 @@ export function CreateEventDialog({
                         : "Aucun lieu disponible"}
                     </SelectItem>
                   )}
-                </MemoizedSelect>
+                </SelectScrollable>
               </div>
             </div>
 

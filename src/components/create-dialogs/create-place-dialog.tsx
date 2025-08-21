@@ -13,13 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
+import { SelectScrollable } from "@/components/ui/select-scrollable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -264,61 +259,51 @@ export function CreatePlaceDialog() {
 
             <div className="grid gap-2">
               <Label htmlFor="type">Type de lieu *</Label>
-              <Select
+              <SelectScrollable
                 value={form.type}
                 onValueChange={(value) => handleSelectChange("type", value)}
                 disabled={loading}
+                placeholder="Choisir un type"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir un type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {placeTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {placeTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectScrollable>
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="cityId">Ville *</Label>
-              <Select
+              <SelectScrollable
                 value={form.cityId}
                 onValueChange={(value) => handleSelectChange("cityId", value)}
                 disabled={loading || citiesLoading}
+                placeholder={
+                  citiesLoading ? "Chargement..." : "Choisir une ville"
+                }
               >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      citiesLoading ? "Chargement..." : "Choisir une ville"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.isArray(cities) && cities.length > 0 ? (
-                    cities.map((city) => (
-                      <SelectItem key={city.id} value={city.id.toString()}>
-                        <div className="flex items-center gap-2">
-                          <span>{city.name}</span>
-                          {city.region && (
-                            <span className="text-xs text-muted-foreground">
-                              ({city.region})
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-cities-available" disabled>
-                      {citiesLoading
-                        ? "Chargement..."
-                        : "Aucune ville disponible"}
+                {Array.isArray(cities) && cities.length > 0 ? (
+                  cities.map((city) => (
+                    <SelectItem key={city.id} value={city.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <span>{city.name}</span>
+                        {city.region && (
+                          <span className="text-xs text-muted-foreground">
+                            ({city.region})
+                          </span>
+                        )}
+                      </div>
                     </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                  ))
+                ) : (
+                  <SelectItem value="no-cities-available" disabled>
+                    {citiesLoading
+                      ? "Chargement..."
+                      : "Aucune ville disponible"}
+                  </SelectItem>
+                )}
+              </SelectScrollable>
               {citiesError && (
                 <p className="text-xs text-destructive">
                   Erreur lors du chargement des villes

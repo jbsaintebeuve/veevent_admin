@@ -12,13 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
+import { SelectScrollable } from "@/components/ui/select-scrollable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -277,44 +272,34 @@ export function ModifyPlaceDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="type">Type de lieu *</Label>
-              <Select
+              <SelectScrollable
                 value={form.type}
                 onValueChange={(value) => handleSelectChange("type", value)}
                 disabled={mutation.isPending}
+                placeholder="Choisir un type"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir un type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {placeTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {placeTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectScrollable>
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="cityId">Ville *</Label>
-              <Select
+              <SelectScrollable
                 value={form.cityId}
                 onValueChange={(value) => handleSelectChange("cityId", value)}
                 disabled={mutation.isPending || citiesLoading}
+                placeholder={form.cityName || "Choisir une ville"}
               >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={form.cityName || "Choisir une ville"}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities?.map((city: City) => (
-                    <SelectItem key={city.id} value={city.id.toString()}>
-                      {city.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {cities?.map((city: City) => (
+                  <SelectItem key={city.id} value={city.id.toString()}>
+                    {city.name}
+                  </SelectItem>
+                ))}
+              </SelectScrollable>
             </div>
 
             <div className="grid gap-2">
