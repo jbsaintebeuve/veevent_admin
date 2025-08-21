@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards, type CardData } from "@/components/section-cards";
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { banOrUnbanUser } from "@/services/user-service";
 import { useUsersCards } from "@/hooks/data-cards/use-users-cards";
+import { toast } from "sonner";
 
 export default function UsersPage() {
   const [search, setSearch] = useState("");
@@ -37,8 +38,6 @@ export default function UsersPage() {
   const queryClient = useQueryClient();
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [banTargetUser, setBanTargetUser] = useState<User | null>(null);
-  const [banLoading, setBanLoading] = useState(false);
-  const [banError, setBanError] = useState<string | null>(null);
 
   const {
     data: usersResponse,
@@ -116,32 +115,35 @@ export default function UsersPage() {
     userCount,
   });
 
-  const handleBanToggle = (user: User) => {
-    setBanTargetUser(user);
-    setBanDialogOpen(true);
-    setBanError(null);
-  };
-
-  const confirmBanToggle = async () => {
-    if (!token) throw new Error("Token manquant");
-    if (!banTargetUser) return;
-    setBanLoading(true);
-    setBanError(null);
-    try {
-      const isBanned = (banTargetUser.role ?? "").toLowerCase() === "banned";
-      await banOrUnbanUser(
-        banTargetUser.id,
+  const banMutation = useMutation({
+    mutationFn: async (user: User) => {
+      if (!token) throw new Error("Token manquant");
+      const isBanned = (user.role ?? "").toLowerCase() === "banned";
+      return await banOrUnbanUser(
+        user.id,
         isBanned ? "User" : "Banned",
         token
       );
-      await queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       setBanDialogOpen(false);
       setBanTargetUser(null);
-    } catch (e: any) {
-      setBanError(e.message || "Erreur inconnue");
-    } finally {
-      setBanLoading(false);
-    }
+      toast.success("Utilisateur mis à jour avec succès");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erreur lors de la mise à jour de l'utilisateur");
+    },
+  });
+
+  const handleBanToggle = (user: User) => {
+    setBanTargetUser(user);
+    setBanDialogOpen(true);
+  };
+
+  const confirmBanToggle = () => {
+    if (!banTargetUser) return;
+    banMutation.mutate(banTargetUser);
   };
 
   if (isLoading) {
@@ -263,12 +265,12 @@ export default function UsersPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
-              disabled={banLoading}
+              disabled={banMutation.isPending}
               onClick={() => setBanDialogOpen(false)}
             >
               Annuler
             </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBanToggle} disabled={banLoading}>
+            <AlertDialogAction onClick={confirmBanToggle} disabled={banMutation.isPending}>
               {banTargetUser &&
               (banTargetUser.role ?? "").toLowerCase() === "banned"
                 ? "Débannir"

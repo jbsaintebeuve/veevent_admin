@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchUserMe } from "@/services/user-service";
 import { SiteHeader } from "@/components/site-header";
@@ -68,8 +68,6 @@ export default function ProfilePage() {
     bannerFile: null as File | null,
   });
   const [socials, setSocials] = useState<Social[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const router = useRouter();
 
   const queryClient = useQueryClient();
@@ -90,6 +88,44 @@ export default function ProfilePage() {
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { payload: any; imageFile: File | null; bannerFile: File | null }) => {
+      const { payload, imageFile, bannerFile } = data;
+      
+      let imageUrl = payload.imageUrl;
+      let bannerUrl = payload.bannerUrl;
+
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+      }
+      if (bannerFile) {
+        bannerUrl = await uploadImage(bannerFile);
+      }
+
+      const finalPayload = {
+        ...payload,
+        imageUrl: imageUrl?.trim() || null,
+        bannerUrl: bannerUrl?.trim() || null,
+      };
+
+      console.log("Payload envoyé:", finalPayload);
+      await updateUserProfile(finalPayload, token || "");
+      
+      return finalPayload;
+    },
+    onSuccess: () => {
+      console.log("✅ Profil mis à jour avec succès");
+      queryClient.invalidateQueries({ queryKey: ["user", "me"] });
+      toast.success("Profil mis à jour avec succès !");
+    },
+    onError: (err: any) => {
+      console.error("Erreur complète:", err);
+      toast.error(
+        `Erreur: ${err.message || "Problème lors de la mise à jour du profil"}`
+      );
+    },
+  });
+
   const {
     data: userData,
     isLoading: userDataLoading,
@@ -106,10 +142,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (userDataError) {
-      setError(
-        (userDataError as Error).message ||
-          "Erreur lors du chargement du profil"
-      );
       toast.error("Erreur lors du chargement du profil");
     }
     if (categoriesError) {
@@ -202,68 +234,32 @@ export default function ProfilePage() {
     []
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    setSaving(true);
-    setError("");
+    const filteredSocials = socials.filter((s) => s.name && s.url);
 
-    try {
-      let imageUrl = form.imageUrl;
-      let bannerUrl = form.bannerUrl;
+    const payload = {
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      pseudo: form.pseudo.trim(),
+      email: form.email.trim(),
+      description: form.description.trim() || null,
+      phone: form.phone.trim() || null,
+      imageUrl: form.imageUrl,
+      bannerUrl: form.bannerUrl,
+      note: form.note || null,
+      socials:
+        filteredSocials.length > 0 ? JSON.stringify(filteredSocials) : null,
+      categoryKeys: form.categoryKeys,
+    };
 
-      if (form.imageFile) {
-        imageUrl = await uploadImage(form.imageFile);
-      }
-      if (form.bannerFile) {
-        bannerUrl = await uploadImage(form.bannerFile);
-      }
-
-      const filteredSocials = socials.filter((s) => s.name && s.url);
-
-      const payload = {
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        pseudo: form.pseudo.trim(),
-        email: form.email.trim(),
-        description: form.description.trim() || null,
-        phone: form.phone.trim() || null,
-        imageUrl: imageUrl?.trim() || null,
-        bannerUrl: bannerUrl?.trim() || null,
-        note: form.note || null,
-        socials:
-          filteredSocials.length > 0 ? JSON.stringify(filteredSocials) : null,
-        categoryKeys: form.categoryKeys,
-      };
-
-      console.log("Payload envoyé:", payload);
-
-      try {
-        await updateUserProfile(payload, token || "");
-        console.log("✅ Profil mis à jour avec succès");
-      } catch (updateError) {
-        console.error(
-          "❌ Erreur lors de la mise à jour du profil:",
-          updateError
-        );
-        throw updateError;
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["user", "me"] });
-
-      toast.success("Profil mis à jour avec succès !");
-    } catch (err: any) {
-      console.error("Erreur complète:", err);
-      setError(
-        err.message || "Erreur inconnue lors de la mise à jour du profil"
-      );
-      toast.error(
-        `Erreur: ${err.message || "Problème lors de la mise à jour du profil"}`
-      );
-    } finally {
-      setSaving(false);
-    }
+    updateProfileMutation.mutate({
+      payload,
+      imageFile: form.imageFile,
+      bannerFile: form.bannerFile,
+    });
   };
 
   const handleFileChange = useCallback(
@@ -401,7 +397,7 @@ export default function ProfilePage() {
                     size="icon"
                     className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     onClick={triggerImageUpload}
-                    disabled={saving}
+                    disabled={updateProfileMutation.isPending}
                   >
                     <Camera className="h-3 w-3" />
                   </Button>
@@ -411,7 +407,7 @@ export default function ProfilePage() {
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
-                    disabled={saving}
+                    disabled={updateProfileMutation.isPending}
                     className="hidden"
                   />
                 </div>
@@ -457,7 +453,7 @@ export default function ProfilePage() {
                         value={form.lastName}
                         onChange={handleChange}
                         placeholder="Votre nom de famille"
-                        disabled={saving}
+                        disabled={updateProfileMutation.isPending}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -468,7 +464,7 @@ export default function ProfilePage() {
                         value={form.firstName}
                         onChange={handleChange}
                         placeholder="Votre prénom"
-                        disabled={saving}
+                        disabled={updateProfileMutation.isPending}
                       />
                     </div>
                   </div>
@@ -481,7 +477,7 @@ export default function ProfilePage() {
                         value={form.pseudo}
                         onChange={handleChange}
                         placeholder="Votre nom d'utilisateur"
-                        disabled={saving}
+                        disabled={updateProfileMutation.isPending}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -510,7 +506,7 @@ export default function ProfilePage() {
                       onChange={handleChange}
                       rows={4}
                       placeholder="Parlez-nous de vous..."
-                      disabled={saving}
+                      disabled={updateProfileMutation.isPending}
                     />
                   </div>
 
@@ -527,7 +523,7 @@ export default function ProfilePage() {
                         value={form.phone}
                         onChange={handleChange}
                         placeholder="+33612345678"
-                        disabled={saving}
+                        disabled={updateProfileMutation.isPending}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -557,7 +553,7 @@ export default function ProfilePage() {
                     currentImageUrl={form.bannerUrl}
                     onFileChange={handleFileChange}
                     onRemove={() => handleRemoveImage("banner")}
-                    disabled={saving}
+                    disabled={updateProfileMutation.isPending}
                   />
                 </div>
 
@@ -574,7 +570,7 @@ export default function ProfilePage() {
                       variant="outline"
                       size="sm"
                       onClick={addSocial}
-                      disabled={saving}
+                      disabled={updateProfileMutation.isPending}
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Ajouter
@@ -589,7 +585,7 @@ export default function ProfilePage() {
                         onChange={(e) =>
                           updateSocial(index, "name", e.target.value)
                         }
-                        disabled={saving}
+                        disabled={updateProfileMutation.isPending}
                       />
                       <Input
                         placeholder="URL complète"
@@ -597,14 +593,14 @@ export default function ProfilePage() {
                         onChange={(e) =>
                           updateSocial(index, "url", e.target.value)
                         }
-                        disabled={saving}
+                        disabled={updateProfileMutation.isPending}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         onClick={() => removeSocial(index)}
-                        disabled={saving}
+                        disabled={updateProfileMutation.isPending}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -631,7 +627,7 @@ export default function ProfilePage() {
                               checked as boolean
                             )
                           }
-                          disabled={saving}
+                          disabled={updateProfileMutation.isPending}
                         />
                         <Label
                           htmlFor={category.key}
@@ -649,16 +645,9 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
                 <div className="flex flex-col sm:flex-row gap-3 pt-6">
-                  <Button type="submit" disabled={saving} className="flex-1">
-                    {saving ? (
+                  <Button type="submit" disabled={updateProfileMutation.isPending} className="flex-1">
+                    {updateProfileMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Enregistrement...
@@ -674,7 +663,7 @@ export default function ProfilePage() {
                     type="button"
                     variant="outline"
                     onClick={() => router.push("/dashboard")}
-                    disabled={saving}
+                    disabled={updateProfileMutation.isPending}
                   >
                     Annuler
                   </Button>

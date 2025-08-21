@@ -27,17 +27,6 @@ export default function MyEventsPage() {
 
   const pageSize = 10;
 
-  const emptyEventsApiResponse: EventsApiResponse = {
-    _embedded: { eventSummaryResponses: [] },
-    _links: {},
-    page: {
-      size: 10,
-      totalElements: 0,
-      totalPages: 0,
-      number: 0,
-    },
-  };
-
   const {
     data: eventsResponse,
     isLoading,

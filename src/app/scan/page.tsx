@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,43 +34,42 @@ export default function ScanPage() {
   const [manualKey, setManualKey] = useState("");
   const [verificationResult, setVerificationResult] =
     useState<VerificationResult | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const { token, user } = useAuth();
 
-  const handleVerification = async (verificationKey: string) => {
-    if (!token) throw new Error("Token manquant");
-
-    setIsVerifying(true);
-    setVerificationResult(null);
-
-    if (isScanning) {
-      setIsScanning(false);
-    }
-
-    try {
+  const verificationMutation = useMutation({
+    mutationFn: async (verificationKey: string) => {
+      if (!token) throw new Error("Token manquant");
       console.log("🔍 Vérification du ticket:", verificationKey);
-      const result = await verifyTicket(verificationKey, token, user);
+      return await verifyTicket(verificationKey, token, user);
+    },
+    onSuccess: (result) => {
       console.log("📊 Résultat de vérification:", result);
-
       setVerificationResult({
         success: result.isValid,
         data: result,
         error: result.error,
       });
-
       setShowResult(true);
-    } catch (error: unknown) {
+    },
+    onError: (error: unknown) => {
       console.error("❌ Erreur lors de la vérification:", error);
       setVerificationResult({
         success: false,
         error: error instanceof Error ? error.message : String(error),
       });
-
       setShowResult(true);
-    } finally {
-      setIsVerifying(false);
-    }
+    },
+    onMutate: () => {
+      setVerificationResult(null);
+      if (isScanning) {
+        setIsScanning(false);
+      }
+    },
+  });
+
+  const handleVerification = (verificationKey: string) => {
+    verificationMutation.mutate(verificationKey);
   };
 
   const handleCloseResult = () => {
@@ -77,13 +77,13 @@ export default function ScanPage() {
     setVerificationResult(null);
   };
 
-  const handleManualVerification = async () => {
+  const handleManualVerification = () => {
     if (!manualKey.trim()) {
       toast.error("Veuillez saisir une clé de vérification");
       return;
     }
 
-    await handleVerification(manualKey.trim());
+    handleVerification(manualKey.trim());
     setManualKey("");
   };
 
@@ -182,7 +182,7 @@ export default function ScanPage() {
                     onStopScan={() => setIsScanning(false)}
                   />
 
-                  {isVerifying && (
+                  {verificationMutation.isPending && (
                     <Alert className="mt-4">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <AlertDescription>
@@ -209,16 +209,16 @@ export default function ScanPage() {
                       value={manualKey}
                       onChange={(e) => setManualKey(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      disabled={isVerifying}
+                      disabled={verificationMutation.isPending}
                     />
                   </div>
 
                   <Button
                     onClick={handleManualVerification}
-                    disabled={!manualKey.trim() || isVerifying}
+                    disabled={!manualKey.trim() || verificationMutation.isPending}
                     className="w-full"
                   >
-                    {isVerifying ? (
+                    {verificationMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Vérification...
