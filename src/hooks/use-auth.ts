@@ -66,6 +66,7 @@ export function useAuth() {
 
         toast.success(`Bienvenue ${userData.firstName} !`);
 
+        setAuthChecked(true);
         setLoginSuccess(redirectUrl);
       } catch (err) {
         toast.error("Erreur de connexion");
@@ -73,7 +74,6 @@ export function useAuth() {
         throw err;
       } finally {
         setLoading(false);
-        setAuthChecked(true);
       }
     },
     [clearAuth]
@@ -100,6 +100,7 @@ export function useAuth() {
 
         toast.success(`Bienvenue ${userData.firstName} !`);
 
+        setAuthChecked(true);
         setLoginSuccess(redirectUrl);
       } catch (err) {
         toast.error("Erreur de connexion");
@@ -107,7 +108,6 @@ export function useAuth() {
         throw err;
       } finally {
         setLoading(false);
-        setAuthChecked(true);
       }
     },
     [clearAuth]
@@ -160,13 +160,13 @@ export function useAuth() {
   }, [getToken, clearAuth]);
 
   useEffect(() => {
-    if (loginSuccess) {
+    if (loginSuccess && authChecked) {
       setTimeout(() => {
         router.replace(loginSuccess);
         setLoginSuccess(null);
-      }, 100);
+      }, 300);
     }
-  }, [loginSuccess, router]);
+  }, [loginSuccess, authChecked, router]);
 
   return {
     user,

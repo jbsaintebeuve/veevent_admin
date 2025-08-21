@@ -20,7 +20,10 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
 
   useEffect(() => {
     // On attend que l'auth soit vérifiée
-    if (loading || !authChecked || loginSuccess) return;
+    if (loading || !authChecked) return;
+    
+    // Si on est en train de rediriger après login, on attend
+    if (loginSuccess) return;
 
     if (!isAuthenticated || !user) {
       router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
