@@ -164,7 +164,7 @@ export function useAuth() {
       setTimeout(() => {
         router.replace(loginSuccess);
         setLoginSuccess(null);
-      }, 0);
+      }, 100);
     }
   }, [loginSuccess, router]);
 

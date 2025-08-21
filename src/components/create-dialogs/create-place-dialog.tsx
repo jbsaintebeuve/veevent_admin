@@ -58,7 +58,10 @@ export function CreatePlaceDialog() {
     error: citiesError,
   } = useQuery<CitiesApiResponse>({
     queryKey: ["cities"],
-    queryFn: () => fetchCities(token || undefined),
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCities(token, 0, 50);
+    },
     retry: 2,
     retryDelay: 1000,
     enabled: open,

@@ -137,7 +137,7 @@ export function CreateEventDialog({
     queryKey: ["cities"],
     queryFn: () => {
       if (!token) throw new Error("Token manquant");
-      return fetchCities(token);
+      return fetchCities(token, 0, 50);
     },
     retry: 2,
     retryDelay: 1000,

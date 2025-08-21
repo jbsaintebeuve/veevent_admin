@@ -52,7 +52,6 @@ export function ModifyPlaceDialog({
     bannerFile: null as File | null,
     imageFile: null as File | null,
   });
-  // Le loading sera géré par useMutation
   const queryClient = useQueryClient();
   const { token } = useAuth();
   const [previewBannerUrl, setPreviewBannerUrl] = useState<string | null>(null);
@@ -63,7 +62,7 @@ export function ModifyPlaceDialog({
       queryKey: ["cities"],
       queryFn: () => {
         if (!token) throw new Error("Token manquant");
-        return fetchCities(token);
+        return fetchCities(token, 0, 50);
       },
       enabled: open,
     });
