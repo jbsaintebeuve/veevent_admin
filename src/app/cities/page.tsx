@@ -104,15 +104,7 @@ export default function CitiesPage() {
   });
 
   if (isLoading) {
-    return (
-      <PageSkeleton
-        cardsCount={4}
-        tableRowsCount={5}
-        tableColumnsCount={6}
-        showSearchBar={true}
-        showTableActions={true}
-      />
-    );
+    return <PageSkeleton />;
   }
 
   if (error) {

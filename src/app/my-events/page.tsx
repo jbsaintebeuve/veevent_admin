@@ -109,7 +109,6 @@ export default function MyEventsPage() {
     console.log("Supprimer événement:", name, deleteUrl);
   };
 
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
@@ -119,16 +118,7 @@ export default function MyEventsPage() {
   }
 
   if (isLoading) {
-    return (
-      <PageSkeleton
-        cardsCount={4}
-        tableRowsCount={5}
-        tableColumnsCount={8}
-        showSearchBar={true}
-        showTableActions={true}
-        showActionButton={false}
-      />
-    );
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -216,7 +206,6 @@ export default function MyEventsPage() {
           </div>
         </div>
       </div>
-
     </>
   );
 }

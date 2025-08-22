@@ -105,18 +105,7 @@ export default function Page() {
     isLoadingOrganizer ||
     isErrorOrganizer
   ) {
-    return (
-      <PageSkeleton
-        cardsCount={4}
-        tableRowsCount={0}
-        tableColumnsCount={0}
-        showSearchBar={false}
-        showTableActions={false}
-        showActionButton={false}
-        title="Dashboard"
-        description="Chargement des statistiques..."
-      />
-    );
+    return <PageSkeleton />;
   }
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];

@@ -5,27 +5,19 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface PageSkeletonProps {
-  title?: string;
-  description?: string;
   showActionButton?: boolean;
   cardsCount?: number;
   tableRowsCount?: number;
-  tableColumnsCount?: number;
   showSearchBar?: boolean;
   showTableActions?: boolean;
-  showAvatars?: boolean;
 }
 
 export function PageSkeleton({
-  title = "Chargement...",
-  description = "Chargement en cours...",
   showActionButton = true,
   cardsCount = 4,
   tableRowsCount = 5,
-  tableColumnsCount = 6,
   showSearchBar = true,
   showTableActions = true,
-  showAvatars = false,
 }: PageSkeletonProps) {
   return (
     <>
@@ -65,7 +57,7 @@ export function PageSkeleton({
             <div className="px-4 lg:px-6">
               {/* Table Header with Search and Actions */}
               {(showSearchBar || showTableActions) && (
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex gap-2 items-center justify-between mb-4">
                   {showSearchBar && <Skeleton className="h-9 w-64" />}
                   {showTableActions && <Skeleton className="h-9 w-32" />}
                 </div>
@@ -73,26 +65,10 @@ export function PageSkeleton({
 
               {/* Table */}
               <Card className="shadow-xs">
-                <CardContent className="p-6">
-                  <div className="space-y-3">
+                <CardContent>
+                  <div className="space-y-6">
                     {[...Array(tableRowsCount)].map((_, i) => (
-                      <div key={i} className="flex items-center space-x-4">
-                        {showAvatars && (
-                          <Skeleton className="h-10 w-10 rounded-full" />
-                        )}
-                        {[...Array(tableColumnsCount)].map((_, j) => (
-                          <Skeleton
-                            key={j}
-                            className={
-                              j === 0
-                                ? "h-4 flex-1"
-                                : j === tableColumnsCount - 1
-                                ? "h-8 w-16"
-                                : "h-4 w-24"
-                            }
-                          />
-                        ))}
-                      </div>
+                      <Skeleton key={i} className="h-8 w-full" />
                     ))}
                   </div>
                 </CardContent>

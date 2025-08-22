@@ -95,16 +95,7 @@ export default function ReportsPage() {
   });
 
   if (isLoading) {
-    return (
-      <PageSkeleton
-        cardsCount={4}
-        tableRowsCount={5}
-        tableColumnsCount={6}
-        showSearchBar={true}
-        showTableActions={true}
-        showActionButton={false}
-      />
-    );
+    return <PageSkeleton />;
   }
 
   if (error) {

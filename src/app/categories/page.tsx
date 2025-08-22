@@ -104,15 +104,7 @@ export default function CategoriesPage() {
   });
 
   if (isLoading || isLoadingCounts) {
-    return (
-      <PageSkeleton
-        cardsCount={4}
-        tableRowsCount={5}
-        tableColumnsCount={5}
-        showSearchBar={true}
-        showTableActions={true}
-      />
-    );
+    return <PageSkeleton />;
   }
 
   if (error || errorCounts) {
