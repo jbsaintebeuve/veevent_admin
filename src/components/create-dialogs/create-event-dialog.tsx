@@ -72,47 +72,6 @@ const initialForm = {
   isTrending: false,
 };
 
-const InputField = memo(
-  ({
-    label,
-    name,
-    type = "text",
-    placeholder,
-    required = false,
-    value,
-    onChange,
-    disabled,
-    ...props
-  }: {
-    label: string;
-    name: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    disabled: boolean;
-    [key: string]: any;
-  }) => (
-    <div className="grid gap-2">
-      <Label htmlFor={name}>
-        {label} {required && "*"}
-      </Label>
-      <Input
-        id={name}
-        name={name}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        disabled={disabled}
-        {...props}
-      />
-    </div>
-  )
-);
-
 export function CreateEventDialog({
   children,
 }: {
@@ -305,7 +264,7 @@ export function CreateEventDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Créer un nouvel événement</DialogTitle>
@@ -315,24 +274,30 @@ export function CreateEventDialog({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <InputField
-              label="Nom de l'événement"
-              name="name"
-              placeholder="Concert sous les étoiles"
-              value={form.name}
-              onChange={handleChange}
-              disabled={mutation.isPending}
-              required
-            />
-            <InputField
-              label="Description"
-              name="description"
-              placeholder="Une soirée exceptionnelle..."
-              value={form.description}
-              onChange={handleChange}
-              disabled={mutation.isPending}
-              required
-            />
+            <div className="grid gap-2">
+              <Label htmlFor="name">Nom de l'événement *</Label>
+              <Input
+                id="name"
+                name="name"
+                placeholder="Concert sous les étoiles"
+                value={form.name}
+                onChange={handleChange}
+                disabled={mutation.isPending}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description *</Label>
+              <Input
+                id="description"
+                name="description"
+                placeholder="Une soirée exceptionnelle..."
+                value={form.description}
+                onChange={handleChange}
+                disabled={mutation.isPending}
+                required
+              />
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -381,40 +346,55 @@ export function CreateEventDialog({
               </div>
             </div>
 
-            <InputField
-              label="Adresse"
-              name="address"
-              placeholder="Parc Central, Avenue des Arts"
-              value={form.address}
-              onChange={handleChange}
-              disabled={mutation.isPending}
-              required
-            />
+            <div className="grid gap-2">
+              <Label htmlFor="address">Adresse *</Label>
+              <Input
+                id="address"
+                name="address"
+                placeholder="Parc Central, Avenue des Arts"
+                value={form.address}
+                onChange={handleChange}
+                disabled={mutation.isPending}
+                required
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <InputField
-                label="Prix (€)"
-                name="price"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="20.00"
-                value={form.price}
-                onChange={handleChange}
-                disabled={mutation.isPending}
-                required
-              />
-              <InputField
-                label="Participants maximum"
-                name="maxCustomers"
-                type="number"
-                min="1"
-                placeholder="250"
-                value={form.maxCustomers}
-                onChange={handleChange}
-                disabled={mutation.isPending}
-                required
-              />
+              <div className="grid gap-2">
+                <Label htmlFor="price">Prix (€) *</Label>
+                <Input
+                  id="price"
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="20.00"
+                  value={form.price}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label
+                  htmlFor="maxCustomers"
+                  className="truncate"
+                  style={{ display: "block", width: "100%" }}
+                >
+                  Participants maximum *
+                </Label>
+                <Input
+                  id="maxCustomers"
+                  name="maxCustomers"
+                  type="number"
+                  min="1"
+                  placeholder="250"
+                  value={form.maxCustomers}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  required
+                />
+              </div>
             </div>
 
             <ImageUpload
@@ -531,7 +511,10 @@ export function CreateEventDialog({
                       >
                         {cat.name}
                         {cat.trending && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs hidden sm:block"
+                          >
                             Tendance
                           </Badge>
                         )}

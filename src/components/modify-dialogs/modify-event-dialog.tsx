@@ -39,6 +39,7 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface ModifyEventDialogProps {
   event: Event | null;
@@ -262,7 +263,9 @@ export function ModifyEventDialog({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Modifier l'événement</DialogTitle>
+            <VisuallyHidden>
+              <DialogTitle>Modifier l'événement</DialogTitle>
+            </VisuallyHidden>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <Skeleton className="h-8 w-1/2 mb-2" />
@@ -376,7 +379,9 @@ export function ModifyEventDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="price">Prix (€) *</Label>
+                <Label htmlFor="price" className="truncate">
+                  Prix (€) *
+                </Label>
                 <Input
                   id="price"
                   name="price"
@@ -390,7 +395,13 @@ export function ModifyEventDialog({
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="maxCustomers">Participants maximum *</Label>
+                <Label
+                  htmlFor="maxCustomers"
+                  className="truncate"
+                  style={{ display: "block", width: "100%" }}
+                >
+                  Participants maximum *
+                </Label>
                 <Input
                   id="maxCustomers"
                   name="maxCustomers"
@@ -468,7 +479,10 @@ export function ModifyEventDialog({
                       >
                         {cat.name}
                         {cat.trending && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs hidden sm:block"
+                          >
                             Tendance
                           </Badge>
                         )}

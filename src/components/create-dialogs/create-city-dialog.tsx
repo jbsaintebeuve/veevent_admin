@@ -202,7 +202,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="latitude">Latitude *</Label>
                 <Input
@@ -306,12 +306,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={resetForm}
-                disabled={mutation.isPending}
-              >
+              <Button variant="outline" disabled={mutation.isPending}>
                 Annuler
               </Button>
             </DialogClose>
