@@ -26,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import Link from "next/link";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -97,16 +98,16 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <a href="/profile" className="cursor-pointer">
+                <Link href="/profile" className="cursor-pointer">
                   <IconUserCircle className="mr-2 h-4 w-4" />
                   Mon profil
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href="/billing" className="cursor-pointer">
+                <Link href="/billing" className="cursor-pointer">
                   <IconCreditCard className="mr-2 h-4 w-4" />
                   Facturation
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={toggleTheme}
