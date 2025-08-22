@@ -162,7 +162,7 @@ export default function UsersPage() {
 
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
-            <div className="px-4 lg:px-6">
+            <div className="px-4 lg:px-6 mb-2">
               <Card className="shadow-xs">
                 <CardHeader>
                   <h3 className="text-lg font-semibold">
@@ -180,11 +180,11 @@ export default function UsersPage() {
                       size="lg"
                       showOverflow={true}
                     />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
+                    <div className="flex flex-col truncate">
+                      <span className="text-sm font-medium truncate">
                         Membres de la plateforme
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground truncate">
                         {filteredUsers.length} profil(s) utilisateur(s)
                       </span>
                     </div>
