@@ -29,7 +29,7 @@ import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 
 export function NavUser() {
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const { setTheme, resolvedTheme } = useTheme();
   const { user, logout, isAuthenticated } = useAuth();
 
@@ -48,6 +48,12 @@ export function NavUser() {
   };
 
   const displayName = `${user.firstName} ${user.lastName}`;
+
+  const handleProfileClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -98,13 +104,21 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="cursor-pointer">
+                <Link
+                  href="/profile"
+                  className="cursor-pointer"
+                  onClick={handleProfileClick}
+                >
                   <IconUserCircle className="mr-2 h-4 w-4" />
                   Mon profil
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/billing" className="cursor-pointer">
+                <Link
+                  href="/billing"
+                  className="cursor-pointer"
+                  onClick={handleProfileClick}
+                >
                   <IconCreditCard className="mr-2 h-4 w-4" />
                   Facturation
                 </Link>
