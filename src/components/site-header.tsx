@@ -151,7 +151,7 @@ export function SiteHeader() {
 
         <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
           <a
-            href="https://event-website-veevent.vercel.app/"
+            href={process.env.NEXT_PUBLIC_VEEVENT_URL}
             rel="noopener noreferrer"
             target="_blank"
             className="flex items-center gap-2"

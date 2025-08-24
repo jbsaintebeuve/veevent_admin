@@ -147,7 +147,7 @@ export function LoginForm({
               Besoin d'un compte ?{" "}
               <a
                 target="_blank"
-                href="https://event-website-veevent.vercel.app/inscription"
+                href={`${process.env.NEXT_PUBLIC_VEEVENT_URL}/inscription`}
                 className="underline underline-offset-4 hover:text-primary"
               >
                 Inscrivez-vous
