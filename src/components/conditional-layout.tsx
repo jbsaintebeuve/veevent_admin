@@ -1,17 +1,25 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ProtectedRoute } from "@/components/protected-route";
+import { useAuth } from "@/hooks/use-auth";
 
 const publicRoutes = ["/auth/login", "/auth/callback"];
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPublicRoute = publicRoutes.includes(pathname);
+  const router = useRouter();
+  const { isAuthenticated, user, loading } = useAuth();
 
   if (isPublicRoute) {
+    if (!loading && isAuthenticated && user) {
+      router.replace("/dashboard");
+      return;
+    }
+
     return <>{children}</>;
   }
 
