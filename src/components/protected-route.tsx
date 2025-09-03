@@ -57,7 +57,13 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     pathname,
   ]);
 
-  if (loading || !authChecked || isAuthorized === null || loginSuccess) {
+  if (
+    loading ||
+    !authChecked ||
+    isAuthorized === null ||
+    loginSuccess ||
+    pathname === "/auth/callback"
+  ) {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">
