@@ -16,16 +16,17 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
   useEffect(() => {
+    // Attendre que l'auth soit vérifiée
     if (loading || !authChecked) return;
 
-    if (loginSuccess) return;
+    // Ne pas vérifier les permissions sur la page callback
+    if (pathname === "/auth/callback") return;
 
     if (!isAuthenticated || !user) {
-      // Reset l'état d'autorisation avant la redirection
-      setIsAuthorized(null);
+      setIsAuthorized(false);
       router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
@@ -41,36 +42,24 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       localStorage.removeItem("user");
       clearLocalStoragePreservingTheme();
 
-      setIsAuthorized(null);
+      setIsAuthorized(false);
       router.replace("/auth/login?error=insufficient-permissions");
       return;
     }
 
     setIsAuthorized(true);
-  }, [
-    user,
-    loading,
-    authChecked,
-    isAuthenticated,
-    loginSuccess,
-    router,
-    pathname,
-  ]);
+  }, [user, loading, authChecked, isAuthenticated, router, pathname]);
 
-  if (
-    loading ||
-    !authChecked ||
-    isAuthorized === null ||
-    loginSuccess ||
-    pathname === "/auth/callback"
-  ) {
+  if (loading || !authChecked || pathname === "/auth/callback") {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             <p className="text-sm text-muted-foreground">
-              Vérification des autorisations...
+              {pathname === "/auth/callback"
+                ? "Connexion en cours..."
+                : "Vérification des autorisations..."}
             </p>
           </div>
         </div>
@@ -78,6 +67,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     );
   }
 
+  // Si pas autorisé après vérification, ne rien afficher
   if (!isAuthorized) return null;
 
   return <>{children}</>;

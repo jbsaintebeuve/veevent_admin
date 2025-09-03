@@ -1,5 +1,6 @@
 // Les clés sont des préfixes de routes (ex: "/categories" protège tout ce qui commence par /categories)
 export const routePermissions: Record<string, string[]> = {
+  "/auth": ["admin", "authservice", "organizer"],
   "/dashboard": ["admin", "authservice", "organizer"],
   "/categories": ["admin", "authservice"],
   "/cities": ["admin", "authservice"],
