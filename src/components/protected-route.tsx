@@ -19,7 +19,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   useEffect(() => {
     if (loading) return;
 
-    if (pathname.startsWith("/auth/callback")) return;
+    if (pathname.includes("/auth/callback")) return;
 
     if (!isAuthenticated || !user) {
       router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
@@ -41,7 +41,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     }
   }, [user, loading, isAuthenticated, router, pathname]);
 
-  if (loading || pathname.startsWith("/auth/callback")) {
+  if (loading || pathname.includes("/auth/callback")) {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">
