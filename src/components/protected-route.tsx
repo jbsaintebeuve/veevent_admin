@@ -19,11 +19,9 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
   useEffect(() => {
-    // Attendre que l'auth soit vérifiée
     if (loading || !authChecked) return;
 
-    // Ne pas vérifier les permissions sur la page callback
-    if (pathname === "/auth/callback") return;
+    if (pathname.startsWith("/auth/callback")) return;
 
     if (!isAuthenticated || !user) {
       setIsAuthorized(false);
@@ -31,7 +29,6 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       return;
     }
 
-    // Vérification des permissions pour la route courante
     const matched = Object.entries(routePermissions).find(([prefix]) =>
       pathname.startsWith(prefix)
     );
@@ -50,7 +47,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     setIsAuthorized(true);
   }, [user, loading, authChecked, isAuthenticated, router, pathname]);
 
-  if (loading || !authChecked || pathname === "/auth/callback") {
+  if (loading || !authChecked || pathname.startsWith("/auth/callback")) {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">
@@ -65,7 +62,6 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     );
   }
 
-  // Si pas autorisé après vérification, ne rien afficher
   if (!isAuthorized) return null;
 
   return <>{children}</>;
