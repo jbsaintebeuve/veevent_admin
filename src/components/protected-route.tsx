@@ -12,12 +12,12 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
-  const { user, loading, authChecked, isAuthenticated } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (loading || !authChecked) return;
+    if (loading) return;
 
     if (pathname.startsWith("/auth/callback")) return;
 
@@ -39,9 +39,9 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       router.replace("/auth/login?error=insufficient-permissions");
       return;
     }
-  }, [user, loading, authChecked, isAuthenticated, router, pathname]);
+  }, [user, loading, isAuthenticated, router, pathname]);
 
-  if (loading || !authChecked || pathname.startsWith("/auth/callback")) {
+  if (loading || pathname.startsWith("/auth/callback")) {
     return (
       fallback || (
         <div className="flex h-screen items-center justify-center">

@@ -25,7 +25,6 @@ export function useAuth() {
 
   const [user, setUser] = useState<User | null>(getInitialUser());
   const [loading, setLoading] = useState(true);
-  const [authChecked, setAuthChecked] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState<string | null>(null);
 
   const getToken = useCallback(() => {
@@ -63,9 +62,7 @@ export function useAuth() {
         }; SameSite=Lax`;
         localStorage.setItem("user", JSON.stringify(userData));
 
-        // Mise à jour atomique des états
         setUser(userData);
-        setAuthChecked(true);
         setLoginSuccess(redirectUrl);
 
         toast.success(`Bienvenue ${userData.firstName} !`);
@@ -98,9 +95,7 @@ export function useAuth() {
         }; SameSite=Lax`;
         localStorage.setItem("user", JSON.stringify(userData));
 
-        // Mise à jour atomique des états
         setUser(userData);
-        setAuthChecked(true);
         setLoginSuccess(redirectUrl);
 
         toast.success(`Bienvenue ${userData.firstName} !`);
@@ -131,7 +126,6 @@ export function useAuth() {
         if (!token) {
           setUser(null);
           setLoading(false);
-          setAuthChecked(true);
           return;
         }
 
@@ -151,7 +145,6 @@ export function useAuth() {
         }
       } finally {
         setLoading(false);
-        setAuthChecked(true);
       }
     };
 
@@ -160,17 +153,15 @@ export function useAuth() {
   }, [getToken, clearAuth]);
 
   useEffect(() => {
-    if (loginSuccess && authChecked && user) {
-      // Redirection immédiate - React garantit la cohérence des états
+    if (loginSuccess && user) {
       router.replace(loginSuccess);
       setLoginSuccess(null);
     }
-  }, [loginSuccess, authChecked, router, user]);
+  }, [loginSuccess, router, user]);
 
   return {
     user,
     loading,
-    authChecked,
     loginSuccess,
     isAuthenticated: !!user && !!getToken(),
     token: getToken(),
