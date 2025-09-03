@@ -12,11 +12,9 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
-  const { user, loading, authChecked, isAuthenticated, loginSuccess } =
-    useAuth();
+  const { user, loading, authChecked, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
   useEffect(() => {
     if (loading || !authChecked) return;
@@ -24,7 +22,6 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     if (pathname.startsWith("/auth/callback")) return;
 
     if (!isAuthenticated || !user) {
-      setIsAuthorized(false);
       router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
@@ -39,12 +36,9 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       localStorage.removeItem("user");
       clearLocalStoragePreservingTheme();
 
-      setIsAuthorized(false);
       router.replace("/auth/login?error=insufficient-permissions");
       return;
     }
-
-    setIsAuthorized(true);
   }, [user, loading, authChecked, isAuthenticated, router, pathname]);
 
   if (loading || !authChecked || pathname.startsWith("/auth/callback")) {
@@ -61,8 +55,6 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       )
     );
   }
-
-  if (!isAuthorized) return null;
 
   return <>{children}</>;
 }
