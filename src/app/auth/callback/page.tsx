@@ -7,8 +7,11 @@ function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loginWithToken } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
+    if (isProcessing) return;
+
     const token = searchParams.get("token");
     let redirectUrl = searchParams.get("redirect") || "/dashboard";
     if (redirectUrl.startsWith("/auth/callback")) redirectUrl = "/dashboard";
@@ -22,6 +25,7 @@ function AuthCallbackContent() {
       return;
     }
 
+    setIsProcessing(true);
     loginWithToken(token, redirectUrl).catch(() => {
       router.replace(
         `/auth/login?error=auth_failed&redirect=${encodeURIComponent(
@@ -29,7 +33,7 @@ function AuthCallbackContent() {
         )}`
       );
     });
-  }, [searchParams, router, loginWithToken]);
+  }, [searchParams, router, loginWithToken, isProcessing]);
 
   return null;
 }

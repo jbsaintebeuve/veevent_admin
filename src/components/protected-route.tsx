@@ -19,13 +19,13 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // On attend que l'auth soit vérifiée
     if (loading || !authChecked) return;
-    
-    // Si on est en train de rediriger après login, on attend
+
     if (loginSuccess) return;
 
     if (!isAuthenticated || !user) {
+      // Reset l'état d'autorisation avant la redirection
+      setIsAuthorized(null);
       router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
@@ -41,6 +41,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
       localStorage.removeItem("user");
       clearLocalStoragePreservingTheme();
 
+      setIsAuthorized(null);
       router.replace("/auth/login?error=insufficient-permissions");
       return;
     }
@@ -56,7 +57,6 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
     pathname,
   ]);
 
-  // Affichage fallback tant que l'auth n'est pas vérifiée
   if (loading || !authChecked || isAuthorized === null || loginSuccess) {
     return (
       fallback || (

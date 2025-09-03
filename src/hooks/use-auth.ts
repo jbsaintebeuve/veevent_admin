@@ -62,12 +62,13 @@ export function useAuth() {
           7 * 24 * 60 * 60
         }; SameSite=Lax`;
         localStorage.setItem("user", JSON.stringify(userData));
+
+        // Mise à jour atomique des états
         setUser(userData);
-
-        toast.success(`Bienvenue ${userData.firstName} !`);
-
         setAuthChecked(true);
         setLoginSuccess(redirectUrl);
+
+        toast.success(`Bienvenue ${userData.firstName} !`);
       } catch (err) {
         toast.error("Erreur de connexion");
         clearAuth();
@@ -96,12 +97,13 @@ export function useAuth() {
           7 * 24 * 60 * 60
         }; SameSite=Lax`;
         localStorage.setItem("user", JSON.stringify(userData));
+
+        // Mise à jour atomique des états
         setUser(userData);
-
-        toast.success(`Bienvenue ${userData.firstName} !`);
-
         setAuthChecked(true);
         setLoginSuccess(redirectUrl);
+
+        toast.success(`Bienvenue ${userData.firstName} !`);
       } catch (err) {
         toast.error("Erreur de connexion");
         clearAuth();
@@ -119,7 +121,6 @@ export function useAuth() {
     router.replace("/auth/login");
   }, [clearAuth, router]);
 
-  // Vérification initiale de l'auth
   useEffect(() => {
     const checkAuth = async () => {
       if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -134,7 +135,6 @@ export function useAuth() {
           return;
         }
 
-        // Vérification API
         try {
           const freshUser = await getMe(token);
           if (!isRoleAllowed(freshUser.role)) {
@@ -160,13 +160,12 @@ export function useAuth() {
   }, [getToken, clearAuth]);
 
   useEffect(() => {
-    if (loginSuccess && authChecked) {
-      setTimeout(() => {
-        router.replace(loginSuccess);
-        setLoginSuccess(null);
-      }, 300);
+    if (loginSuccess && authChecked && user) {
+      // Redirection immédiate - React garantit la cohérence des états
+      router.replace(loginSuccess);
+      setLoginSuccess(null);
     }
-  }, [loginSuccess, authChecked, router]);
+  }, [loginSuccess, authChecked, router, user]);
 
   return {
     user,
