@@ -8,7 +8,7 @@ function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loginWithToken } = useAuth();
-  /*
+
   useEffect(() => {
     const token = searchParams.get("token");
     let redirectUrl = searchParams.get("redirect") || "/dashboard";
@@ -30,7 +30,7 @@ function AuthCallbackContent() {
         )}`
       );
     });
-  }, [searchParams, router, loginWithToken]); */
+  }, [searchParams, router, loginWithToken]);
 
   return (
     <div className="flex h-screen items-center justify-center">
