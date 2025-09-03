@@ -35,7 +35,8 @@ function AuthCallbackContent() {
     });
   }, [searchParams, router, loginWithToken, isProcessing]);
 
-  return null;
+  // Ne pas retourner null - laisser ProtectedRoute gérer l'affichage
+  return <div></div>;
 }
 
 export default function AuthCallbackPage() {
