@@ -95,7 +95,7 @@ export function LoginForm({
               Ou continuer avec
             </span>
           </div>
-          <form onSubmit={handleSubmit} className="grid gap-6">
+          <form onSubmit={handleSubmit} className="grid gap-6 mt-4">
             <div className="grid gap-3">
               <Label htmlFor="email">Email</Label>
               <Input
