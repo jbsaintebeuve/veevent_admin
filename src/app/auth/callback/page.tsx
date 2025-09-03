@@ -33,7 +33,7 @@ function AuthCallbackContent() {
   }, [searchParams, router, loginWithToken]);
 
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="flex h-[100dvh] items-center justify-center">
       <Image
         src="/google-logo.png"
         width={200}
