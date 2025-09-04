@@ -302,7 +302,7 @@ export function CreateCityDialog() {
                       />
                       <Label
                         htmlFor={`nearestCity-${city.id}`}
-                        className="text-sm cursor-pointer"
+                        className="text-sm"
                       >
                         {city.name}
                       </Label>

@@ -625,10 +625,7 @@ export default function ProfilePage() {
                           }
                           disabled={updateProfileMutation.isPending}
                         />
-                        <Label
-                          htmlFor={category.key}
-                          className="text-sm font-normal cursor-pointer"
-                        >
+                        <Label htmlFor={category.key} className="text-sm">
                           {category.name}
                           {category.trending && (
                             <Badge variant="secondary" className="ml-2 text-xs">

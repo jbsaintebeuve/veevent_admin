@@ -473,10 +473,7 @@ export function ModifyEventDialog({
                         }
                         disabled={mutation.isPending}
                       />
-                      <Label
-                        htmlFor={`${cat.key}-${i}`}
-                        className="text-sm cursor-pointer flex items-center gap-2"
-                      >
+                      <Label htmlFor={`${cat.key}-${i}`} className="text-sm">
                         {cat.name}
                         {cat.trending && (
                           <Badge

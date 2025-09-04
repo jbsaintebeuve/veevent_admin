@@ -354,7 +354,7 @@ export function ModifyCityDialog({
                         />
                         <Label
                           htmlFor={`nearestCity-${cityItem.id}`}
-                          className="text-sm cursor-pointer"
+                          className="text-sm"
                         >
                           {cityItem.name}
                         </Label>
