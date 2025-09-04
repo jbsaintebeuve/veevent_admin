@@ -136,7 +136,7 @@ export default function CitiesPage() {
                   Gérez les villes où se déroulent vos événements
                 </p>
               </div>
-              <CreateCityDialog cities={cities} />
+              <CreateCityDialog />
             </div>
 
             <SectionCards cards={cardsData} gridCols={3} className="mb-2" />

@@ -368,7 +368,6 @@ export function CitiesTable({
       {/* Dialog Modifier Centralisé */}
       <ModifyCityDialog
         city={modifyTarget}
-        cities={data}
         open={modifyDialogOpen}
         onOpenChange={setModifyDialogOpen}
       />
