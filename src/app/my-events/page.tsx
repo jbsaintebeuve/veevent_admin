@@ -36,9 +36,6 @@ export default function MyEventsPage() {
       if (!token) throw new Error("Token manquant");
       return fetchUserEvents(userEventsUrl, token, 0, 1000);
     },
-    enabled: !!token && !!user?.id && !!userEventsUrl,
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];

@@ -34,7 +34,6 @@ export default function EventsPage() {
       if (!token) throw new Error("Token manquant");
       return fetchEvents(token, currentPage - 1, pageSize);
     },
-    enabled: !!token,
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];

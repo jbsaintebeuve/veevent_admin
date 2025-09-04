@@ -88,7 +88,7 @@ export function ModifyEventDialog({
       if (!token) throw new Error("Token manquant");
       return fetchEventDetails(event!.id, token);
     },
-    enabled: open && !!event?.id,
+    enabled: open,
   });
 
   useEffect(() => {

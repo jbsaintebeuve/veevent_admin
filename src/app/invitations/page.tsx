@@ -34,7 +34,6 @@ export default function InvitationsPage() {
       if (!token) throw new Error("Token manquant");
       return fetchUserInvitations(token, currentPage - 1, pageSize);
     },
-    enabled: !!token && !!user?.id,
   });
 
   const invitations = data?._embedded?.invitations || [];
@@ -56,8 +55,6 @@ export default function InvitationsPage() {
           return null;
         }
       },
-      enabled:
-        !!token && !!invitation._links?.self?.href && !invitation.participant,
     })),
   });
 

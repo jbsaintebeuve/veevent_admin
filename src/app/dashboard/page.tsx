@@ -15,7 +15,8 @@ export default function Page() {
   const user = useAuth().user;
   const role = user?.role?.toUpperCase();
 
-  const isAdminLike = role === "ADMIN" || role === "AUTHSERVICE";
+  const isAdmin = role === "ADMIN" || role === "AUTHSERVICE";
+  const isOrganizer = role === "ORGANIZER";
 
   const {
     data: eventsResponse,
@@ -27,7 +28,7 @@ export default function Page() {
       if (!token) throw new Error("Token manquant");
       return fetchEvents(token);
     },
-    enabled: isAdminLike,
+    enabled: isAdmin,
   });
 
   const {
@@ -40,7 +41,7 @@ export default function Page() {
       if (!token) throw new Error("Token manquant");
       return fetchUsers(token);
     },
-    enabled: isAdminLike,
+    enabled: isAdmin,
   });
 
   const {
@@ -53,11 +54,10 @@ export default function Page() {
       if (!token) throw new Error("Token manquant");
       return fetchReports(token, 0, 1000);
     },
-    enabled: isAdminLike,
+    enabled: isAdmin,
   });
 
   const userEventsUrl = user?._links?.events?.href;
-  const userInvitationsUrl = user?._links?.invitations?.href;
 
   const {
     data: myEventsResponse,
@@ -69,9 +69,7 @@ export default function Page() {
       if (!token) throw new Error("Token manquant");
       return fetchUserEvents(userEventsUrl, token);
     },
-    enabled: !!user?.id && !!userEventsUrl && role === "ORGANIZER",
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
+    enabled: isOrganizer,
   });
 
   const {
@@ -84,20 +82,15 @@ export default function Page() {
       if (!token) throw new Error("Token manquant");
       return fetchUserInvitations(token);
     },
-    enabled:
-      !!token && !!user?.id && !!userInvitationsUrl && role === "ORGANIZER",
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
+    enabled: isOrganizer,
   });
 
   const isLoadingAdmin =
-    isAdminLike && (isLoadingEvents || isLoadingUsers || isLoadingReports);
-  const isErrorAdmin =
-    isAdminLike && (errorEvents || errorUsers || errorReports);
+    isAdmin && (isLoadingEvents || isLoadingUsers || isLoadingReports);
+  const isErrorAdmin = isAdmin && (errorEvents || errorUsers || errorReports);
   const isLoadingOrganizer =
-    role === "ORGANIZER" && (isLoadingMyEvents || isLoadingMyInvitations);
-  const isErrorOrganizer =
-    role === "ORGANIZER" && (errorMyEvents || errorMyInvitations);
+    isOrganizer && (isLoadingMyEvents || isLoadingMyInvitations);
+  const isErrorOrganizer = isOrganizer && (errorMyEvents || errorMyInvitations);
 
   if (
     isLoadingAdmin ||
@@ -126,7 +119,7 @@ export default function Page() {
     reportsResponse?._embedded?.reports?.length ||
     0;
 
-  if (isAdminLike) {
+  if (isAdmin) {
     const dashboardCardsData: CardData[] = [
       {
         id: "total-events",
@@ -234,7 +227,7 @@ export default function Page() {
     );
   }
 
-  if (role === "ORGANIZER") {
+  if (isOrganizer) {
     const events = myEventsResponse?._embedded?.eventSummaryResponses || [];
     const totalEvents = events.length;
     const totalParticipants = events.reduce(

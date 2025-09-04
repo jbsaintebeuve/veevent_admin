@@ -66,9 +66,8 @@ export function ModifyPlaceDialog({
         return fetchCities(token, 0, 50);
       },
       enabled: open,
-      staleTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: false,
     });
+
   const cities = citiesResponse?._embedded?.cityResponses || [];
 
   const findCityIdByName = (cityName: string): string => {

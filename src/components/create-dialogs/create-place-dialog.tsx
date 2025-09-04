@@ -72,8 +72,6 @@ export function CreatePlaceDialog() {
       if (!token) throw new Error("Token manquant");
       return fetchCities(token, 0, 50);
     },
-    retry: 2,
-    retryDelay: 1000,
     enabled: open,
   });
 

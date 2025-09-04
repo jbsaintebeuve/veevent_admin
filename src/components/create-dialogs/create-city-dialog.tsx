@@ -48,7 +48,6 @@ export function CreateCityDialog() {
       if (!token) throw new Error("Token manquant");
       return fetchCities(token, 0, 50);
     },
-    retry: 2,
     enabled: open,
   });
 

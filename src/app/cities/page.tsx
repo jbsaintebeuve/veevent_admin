@@ -34,7 +34,6 @@ export default function CitiesPage() {
       if (!token) throw new Error("Token manquant");
       return fetchCities(token, currentPage - 1, pageSize);
     },
-    enabled: !!token,
   });
 
   const cities = citiesResponse?._embedded?.cityResponses || [];

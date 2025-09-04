@@ -79,8 +79,6 @@ export default function ProfilePage() {
   } = useQuery({
     queryKey: ["categories"],
     queryFn: () => fetchCategories(token || undefined),
-    enabled: !!token,
-    staleTime: 5 * 60 * 1000,
   });
 
   const categories = categoriesResponse?._embedded?.categories || [];
@@ -136,8 +134,6 @@ export default function ProfilePage() {
       if (!token) throw new Error("Token manquant");
       return fetchUserMe(token);
     },
-    enabled: !!token && !authLoading,
-    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {

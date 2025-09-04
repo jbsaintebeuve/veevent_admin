@@ -110,8 +110,6 @@ export function CreateEventDialog({
       if (!token) throw new Error("Token manquant");
       return fetchCities(token, 0, 50);
     },
-    retry: 2,
-    retryDelay: 1000,
     enabled: open,
   });
 
@@ -121,8 +119,7 @@ export function CreateEventDialog({
       if (!token) throw new Error("Token manquant");
       return fetchPlacesByCity(form.cityId, token);
     },
-    enabled: !!form.cityId && open,
-    retry: 2,
+    enabled: open,
   });
 
   const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery({
@@ -131,7 +128,6 @@ export function CreateEventDialog({
       if (!token) throw new Error("Token manquant");
       return fetchCategories(token);
     },
-    retry: 2,
     enabled: open,
   });
 
