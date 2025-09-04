@@ -274,7 +274,7 @@ export function CreateCityDialog() {
             </div>
             <div className="grid gap-2">
               <Label>Villes proches</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3">
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3 relative">
                 {citiesLoading ? (
                   <p className="text-sm text-muted-foreground col-span-2">
                     Chargement...
