@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Loader2, MapPin, Globe } from "lucide-react";
 import { City } from "@/types/city";
-import { createCity } from "@/services/city-service";
+import { createCity, fetchCities } from "@/services/city-service";
 import { useMultipleImages } from "@/hooks/use-image-upload";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
@@ -43,6 +43,16 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
   const { token } = useAuth();
   const imageUploads = useMultipleImages();
 
+  const { data: allCitiesResponse, isLoading: citiesLoading } = useQuery({
+    queryKey: ["cities", "all"],
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCities(token, 0, 50);
+    },
+    retry: 2,
+    enabled: open,
+  });
+
   const mutation = useMutation({
     mutationFn: async (payload: CityCreateRequest) => {
       if (!token) throw new Error("Token manquant");
@@ -59,7 +69,7 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
     },
   });
 
-  const allCities = cities || [];
+  const allCities = allCitiesResponse?._embedded?.cityResponses || [];
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -266,7 +276,11 @@ export function CreateCityDialog({ cities }: { cities: City[] }) {
             <div className="grid gap-2">
               <Label>Villes proches</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3">
-                {allCities.length === 0 ? (
+                {citiesLoading ? (
+                  <p className="text-sm text-muted-foreground col-span-2">
+                    Chargement...
+                  </p>
+                ) : allCities.length === 0 ? (
                   <p className="text-sm text-muted-foreground col-span-2">
                     Aucune ville disponible
                   </p>

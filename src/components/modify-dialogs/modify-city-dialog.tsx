@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Edit, MapPin, Globe } from "lucide-react";
 import { City, CityUpdateRequest } from "@/types/city";
-import { modifyCity } from "@/services/city-service";
+import { modifyCity, fetchCities } from "@/services/city-service";
 import { useAuth } from "@/hooks/use-auth";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMultipleImages } from "@/hooks/use-image-upload";
@@ -59,6 +59,16 @@ export function ModifyCityDialog({
     city?.imageUrl || ""
   );
 
+  const { data: allCitiesResponse, isLoading: citiesLoading } = useQuery({
+    queryKey: ["cities", "all"],
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCities(token, 0, 50);
+    },
+    retry: 2,
+    enabled: open,
+  });
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error("Token manquant");
@@ -92,7 +102,7 @@ export function ModifyCityDialog({
     },
   });
 
-  const allCities = cities || [];
+  const allCities = allCitiesResponse?._embedded?.cityResponses || [];
 
   useEffect(() => {
     if (city) {
@@ -315,38 +325,42 @@ export function ModifyCityDialog({
             <div className="grid gap-2">
               <Label>Villes proches</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-3">
-                {allCities.filter((c) => c.id !== city.id).length === 0 ? (
+                {citiesLoading ? (
+                  <p className="text-sm text-muted-foreground col-span-2">
+                    Chargement...
+                  </p>
+                ) : allCities.filter((c) => c.id !== city.id).length === 0 ? (
                   <p className="text-sm text-muted-foreground col-span-2">
                     Aucune ville disponible
                   </p>
                 ) : (
                   allCities
                     .filter((c) => c.id !== city.id)
-                    .map((city) => (
+                    .map((cityItem) => (
                       <div
-                        key={city.id}
+                        key={cityItem.id}
                         className="flex items-center space-x-2"
                       >
                         <Checkbox
-                          id={`nearestCity-${city.id}`}
-                          checked={form.nearestCities.includes(city.id)}
+                          id={`nearestCity-${cityItem.id}`}
+                          checked={form.nearestCities.includes(cityItem.id)}
                           onCheckedChange={(checked: boolean) => {
                             setForm((prev) => ({
                               ...prev,
                               nearestCities: checked
-                                ? [...prev.nearestCities, city.id]
+                                ? [...prev.nearestCities, cityItem.id]
                                 : prev.nearestCities.filter(
-                                    (id) => id !== city.id
+                                    (id) => id !== cityItem.id
                                   ),
                             }));
                           }}
                           disabled={mutation.isPending}
                         />
                         <Label
-                          htmlFor={`nearestCity-${city.id}`}
+                          htmlFor={`nearestCity-${cityItem.id}`}
                           className="text-sm cursor-pointer"
                         >
-                          {city.name}
+                          {cityItem.name}
                         </Label>
                       </div>
                     ))
