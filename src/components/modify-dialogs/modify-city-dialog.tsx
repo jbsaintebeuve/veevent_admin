@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogClose,
@@ -27,14 +26,12 @@ import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ModifyCityDialogProps {
   city: City | null;
-  cities: City[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function ModifyCityDialog({
   city,
-  cities,
   open,
   onOpenChange,
 }: ModifyCityDialogProps) {

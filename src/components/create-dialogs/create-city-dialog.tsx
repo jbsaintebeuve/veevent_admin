@@ -18,7 +18,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Loader2, MapPin, Globe } from "lucide-react";
-import { City } from "@/types/city";
 import { createCity, fetchCities } from "@/services/city-service";
 import { useMultipleImages } from "@/hooks/use-image-upload";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,7 +35,7 @@ const initialForm = {
   nearestCities: [] as number[],
 };
 
-export function CreateCityDialog({ cities }: { cities: City[] }) {
+export function CreateCityDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const queryClient = useQueryClient();
