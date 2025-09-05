@@ -158,10 +158,15 @@ export function EventsTable({
                 {row.original.organizer.lastName?.[0]}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm font-medium">
-              {row.original.organizer.pseudo ||
-                `${row.original.organizer.firstName} ${row.original.organizer.lastName}`}
-            </span>
+            <div className="flex flex-col">
+              <span className="font-medium">
+                {row.original.organizer.firstName}
+                {row.original.organizer.lastName}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                @{row.original.organizer.pseudo}
+              </span>
+            </div>
           </div>
         ),
       },
