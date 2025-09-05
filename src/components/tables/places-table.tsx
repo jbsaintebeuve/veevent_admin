@@ -114,7 +114,7 @@ export function PlacesTable({
         accessorKey: "address",
         header: COLUMN_LABELS.address,
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground max-w-xs truncate">
+          <span className="text-sm text-muted-foreground">
             {row.original.address}
           </span>
         ),

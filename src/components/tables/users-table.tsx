@@ -155,21 +155,24 @@ export function UsersTable({
         accessorKey: "eventsCount",
         header: COLUMN_LABELS.eventsCount,
         cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">
-              {row.original.eventsCount}
-            </span>
-          </div>
+          <Badge
+            variant={row.original.eventsCount > 0 ? "default" : "outline"}
+            className="text-xs min-w-[2rem] justify-center"
+          >
+            {row.original.eventsCount}
+          </Badge>
         ),
       },
       {
         accessorKey: "eventPastCount",
         header: COLUMN_LABELS.eventPastCount,
         cell: ({ row }) => (
-          <span className="text-sm font-medium">
+          <Badge
+            variant={row.original.eventPastCount > 0 ? "default" : "outline"}
+            className="text-xs min-w-[2rem] justify-center"
+          >
             {row.original.eventPastCount}
-          </span>
+          </Badge>
         ),
       },
       {

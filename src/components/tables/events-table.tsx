@@ -34,12 +34,20 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Event } from "@/types/event";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Search, CalendarDays, Edit, Trash2, Users } from "lucide-react";
+import {
+  Search,
+  CalendarDays,
+  Edit,
+  Trash2,
+  Users,
+  Building2,
+} from "lucide-react";
 import { ModifyEventDialog } from "@/components/modify-dialogs/modify-event-dialog";
 import { EventParticipantsDialog } from "@/components/dialogs/event-participants-dialog";
 import { CustomAlertDialog } from "../dialogs/custom-alert-dialog";
 import { DragHandle } from "../ui/drag-handle";
 import { useState, useMemo } from "react";
+import { sortByKey } from "@/utils/sort-utils";
 
 const COLUMN_LABELS: Record<string, string> = {
   name: "Nom",
@@ -67,7 +75,6 @@ export function EventsTable({
   deleteLoading: boolean;
   hideDelete?: boolean;
 }) {
-  // States pour dialogs centralisés
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [modifyTarget, setModifyTarget] = useState<Event | null>(null);
   const [participantsDialogOpen, setParticipantsDialogOpen] = useState(false);
@@ -120,12 +127,21 @@ export function EventsTable({
       {
         accessorKey: "cityName",
         header: COLUMN_LABELS.cityName,
-        cell: ({ row }) => row.original.cityName,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">{row.original.cityName}</span>
+          </div>
+        ),
       },
       {
         accessorKey: "placeName",
         header: COLUMN_LABELS.placeName,
-        cell: ({ row }) => row.original.placeName,
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {row.original.placeName}
+          </span>
+        ),
       },
       {
         accessorKey: "currentParticipants",
@@ -136,15 +152,18 @@ export function EventsTable({
       {
         accessorKey: "categories",
         header: COLUMN_LABELS.categories,
-        cell: ({ row }) => (
-          <div className="flex gap-2">
-            {row.original.categories.map((cat) => (
-              <Badge key={cat.key} variant="secondary" className="text-xs">
-                {cat.name}
-              </Badge>
-            ))}
-          </div>
-        ),
+        cell: ({ row }) => {
+          const sortedCategories = sortByKey(row.original.categories);
+          return (
+            <div className="flex gap-2">
+              {sortedCategories.map((cat) => (
+                <Badge key={cat.key} variant="secondary" className="text-xs">
+                  {cat.name}
+                </Badge>
+              ))}
+            </div>
+          );
+        },
       },
       {
         accessorKey: "organizer",
