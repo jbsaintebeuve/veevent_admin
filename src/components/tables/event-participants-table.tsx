@@ -61,7 +61,7 @@ export function EventParticipantsTable({
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 p-3 rounded-lg border bg-card shadow-xs animate-pulse"
+                className="flex items-center gap-2 p-3 rounded-lg border bg-card shadow-xs animate-pulse"
               >
                 <div className="w-10 h-10 bg-muted rounded-full"></div>
                 <div className="flex-1">
@@ -109,7 +109,7 @@ export function EventParticipantsTable({
             {filteredParticipants.map((participant, index) => (
               <div
                 key={`${participant.id}-${index}`}
-                className="flex items-center gap-3 p-3 rounded-lg border bg-card shadow-xs hover:bg-accent/50 transition-colors"
+                className="flex items-center gap-2 p-3 rounded-lg border bg-card shadow-xs hover:bg-accent/50 transition-colors"
               >
                 <Avatar className="h-10 w-10">
                   <AvatarImage

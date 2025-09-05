@@ -137,7 +137,7 @@ export function EventsTable({
         accessorKey: "categories",
         header: COLUMN_LABELS.categories,
         cell: ({ row }) => (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex gap-2">
             {row.original.categories.map((cat) => (
               <Badge key={cat.key} variant="secondary" className="text-xs">
                 {cat.name}

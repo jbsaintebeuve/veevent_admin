@@ -82,7 +82,7 @@ export function UsersTable({
         accessorKey: "name",
         header: COLUMN_LABELS.name,
         cell: ({ row }) => (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
               <AvatarImage
                 src={row.original.imageUrl || undefined}
