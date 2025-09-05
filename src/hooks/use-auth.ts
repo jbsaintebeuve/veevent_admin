@@ -23,9 +23,11 @@ export function useAuth() {
     }
   };
 
-  const [user, setUser] = useState<User | null>(getInitialUser());
+  const initialUser = getInitialUser();
+  const [user, setUser] = useState<User | null>(initialUser);
   const [loading, setLoading] = useState(true);
   const [loginSuccess, setLoginSuccess] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!initialUser);
 
   const getToken = useCallback(() => {
     if (typeof document === "undefined") return null;
@@ -42,6 +44,7 @@ export function useAuth() {
       "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax";
     localStorage.removeItem("user");
     setUser(null);
+    setIsAuthenticated(false);
   }, []);
 
   const login = useCallback(
@@ -63,6 +66,7 @@ export function useAuth() {
         localStorage.setItem("user", JSON.stringify(userData));
 
         setUser(userData);
+        setIsAuthenticated(true);
         setLoginSuccess(redirectUrl);
 
         toast.success(`Bienvenue ${userData.firstName} !`);
@@ -96,6 +100,7 @@ export function useAuth() {
         localStorage.setItem("user", JSON.stringify(userData));
 
         setUser(userData);
+        setIsAuthenticated(true);
         setLoginSuccess(redirectUrl);
 
         toast.success(`Bienvenue ${userData.firstName} !`);
@@ -125,6 +130,7 @@ export function useAuth() {
         const token = getToken();
         if (!token) {
           setUser(null);
+          setIsAuthenticated(false);
           setLoading(false);
           return;
         }
@@ -134,14 +140,21 @@ export function useAuth() {
           if (!isRoleAllowed(freshUser.role)) {
             clearAuth();
             setUser(null);
+            setIsAuthenticated(false);
           } else {
             localStorage.setItem("user", JSON.stringify(freshUser));
             setUser(freshUser);
+            setIsAuthenticated(true);
           }
         } catch {
           const cachedUser = getInitialUser();
-          if (!cachedUser) clearAuth();
-          else setUser(cachedUser);
+          if (!cachedUser) {
+            clearAuth();
+            setIsAuthenticated(false);
+          } else {
+            setUser(cachedUser);
+            setIsAuthenticated(true);
+          }
         }
       } finally {
         setLoading(false);
@@ -159,11 +172,16 @@ export function useAuth() {
     }
   }, [loginSuccess, router, user]);
 
+  useEffect(() => {
+    const token = getToken();
+    setIsAuthenticated(!!user && !!token);
+  }, [user, getToken]);
+
   return {
     user,
     loading,
     loginSuccess,
-    isAuthenticated: !!user && !!getToken(),
+    isAuthenticated,
     token: getToken(),
     login,
     loginWithToken,

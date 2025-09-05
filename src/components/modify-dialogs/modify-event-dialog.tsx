@@ -262,12 +262,12 @@ export function ModifyEventDialog({
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <VisuallyHidden>
+          <VisuallyHidden>
+            <DialogHeader>
               <DialogTitle>Modifier l'événement</DialogTitle>
-            </VisuallyHidden>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
+            </DialogHeader>
+          </VisuallyHidden>
+          <div className="grid gap-4">
             <Skeleton className="h-8 w-1/2 mb-2" />
             <Skeleton className="h-8 w-full mb-2" />
             <Skeleton className="h-8 w-full mb-2" />
