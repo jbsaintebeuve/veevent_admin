@@ -19,7 +19,6 @@ import { CategoriesApiResponse } from "@/types/category";
 import { CategoriesTable } from "@/components/tables/categories-table";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import { getDeleteErrorMessage, EntityTypes } from "@/utils/error-messages";
 
 export default function CategoriesPage() {
   const [search, setSearch] = useState("");
@@ -68,18 +67,12 @@ export default function CategoriesPage() {
       toast.success("Catégorie supprimée avec succès");
     },
     onError: (error: Error) => {
-      console.error("Erreur de suppression:", error);
-      const errorMessage = getDeleteErrorMessage(error, EntityTypes.CATEGORY);
-      toast.error(errorMessage);
+      toast.error("Erreur lors de la suppression de la catégorie");
     },
   });
 
   const handleDelete = useCallback(
     (deleteUrl: string, name: string) => {
-      console.log(
-        `🗑️ Tentative de suppression de la catégorie "${name}" via URL:`,
-        deleteUrl
-      );
       deleteMutation.mutate(deleteUrl);
     },
     [deleteMutation]

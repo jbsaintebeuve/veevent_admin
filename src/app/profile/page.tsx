@@ -110,7 +110,6 @@ export default function ProfilePage() {
         bannerUrl: bannerUrl?.trim() || null,
       };
 
-      console.log("Payload envoyé:", finalPayload);
       await updateUserProfile(finalPayload, token || "");
 
       return finalPayload;
@@ -120,7 +119,7 @@ export default function ProfilePage() {
       toast.success("Profil mis à jour avec succès !");
     },
     onError: (err: any) => {
-      toast.error(`Erreur: ${"Problème lors de la mise à jour du profil"}`);
+      toast.error("Problème lors de la mise à jour du profil");
     },
   });
 

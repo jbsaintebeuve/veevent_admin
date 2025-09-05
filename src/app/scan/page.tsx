@@ -40,11 +40,9 @@ export default function ScanPage() {
   const verificationMutation = useMutation({
     mutationFn: async (verificationKey: string) => {
       if (!token) throw new Error("Token manquant");
-      console.log("🔍 Vérification du ticket:", verificationKey);
       return await verifyTicket(verificationKey, token, user);
     },
     onSuccess: (result) => {
-      console.log("📊 Résultat de vérification:", result);
       setVerificationResult({
         success: result.isValid,
         data: result,
@@ -53,7 +51,6 @@ export default function ScanPage() {
       setShowResult(true);
     },
     onError: (error: unknown) => {
-      console.error("❌ Erreur lors de la vérification:", error);
       setVerificationResult({
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -215,7 +212,9 @@ export default function ScanPage() {
 
                   <Button
                     onClick={handleManualVerification}
-                    disabled={!manualKey.trim() || verificationMutation.isPending}
+                    disabled={
+                      !manualKey.trim() || verificationMutation.isPending
+                    }
                     className="w-full"
                   >
                     {verificationMutation.isPending ? (

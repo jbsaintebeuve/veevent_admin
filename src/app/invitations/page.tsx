@@ -88,7 +88,7 @@ export default function InvitationsPage() {
       queryClient.invalidateQueries({ queryKey: ["user-invitations"] });
     },
     onError: (error: Error) => {
-      toast.error(`Erreur lors de l'acceptation: ${error.message}`);
+      toast.error("Erreur lors de l'acceptation");
     },
   });
 
@@ -102,7 +102,7 @@ export default function InvitationsPage() {
       queryClient.invalidateQueries({ queryKey: ["user-invitations"] });
     },
     onError: (error: Error) => {
-      toast.error(`Erreur lors du refus: ${error.message}`);
+      toast.error("Erreur lors du refus");
     },
   });
 

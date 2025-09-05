@@ -15,7 +15,6 @@ import { City, CitiesApiResponse } from "@/types/city";
 import { CitiesTable } from "@/components/tables/cities-table";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import { getDeleteErrorMessage, EntityTypes } from "@/utils/error-messages";
 
 export default function CitiesPage() {
   const [search, setSearch] = useState("");
@@ -52,18 +51,14 @@ export default function CitiesPage() {
       toast.success("Ville supprimée avec succès");
     },
     onError: (error: Error) => {
-      console.error("Erreur de suppression:", error);
-      const errorMessage = getDeleteErrorMessage(error, EntityTypes.CITY);
-      toast.error(errorMessage);
+      toast.error(
+        "Erreur lors de la suppression de la ville, vérifiez qu'aucune autre entité ne dépend de cette ville"
+      );
     },
   });
 
   const handleDelete = useCallback(
     (deleteUrl: string, name: string) => {
-      console.log(
-        `🗑️ Tentative de suppression de "${name}" via URL:`,
-        deleteUrl
-      );
       deleteMutation.mutate(deleteUrl);
     },
     [deleteMutation]

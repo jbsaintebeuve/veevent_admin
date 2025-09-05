@@ -60,40 +60,35 @@ export default function UsersPage() {
     );
   }, [users, search]);
 
-  const handleDelete = useCallback((deleteUrl: string, name: string) => {
-    console.log("Supprimer utilisateur:", name, deleteUrl);
-  }, []);
+  const { adminCount, organizerCount, userCount } = useMemo(() => {
+    const stats = {
+      adminCount: 0,
+      organizerCount: 0,
+      userCount: 0,
+      authServiceCount: 0,
+    };
 
-  const { adminCount, organizerCount, userCount, authServiceCount } =
-    useMemo(() => {
-      const stats = {
-        adminCount: 0,
-        organizerCount: 0,
-        userCount: 0,
-        authServiceCount: 0,
-      };
+    users?.forEach((user) => {
+      if (!user.role) return;
 
-      users?.forEach((user) => {
-        if (!user.role) return;
+      switch (user.role.toUpperCase()) {
+        case "ADMIN":
+          stats.adminCount++;
+          break;
+        case "ORGANIZER":
+          stats.organizerCount++;
+          break;
+        case "USER":
+          stats.userCount++;
+          break;
+        case "AUTHSERVICE":
+          stats.authServiceCount++;
+          break;
+      }
+    });
 
-        switch (user.role.toUpperCase()) {
-          case "ADMIN":
-            stats.adminCount++;
-            break;
-          case "ORGANIZER":
-            stats.organizerCount++;
-            break;
-          case "USER":
-            stats.userCount++;
-            break;
-          case "AUTHSERVICE":
-            stats.authServiceCount++;
-            break;
-        }
-      });
-
-      return stats;
-    }, [users]);
+    return stats;
+  }, [users]);
 
   const cardsData = useUsersCards({
     totalUsers: usersResponse?.page?.totalElements || users?.length || 0,
@@ -113,9 +108,7 @@ export default function UsersPage() {
       toast.success("Utilisateur mis à jour avec succès");
     },
     onError: (error: any) => {
-      toast.error(
-        error.message || "Erreur lors de la mise à jour de l'utilisateur"
-      );
+      toast.error("Erreur lors de la mise à jour de l'utilisateur");
     },
   });
 
