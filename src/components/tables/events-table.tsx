@@ -65,14 +65,12 @@ export function EventsTable({
   search,
   onSearchChange,
   onDelete,
-  deleteLoading,
   hideDelete = false,
 }: {
   data: Event[];
   search: string;
   onSearchChange: (v: string) => void;
   onDelete: (deleteUrl: string, name: string) => void;
-  deleteLoading: boolean;
   hideDelete?: boolean;
 }) {
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);

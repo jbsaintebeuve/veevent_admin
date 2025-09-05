@@ -145,7 +145,6 @@ export default function CitiesPage() {
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
-              deleteLoading={deleteMutation.isPending}
             />
 
             {citiesResponse?.page && citiesResponse.page.totalPages > 1 && (

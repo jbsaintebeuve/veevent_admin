@@ -54,13 +54,11 @@ export function PlacesTable({
   search,
   onSearchChange,
   onDelete,
-  deleteLoading,
 }: {
   data: Place[];
   search: string;
   onSearchChange: (v: string) => void;
   onDelete: (deleteUrl: string, name: string) => void;
-  deleteLoading: boolean;
 }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Place | null>(null);

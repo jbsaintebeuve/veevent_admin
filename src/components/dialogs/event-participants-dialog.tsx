@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { EventParticipant, EventParticipantsApiResponse, Event } from "@/types/event";
+import { EventParticipantsApiResponse, Event } from "@/types/event";
 import { fetchEventParticipants } from "@/services/event-service";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -45,7 +45,6 @@ export function EventParticipantsDialog({
     data: participantsResponse,
     isLoading,
     error,
-    refetch,
   } = useQuery<EventParticipantsApiResponse>({
     queryKey: ["event-participants", selfLink],
     queryFn: () => {
@@ -102,7 +101,6 @@ export function EventParticipantsDialog({
 
             <EventParticipantsTable
               participants={participants}
-              totalElements={totalElements}
               isLoading={isLoading}
             />
           </div>
@@ -159,7 +157,6 @@ export function EventParticipantsDialog({
 
           <EventParticipantsTable
             participants={participants}
-            totalElements={totalElements}
             isLoading={isLoading}
           />
         </div>

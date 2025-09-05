@@ -172,7 +172,6 @@ export default function MyEventsPage() {
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
-              deleteLoading={false}
               hideDelete={true}
             />
 

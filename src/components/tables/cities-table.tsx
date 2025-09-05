@@ -54,13 +54,11 @@ export function CitiesTable({
   search,
   onSearchChange,
   onDelete,
-  deleteLoading,
 }: {
   data: City[];
   search: string;
   onSearchChange: (v: string) => void;
   onDelete: (deleteUrl: string, name: string) => void;
-  deleteLoading: boolean;
 }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<City | null>(null);

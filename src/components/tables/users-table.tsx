@@ -54,18 +54,12 @@ export function UsersTable({
   data,
   search,
   onSearchChange,
-  onDelete,
-  deleteLoading,
   onBanToggle,
-  banLoading,
 }: {
   data: User[];
   search: string;
   onSearchChange: (v: string) => void;
-  onDelete: (deleteUrl: string, name: string) => void;
-  deleteLoading: boolean;
   onBanToggle: (user: User) => void;
-  banLoading?: boolean;
 }) {
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [banTargetUser, setBanTargetUser] = useState<User | null>(null);

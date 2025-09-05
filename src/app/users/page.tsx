@@ -197,10 +197,7 @@ export default function UsersPage() {
               data={users || []}
               search={search}
               onSearchChange={setSearch}
-              onDelete={handleDelete}
-              deleteLoading={false}
               onBanToggle={handleBanToggle}
-              banLoading={banMutation.isPending}
             />
 
             {usersResponse?.page && usersResponse.page.totalPages > 1 && (

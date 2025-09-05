@@ -149,7 +149,6 @@ export default function EventsPage() {
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
-              deleteLoading={deleteMutation.isPending}
             />
 
             {eventsResponse?.page && eventsResponse.page.totalPages > 1 && (

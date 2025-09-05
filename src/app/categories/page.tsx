@@ -148,7 +148,6 @@ export default function CategoriesPage() {
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
-              deleteLoading={deleteMutation.isPending}
               eventCounts={categoriesCounts}
             />
 

@@ -127,7 +127,6 @@ export default function PlacesPage() {
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
-              deleteLoading={deleteMutation.isPending}
             />
 
             {placesResponse?.page && placesResponse.page.totalPages > 1 && (

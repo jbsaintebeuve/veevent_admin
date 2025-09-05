@@ -9,13 +9,11 @@ import { Search, Users, X } from "lucide-react";
 
 interface EventParticipantsTableProps {
   participants: EventParticipant[];
-  totalElements: number;
   isLoading?: boolean;
 }
 
 export function EventParticipantsTable({
   participants,
-  totalElements,
   isLoading = false,
 }: EventParticipantsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,7 +56,7 @@ export function EventParticipantsTable({
       <div>
         {isLoading ? (
           <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(3)].map((_, i) => (
               <div
                 key={i}
                 className="flex items-center gap-2 p-3 rounded-lg border bg-card shadow-xs animate-pulse"

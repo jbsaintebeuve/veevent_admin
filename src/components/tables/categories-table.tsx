@@ -60,14 +60,12 @@ export function CategoriesTable({
   search,
   onSearchChange,
   onDelete,
-  deleteLoading,
   eventCounts,
 }: {
   data: Category[];
   search: string;
   onSearchChange: (v: string) => void;
   onDelete: (deleteUrl: string, name: string) => void;
-  deleteLoading: boolean;
   eventCounts?: Record<string, number>;
 }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
