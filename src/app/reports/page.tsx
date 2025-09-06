@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SectionCards } from "@/components/section-cards";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { fetchReports } from "@/services/report-service";
+import { fetchReportsWithUserDetails } from "@/services/report-service";
 import { ReportsApiResponse } from "@/types/report";
 import { useAuth } from "@/hooks/use-auth";
 import { ReportsTable } from "@/components/tables/reports-table";
@@ -28,7 +28,7 @@ export default function ReportsPage() {
     queryKey: ["reports", currentPage],
     queryFn: () => {
       if (!token) throw new Error("Token manquant");
-      return fetchReports(token, currentPage - 1, pageSize);
+      return fetchReportsWithUserDetails(token, currentPage - 1, pageSize);
     },
   });
 

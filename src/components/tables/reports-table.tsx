@@ -28,14 +28,15 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Report } from "@/types/report";
 import { Input } from "@/components/ui/input";
-import { Search, AlertTriangle, FileText } from "lucide-react";
+import { Search, AlertTriangle, FileText, User } from "lucide-react";
 import { DragHandle } from "../ui/drag-handle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useMemo } from "react";
 
 const COLUMN_LABELS: Record<string, string> = {
   reportType: "Type de signalement",
   description: "Description",
-  date: "Date",
+  reportedUser: "Organisateur signalé",
   priority: "Priorité",
 };
 
@@ -107,6 +108,42 @@ export function ReportsTable({
         ),
       },
       {
+        accessorKey: "reportedUser",
+        header: COLUMN_LABELS.reportedUser,
+        cell: ({ row }) => {
+          const reportedUser = row.original.reportedUserDetails;
+          if (!reportedUser) {
+            return (
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Non disponible
+                </span>
+              </div>
+            );
+          }
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={reportedUser.imageUrl || undefined} />
+                <AvatarFallback>
+                  {reportedUser.firstName?.[0]}
+                  {reportedUser.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-medium">
+                  {reportedUser.firstName} {reportedUser.lastName}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  @{reportedUser.pseudo}
+                </span>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
         accessorKey: "priority",
         header: COLUMN_LABELS.priority,
         cell: ({ row }) => {
@@ -135,7 +172,17 @@ export function ReportsTable({
     return data.filter(
       (report) =>
         report.reportType.toLowerCase().includes(s) ||
-        report.description.toLowerCase().includes(s)
+        report.description.toLowerCase().includes(s) ||
+        report.reportedUserDetails?.pseudo?.toLowerCase().includes(s) ||
+        report.reportedUserDetails?.firstName?.toLowerCase().includes(s) ||
+        report.reportedUserDetails?.lastName?.toLowerCase().includes(s) ||
+        (
+          report.reportedUserDetails?.firstName +
+          " " +
+          report.reportedUserDetails?.lastName
+        )
+          .toLowerCase()
+          .includes(s)
     );
   }, [data, search]);
 

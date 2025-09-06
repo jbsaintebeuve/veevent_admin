@@ -2,6 +2,12 @@ export interface Report {
   reportType: string;
   description: string;
   _links: any;
+  reportedUserDetails?: {
+    firstName: string;
+    lastName: string;
+    pseudo: string;
+    imageUrl?: string;
+  };
 }
 
 export interface ReportsApiResponse {
