@@ -116,9 +116,7 @@ export function InvitationsTable({
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm max-w-md truncate">
-              {row.original.description}
-            </span>
+            <span className="text-sm">{row.original.description}</span>
           </div>
         ),
         enableHiding: true,
