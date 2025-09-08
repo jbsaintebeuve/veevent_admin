@@ -1,29 +1,29 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards } from "@/components/section-cards";
+import { useMyEventsCards } from "@/hooks/data-cards/use-my-events-cards";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
-import { fetchUserEvents } from "@/services/event-service";
+import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
+import { fetchUserEvents, deleteEvent } from "@/services/event-service";
 import { useAuth } from "@/hooks/use-auth";
 import { EventsApiResponse } from "@/types/event";
 import { EventsTable } from "@/components/tables/events-table";
-import { Button } from "@/components/ui/button";
 import { PageSkeleton } from "@/components/page-skeleton";
-import { CreateEventDialog } from "@/components/create-dialogs/create-event-dialog";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import { useMyEventsCards } from "@/hooks/data-cards/use-my-events-cards";
 
 export default function MyEventsPage() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const queryClient = useQueryClient();
   const { user, token } = useAuth();
 
   const userEventsUrl = user?._links?.events?.href;
-
-  const pageSize = 10;
 
   const {
     data: eventsResponse,
@@ -72,9 +72,26 @@ export default function MyEventsPage() {
     completedCount,
   });
 
-  const handleDelete = (deleteUrl: string, name: string) => {
-    console.log("Supprimer événement:", name, deleteUrl);
-  };
+  const deleteMutation = useMutation({
+    mutationFn: (deleteUrl: string) => {
+      if (!token) throw new Error("Token manquant");
+      return deleteEvent(deleteUrl, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-events"] });
+      toast.success("Événement supprimé avec succès");
+    },
+    onError: (error: Error) => {
+      toast.error("Erreur lors de la suppression de l'événement");
+    },
+  });
+
+  const handleDelete = useCallback(
+    (deleteUrl: string, name: string) => {
+      deleteMutation.mutate(deleteUrl);
+    },
+    [deleteMutation]
+  );
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -95,21 +112,8 @@ export default function MyEventsPage() {
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>
-                Erreur lors du chargement de vos événements.
-                {!userEventsUrl &&
-                  " Impossible de récupérer le lien vers vos événements."}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-                className="ml-4"
-              >
-                <AlertCircle className="h-4 w-4 mr-2" />
-                Réessayer
-              </Button>
+            <AlertDescription>
+              Erreur lors du chargement des événements. Veuillez réessayer.
             </AlertDescription>
           </Alert>
         </div>
@@ -142,7 +146,6 @@ export default function MyEventsPage() {
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
-              hideDelete={true}
             />
 
             {eventsResponse?.page && eventsResponse.page.totalPages > 1 && (

@@ -65,13 +65,11 @@ export function EventsTable({
   search,
   onSearchChange,
   onDelete,
-  hideDelete = false,
 }: {
   data: Event[];
   search: string;
   onSearchChange: (v: string) => void;
   onDelete: (deleteUrl: string, name: string) => void;
-  hideDelete?: boolean;
 }) {
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [modifyTarget, setModifyTarget] = useState<Event | null>(null);
@@ -221,24 +219,23 @@ export function EventsTable({
                 <Users className="h-4 w-4 mr-2" />
                 Voir les participants
               </DropdownMenuItem>
-              {!hideDelete && (
-                <DropdownMenuItem
-                  onSelect={() => {
-                    setDeleteTarget(row.original);
-                    setDeleteDialogOpen(true);
-                  }}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer
-                </DropdownMenuItem>
-              )}
+
+              <DropdownMenuItem
+                onSelect={() => {
+                  setDeleteTarget(row.original);
+                  setDeleteDialogOpen(true);
+                }}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ),
       },
     ],
-    [hideDelete]
+    []
   );
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -422,28 +419,27 @@ export function EventsTable({
       />
 
       {/* Dialog Supprimer Centralisé */}
-      {!hideDelete && (
-        <CustomAlertDialog
-          isOpen={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-          title="Supprimer l'événement"
-          description={
-            deleteTarget
-              ? `Êtes-vous sûr de vouloir supprimer l'événement "${deleteTarget.name}" ? Cette action est irréversible.` +
-                (typeof deleteTarget.currentParticipants === "number" &&
-                deleteTarget.currentParticipants > 0
-                  ? `\n\nCet événement a ${deleteTarget.currentParticipants} participant(s) inscrit(s).`
-                  : "")
-              : ""
+
+      <CustomAlertDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        title="Supprimer l'événement"
+        description={
+          deleteTarget
+            ? `Êtes-vous sûr de vouloir supprimer l'événement "${deleteTarget.name}" ? Cette action est irréversible.` +
+              (typeof deleteTarget.currentParticipants === "number" &&
+              deleteTarget.currentParticipants > 0
+                ? `\n\nCet événement a ${deleteTarget.currentParticipants} participant(s) inscrit(s).`
+                : "")
+            : ""
+        }
+        action="Supprimer"
+        onClick={() => {
+          if (deleteTarget) {
+            onDelete(deleteTarget._links?.self?.href, deleteTarget.name);
           }
-          action="Supprimer"
-          onClick={() => {
-            if (deleteTarget) {
-              onDelete(deleteTarget._links?.self?.href, deleteTarget.name);
-            }
-          }}
-        />
-      )}
+        }}
+      />
 
       {/* Dialog Modifier Centralisé */}
       <ModifyEventDialog
