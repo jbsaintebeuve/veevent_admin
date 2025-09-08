@@ -20,6 +20,10 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -200,7 +204,22 @@ export function UsersTable({
                   <span className="sr-only">Ouvrir le menu</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    Changer le rôle
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem>
+                      Admin
+                      <Check className="h-4 w-4 ml-auto" />
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>Organisateur</DropdownMenuItem>
+                    <DropdownMenuItem>Utilisateur</DropdownMenuItem>
+                    <DropdownMenuItem>Auth Service</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuItem
                   onSelect={() => {
                     setBanTargetUser(user);
