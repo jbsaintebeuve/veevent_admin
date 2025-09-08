@@ -59,11 +59,13 @@ export function UsersTable({
   search,
   onSearchChange,
   onBanToggle,
+  onRoleChange,
 }: {
   data: User[];
   search: string;
   onSearchChange: (v: string) => void;
   onBanToggle: (user: User) => void;
+  onRoleChange?: (user: User, newRole: string) => void;
 }) {
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [banTargetUser, setBanTargetUser] = useState<User | null>(null);
@@ -211,13 +213,38 @@ export function UsersTable({
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSeparator />
                   <DropdownMenuSubContent>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => onRoleChange?.(user, "Admin")}
+                    >
                       Admin
-                      <Check className="h-4 w-4 ml-auto" />
+                      {(user.role ?? "").toUpperCase() === "ADMIN" && (
+                        <Check className="h-4 w-4 ml-auto" />
+                      )}
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Organisateur</DropdownMenuItem>
-                    <DropdownMenuItem>Utilisateur</DropdownMenuItem>
-                    <DropdownMenuItem>Auth Service</DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => onRoleChange?.(user, "Organizer")}
+                    >
+                      Organisateur
+                      {(user.role ?? "").toUpperCase() === "ORGANIZER" && (
+                        <Check className="h-4 w-4 ml-auto" />
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => onRoleChange?.(user, "User")}
+                    >
+                      Utilisateur
+                      {(user.role ?? "").toUpperCase() === "USER" && (
+                        <Check className="h-4 w-4 ml-auto" />
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => onRoleChange?.(user, "AuthService")}
+                    >
+                      Auth Service
+                      {(user.role ?? "").toUpperCase() === "AUTHSERVICE" && (
+                        <Check className="h-4 w-4 ml-auto" />
+                      )}
+                    </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuItem

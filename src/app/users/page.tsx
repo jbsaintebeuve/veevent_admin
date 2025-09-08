@@ -8,13 +8,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AvatarGroup } from "@/components/ui/avatar-group";
 import { AlertCircle } from "lucide-react";
-import { fetchUsers } from "@/services/user-service";
+import {
+  fetchUsers,
+  banOrUnbanUser,
+  updateUserRole,
+} from "@/services/user-service";
 import { User, UsersApiResponse } from "@/types/user";
 import { useAuth } from "@/hooks/use-auth";
 import { UsersTable } from "@/components/tables/users-table";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
-import { banOrUnbanUser } from "@/services/user-service";
 import { useUsersCards } from "@/hooks/data-cards/use-users-cards";
 import { toast } from "sonner";
 
@@ -112,8 +115,26 @@ export default function UsersPage() {
     },
   });
 
+  const roleChangeMutation = useMutation({
+    mutationFn: async ({ user, newRole }: { user: User; newRole: string }) => {
+      if (!token) throw new Error("Token manquant");
+      return await updateUserRole(user.id, newRole, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Rôle mis à jour avec succès");
+    },
+    onError: (error: any) => {
+      toast.error("Erreur lors du changement de rôle");
+    },
+  });
+
   const handleBanToggle = (user: User) => {
     banMutation.mutate(user);
+  };
+
+  const handleRoleChange = (user: User, newRole: string) => {
+    roleChangeMutation.mutate({ user, newRole });
   };
 
   if (isLoading) {
@@ -191,6 +212,7 @@ export default function UsersPage() {
               search={search}
               onSearchChange={setSearch}
               onBanToggle={handleBanToggle}
+              onRoleChange={handleRoleChange}
             />
 
             {usersResponse?.page && usersResponse.page.totalPages > 1 && (

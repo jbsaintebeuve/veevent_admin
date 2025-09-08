@@ -154,3 +154,30 @@ export async function banOrUnbanUser(
     throw new Error(`Erreur ${res.status}: ${errorText}`);
   }
 }
+
+export async function updateUserRole(
+  userId: number,
+  newRole: string,
+  token: string
+): Promise<void> {
+  const userData = await fetchUserById(userId, token);
+  const patchUrl = userData._links?.self?.href;
+
+  if (!patchUrl) {
+    throw new Error("Lien de modification HAL manquant");
+  }
+
+  const res = await fetch(patchUrl, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ role: newRole }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Erreur ${res.status}: ${errorText}`);
+  }
+}
