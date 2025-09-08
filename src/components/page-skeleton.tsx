@@ -24,7 +24,7 @@ export function PageSkeleton({
       <SiteHeader />
       <div className="flex flex-1 flex-col">
         <div className="@container/main flex flex-1 flex-col gap-2">
-          <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <div className="flex flex-col gap-6 py-4 md:py-6">
             {/* Header Section */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-4 lg:px-6">
               <div>
@@ -54,10 +54,10 @@ export function PageSkeleton({
             )}
 
             {/* Table Section */}
-            <div className="px-4 lg:px-6">
+            <div className="px-4 lg:px-6 flex flex-col gap-6">
               {/* Table Header with Search and Actions */}
               {(showSearchBar || showTableActions) && (
-                <div className="flex gap-2 items-center justify-between mb-4">
+                <div className="flex gap-2 items-center justify-between">
                   {showSearchBar && <Skeleton className="h-9 w-64" />}
                   {showTableActions && <Skeleton className="h-9 w-32" />}
                 </div>
