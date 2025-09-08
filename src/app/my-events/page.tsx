@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SectionCards } from "@/components/section-cards";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -31,53 +31,25 @@ export default function MyEventsPage() {
     error,
     refetch,
   } = useQuery<EventsApiResponse>({
-    queryKey: ["my-events", user?.id],
+    queryKey: ["my-events", user?.id, currentPage],
     queryFn: () => {
       if (!token) throw new Error("Token manquant");
-      return fetchUserEvents(userEventsUrl, token, 0, 1000);
+      return fetchUserEvents(userEventsUrl, token, currentPage - 1, pageSize);
     },
   });
 
   const events = eventsResponse?._embedded?.eventSummaryResponses || [];
-  const pageInfo = eventsResponse?.page;
-
-  const apiSupportsPagination =
-    pageInfo && pageInfo.totalElements !== undefined;
-
-  const paginatedEvents = useMemo(() => {
-    if (apiSupportsPagination) {
-      return events;
-    }
-
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return events.slice(startIndex, endIndex);
-  }, [events, currentPage, pageSize, apiSupportsPagination]);
-
-  const clientSidePagination = useMemo(() => {
-    if (apiSupportsPagination) return null;
-
-    const totalPages = Math.ceil(events.length / pageSize);
-    return {
-      totalPages,
-      totalElements: events.length,
-      currentPage,
-    };
-  }, [events.length, pageSize, currentPage, apiSupportsPagination]);
 
   const { totalEvents, upcomingCount, completedCount, averageParticipants } =
     useMemo(() => {
-      const allEvents = apiSupportsPagination ? events : events;
       const stats = {
-        totalEvents: apiSupportsPagination
-          ? pageInfo?.totalElements || events.length
-          : events.length,
+        totalEvents: eventsResponse?.page?.totalElements || events.length,
         upcomingCount: 0,
         completedCount: 0,
         averageParticipants: 0,
       };
       let totalParticipants = 0;
-      allEvents.forEach((event) => {
+      events.forEach((event) => {
         switch (event.status) {
           case "NOT_STARTED":
             stats.upcomingCount++;
@@ -89,11 +61,9 @@ export default function MyEventsPage() {
         totalParticipants += event.currentParticipants;
       });
       stats.averageParticipants =
-        allEvents.length > 0
-          ? Math.round(totalParticipants / allEvents.length)
-          : 0;
+        events.length > 0 ? Math.round(totalParticipants / events.length) : 0;
       return stats;
-    }, [events, pageInfo?.totalElements, apiSupportsPagination]);
+    }, [events, eventsResponse?.page?.totalElements]);
 
   const cardsData = useMyEventsCards({
     totalEvents,
@@ -106,9 +76,9 @@ export default function MyEventsPage() {
     console.log("Supprimer événement:", name, deleteUrl);
   };
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-  };
+  }, []);
 
   if (!userEventsUrl) {
     return null;
@@ -168,37 +138,22 @@ export default function MyEventsPage() {
             <SectionCards cards={cardsData} gridCols={4} className="mb-2" />
 
             <EventsTable
-              data={paginatedEvents || []}
+              data={events || []}
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
               hideDelete={true}
             />
 
-            {(() => {
-              if (apiSupportsPagination) {
-                return pageInfo && pageInfo.totalPages > 1 ? (
-                  <div className="px-4 lg:px-6">
-                    <PaginationWrapper
-                      currentPage={currentPage}
-                      totalPages={pageInfo.totalPages}
-                      onPageChange={handlePageChange}
-                    />
-                  </div>
-                ) : null;
-              } else {
-                return clientSidePagination &&
-                  clientSidePagination.totalPages > 1 ? (
-                  <div className="px-4 lg:px-6">
-                    <PaginationWrapper
-                      currentPage={currentPage}
-                      totalPages={clientSidePagination.totalPages}
-                      onPageChange={handlePageChange}
-                    />
-                  </div>
-                ) : null;
-              }
-            })()}
+            {eventsResponse?.page && eventsResponse.page.totalPages > 1 && (
+              <div className="flex justify-center px-4 lg:px-6">
+                <PaginationWrapper
+                  currentPage={currentPage}
+                  totalPages={eventsResponse.page.totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

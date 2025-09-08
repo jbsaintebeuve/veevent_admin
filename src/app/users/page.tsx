@@ -50,17 +50,21 @@ export default function UsersPage() {
   const filteredUsers = useMemo(() => {
     if (!Array.isArray(users)) return [];
 
-    if (!search.trim()) return users;
+    let result = users;
 
-    const searchLower = search.toLowerCase();
-    return users.filter(
-      (user) =>
-        user.lastName.toLowerCase().includes(searchLower) ||
-        user.firstName.toLowerCase().includes(searchLower) ||
-        user.pseudo.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        (user.role ? user.role.toLowerCase().includes(searchLower) : false)
-    );
+    if (search.trim()) {
+      const searchLower = search.toLowerCase();
+      result = users.filter(
+        (user) =>
+          user.lastName.toLowerCase().includes(searchLower) ||
+          user.firstName.toLowerCase().includes(searchLower) ||
+          user.pseudo.toLowerCase().includes(searchLower) ||
+          user.email.toLowerCase().includes(searchLower) ||
+          (user.role ? user.role.toLowerCase().includes(searchLower) : false)
+      );
+    }
+
+    return result.sort((a, b) => a.id - b.id);
   }, [users, search]);
 
   const { adminCount, organizerCount, userCount } = useMemo(() => {
