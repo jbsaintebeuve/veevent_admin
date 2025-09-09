@@ -282,8 +282,7 @@ export function UsersTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const filteredData = useMemo(() => {
     const s = (search ?? "").toLowerCase();
-    if (!s) return data;
-    return data.filter(
+    const filtered = !s ? data : data.filter(
       (user) =>
         user.firstName.toLowerCase().includes(s) ||
         user.lastName.toLowerCase().includes(s) ||
@@ -292,6 +291,7 @@ export function UsersTable({
         (user.role ? user.role.toLowerCase().includes(s) : false) ||
         (user.phone && user.phone.toLowerCase().includes(s))
     );
+    return filtered.sort((a, b) => a.id - b.id);
   }, [data, search]);
 
   const table = useReactTable({
