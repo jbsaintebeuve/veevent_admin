@@ -308,8 +308,10 @@ export default function ProfilePage() {
         return "destructive";
       case "organizer":
         return "default";
-      default:
+      case "user":
         return "secondary";
+      default:
+        return "outline";
     }
   }, []);
 
