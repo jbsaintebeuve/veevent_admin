@@ -191,9 +191,11 @@ export function UsersTable({
           const user = row.original;
           const isBanned = (user.role ?? "").toLowerCase() === "banned";
           const isAdmin = (user.role ?? "").toLowerCase() === "admin";
+
           if (isAdmin) {
             return null;
           }
+
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
