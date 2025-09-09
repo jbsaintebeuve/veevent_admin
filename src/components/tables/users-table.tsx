@@ -140,10 +140,10 @@ export function UsersTable({
               return <Badge variant="destructive">Admin</Badge>;
             case "ORGANIZER":
               return <Badge variant="default">Organisateur</Badge>;
-            case "USER":
-              return <Badge variant="secondary">Utilisateur</Badge>;
             case "AUTHSERVICE":
-              return <Badge variant="outline">Auth Service</Badge>;
+              return <Badge variant="secondary">Auth Service</Badge>;
+            case "USER":
+              return <Badge variant="outline">Utilisateur</Badge>;
             case "BANNED":
               return <Badge variant="outline">Banni</Badge>;
             default:
@@ -282,15 +282,17 @@ export function UsersTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const filteredData = useMemo(() => {
     const s = (search ?? "").toLowerCase();
-    const filtered = !s ? data : data.filter(
-      (user) =>
-        user.firstName.toLowerCase().includes(s) ||
-        user.lastName.toLowerCase().includes(s) ||
-        user.pseudo.toLowerCase().includes(s) ||
-        user.email.toLowerCase().includes(s) ||
-        (user.role ? user.role.toLowerCase().includes(s) : false) ||
-        (user.phone && user.phone.toLowerCase().includes(s))
-    );
+    const filtered = !s
+      ? data
+      : data.filter(
+          (user) =>
+            user.firstName.toLowerCase().includes(s) ||
+            user.lastName.toLowerCase().includes(s) ||
+            user.pseudo.toLowerCase().includes(s) ||
+            user.email.toLowerCase().includes(s) ||
+            (user.role ? user.role.toLowerCase().includes(s) : false) ||
+            (user.phone && user.phone.toLowerCase().includes(s))
+        );
     return filtered.sort((a, b) => a.id - b.id);
   }, [data, search]);
 

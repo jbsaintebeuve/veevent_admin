@@ -308,8 +308,10 @@ export default function ProfilePage() {
         return "destructive";
       case "organizer":
         return "default";
-      case "user":
+      case "authservice":
         return "secondary";
+      case "user":
+        return "outline";
       default:
         return "outline";
     }
