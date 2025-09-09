@@ -65,13 +65,13 @@ export function EventsTable({
   search,
   onSearchChange,
   onDelete,
-  isAdmin,
+  isAdmin = true,
 }: {
   data: Event[];
   search: string;
   onSearchChange: (v: string) => void;
   onDelete: (deleteUrl: string, name: string) => void;
-  isAdmin: boolean;
+  isAdmin?: boolean;
 }) {
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [modifyTarget, setModifyTarget] = useState<Event | null>(null);

@@ -21,13 +21,11 @@ import { Badge } from "@/components/ui/badge";
 import { SelectItem } from "@/components/ui/select";
 import { SelectScrollable } from "@/components/ui/select-scrollable";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { toast } from "sonner";
 import {
   Plus,
   Loader2,
-  AlertCircle,
   MapPin,
   CalendarIcon,
   ClockIcon,

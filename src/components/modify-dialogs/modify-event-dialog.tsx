@@ -45,7 +45,7 @@ interface ModifyEventDialogProps {
   event: Event | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isAdmin: boolean;
+  isAdmin?: boolean;
 }
 
 export function ModifyEventDialog({
