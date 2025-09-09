@@ -74,8 +74,10 @@ const initialForm = {
 
 export function CreateEventDialog({
   children,
+  isAdmin = true,
 }: {
   children?: React.ReactNode;
+  isAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -547,18 +549,19 @@ export function CreateEventDialog({
                 Sur invitation uniquement
               </Label>
             </div>
-
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isTrending"
-                name="isTrending"
-                checked={form.isTrending}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, isTrending: !!checked }))
-                }
-              />
-              <Label htmlFor="isTrending">Événement tendance</Label>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="isTrending"
+                  name="isTrending"
+                  checked={form.isTrending}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, isTrending: !!checked }))
+                  }
+                />
+                <Label htmlFor="isTrending">Événement tendance</Label>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

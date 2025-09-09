@@ -136,7 +136,7 @@ export default function MyEventsPage() {
                   Retrouvez ici tous les événements que vous organisez
                 </p>
               </div>
-              <CreateEventDialog />
+              <CreateEventDialog isAdmin={false} />
             </div>
 
             <SectionCards cards={cardsData} gridCols={4} />
