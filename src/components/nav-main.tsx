@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import { CreateEventDialog } from "./create-dialogs/create-event-dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 export function NavMain({
   items,
@@ -25,6 +26,11 @@ export function NavMain({
 }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
+  const { user } = useAuth();
+
+  const isAdmin =
+    user?.role.toLowerCase() === "admin" ||
+    user?.role.toLowerCase() === "authservice";
 
   const handleLinkClick = () => {
     setOpenMobile(false);
@@ -42,7 +48,7 @@ export function NavMain({
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
-            <CreateEventDialog>
+            <CreateEventDialog isAdmin={isAdmin}>
               <SidebarMenuButton className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear">
                 <PlusCircle className="h-4 w-4" />
                 <span>Créer un événement</span>
