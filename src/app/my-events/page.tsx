@@ -146,6 +146,7 @@ export default function MyEventsPage() {
               search={search}
               onSearchChange={setSearch}
               onDelete={handleDelete}
+              isAdmin={false}
             />
 
             {eventsResponse?.page && eventsResponse.page.totalPages > 1 && (

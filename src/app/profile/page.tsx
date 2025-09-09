@@ -420,7 +420,9 @@ export default function ProfilePage() {
                   {form.note > 0 && (
                     <div className="flex items-center gap-1 mt-1">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">{form.note}/5</span>
+                      <span className="text-sm font-medium">
+                        {form.note.toFixed(2)}/5
+                      </span>
                     </div>
                   )}
                 </div>
@@ -533,7 +535,7 @@ export default function ProfilePage() {
                         min="0"
                         max="5"
                         step="0.1"
-                        value={form.note}
+                        value={form.note.toFixed(2)}
                         readOnly
                         className="bg-muted"
                       />

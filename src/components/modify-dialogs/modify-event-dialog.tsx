@@ -45,12 +45,14 @@ interface ModifyEventDialogProps {
   event: Event | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isAdmin: boolean;
 }
 
 export function ModifyEventDialog({
   event,
   open,
   onOpenChange,
+  isAdmin = true,
 }: ModifyEventDialogProps) {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const imageUpload = useImageUpload(event?.imageUrl || "");
@@ -519,18 +521,19 @@ export function ModifyEventDialog({
                 Sur invitation uniquement
               </Label>
             </div>
-
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isTrending"
-                name="isTrending"
-                checked={form.isTrending}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, isTrending: !!checked }))
-                }
-              />
-              <Label htmlFor="isTrending">Événement tendance</Label>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="isTrending"
+                  name="isTrending"
+                  checked={form.isTrending}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, isTrending: !!checked }))
+                  }
+                />
+                <Label htmlFor="isTrending">Événement tendance</Label>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
