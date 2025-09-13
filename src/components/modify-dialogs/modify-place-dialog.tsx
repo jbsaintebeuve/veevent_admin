@@ -192,7 +192,7 @@ export function ModifyPlaceDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["places"] });
       toast.success("Lieu modifié avec succès !");
-      setTimeout(() => onOpenChange(false), 300);
+      onOpenChange(false);
     },
     onError: (err: any) => {
       toast.error(`Erreur lors de la modification du lieu`);

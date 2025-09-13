@@ -91,7 +91,7 @@ export function ModifyCityDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cities"] });
       toast.success("Ville modifiée avec succès !");
-      setTimeout(() => onOpenChange(false), 300);
+      onOpenChange(false);
     },
     onError: (err: any) => {
       toast.error(`Erreur lors de la modification de la ville`);

@@ -118,7 +118,7 @@ export function ModifyCategoryDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Catégorie modifiée avec succès !");
-      setTimeout(() => onOpenChange(false), 300);
+      onOpenChange(false);
     },
     onError: (err: any) => {
       toast.error("Erreur lors de la modification de la catégorie");
