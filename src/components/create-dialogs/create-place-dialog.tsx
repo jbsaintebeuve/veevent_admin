@@ -46,6 +46,11 @@ export function CreatePlaceDialog() {
   const queryClient = useQueryClient();
   const imageUploads = useMultipleImages();
 
+  const resetForm = () => {
+    setForm(initialForm);
+    imageUploads.resetAll();
+  };
+
   const mutation = useMutation({
     mutationFn: async (payload: PlaceCreateRequest) => {
       if (!token) throw new Error("Token manquant");
@@ -107,54 +112,27 @@ export function CreatePlaceDialog() {
   };
 
   const isFormValid = useMemo(() => {
+    const lat = parseFloat(form.latitude);
+    const lng = parseFloat(form.longitude);
+
     return (
       form.name.trim() !== "" &&
       form.address.trim() !== "" &&
       form.type.trim() !== "" &&
-      form.latitude.trim() !== "" &&
-      form.longitude.trim() !== "" &&
-      form.cityId.trim() !== ""
+      form.cityId.trim() !== "" &&
+      lat !== null &&
+      lng !== null &&
+      !isNaN(lat) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      !isNaN(lng) &&
+      lng >= -180 &&
+      lng <= 180
     );
   }, [form]);
 
-  const resetForm = () => {
-    setForm(initialForm);
-    imageUploads.resetAll();
-  };
-
-  const validateForm = () => {
-    const required = [
-      "name",
-      "address",
-      "type",
-      "latitude",
-      "longitude",
-      "cityId",
-    ];
-    for (const field of required) {
-      if (!form[field as keyof typeof form]) {
-        throw new Error(`Le champ ${field} est requis`);
-      }
-    }
-
-    const lat = parseFloat(form.latitude);
-    const lng = parseFloat(form.longitude);
-    if (isNaN(lat) || isNaN(lng)) {
-      throw new Error("Les coordonnées GPS doivent être des nombres valides");
-    }
-    if (lat < -90 || lat > 90) {
-      throw new Error("La latitude doit être entre -90 et 90");
-    }
-    if (lng < -180 || lng > 180) {
-      throw new Error("La longitude doit être entre -180 et 180");
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
 
     let bannerUrl, imageUrl;
     ({ bannerUrl, imageUrl } = await imageUploads.uploadAll());

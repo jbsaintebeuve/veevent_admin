@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +35,7 @@ export function ModifyCityDialog({
   open,
   onOpenChange,
 }: ModifyCityDialogProps) {
-  const [form, setForm] = useState({
+  const initialForm = {
     name: "",
     location: {
       latitude: null as number | null,
@@ -48,43 +48,43 @@ export function ModifyCityDialog({
     imageUrl: "",
     content: "",
     nearestCities: [] as number[],
-  });
-  const queryClient = useQueryClient();
+  };
+  const [form, setForm] = useState(initialForm);
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const imageUploads = useMultipleImages(
     city?.bannerUrl || "",
     city?.imageUrl || ""
   );
 
-  const { data: allCitiesResponse, isLoading: citiesLoading } = useQuery({
-    queryKey: ["cities", "all"],
-    queryFn: () => {
-      if (!token) throw new Error("Token manquant");
-      return fetchCities(token, 0, 50);
-    },
-    enabled: open,
-  });
+  const resetForm = () => {
+    if (city) {
+      setForm({
+        name: city.name || "",
+        location: {
+          latitude: city.location?.latitude ?? null,
+          longitude: city.location?.longitude ?? null,
+        },
+        region: city.region || "",
+        postalCode: city.postalCode || "",
+        country: city.country || "France",
+        bannerUrl: city.bannerUrl || "",
+        imageUrl: city.imageUrl || "",
+        content: city.content || "",
+        nearestCities: city.nearestCities || [],
+      });
+      imageUploads.resetAll(city.bannerUrl || "", city.imageUrl || "");
+    } else {
+      setForm(initialForm);
+      imageUploads.resetAll();
+    }
+  };
 
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload: CityUpdateRequest) => {
       if (!token) throw new Error("Token manquant");
       const patchUrl = city?._links?.self?.href;
       if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-
-      const { bannerUrl, imageUrl } = await imageUploads.uploadAll();
-
-      const payload = {
-        name: form.name.trim(),
-        latitude: form.location.latitude,
-        longitude: form.location.longitude,
-        region: form.region.trim(),
-        postalCode: form.postalCode.trim(),
-        country: form.country.trim(),
-        bannerUrl: bannerUrl?.trim() || null,
-        imageUrl: imageUrl?.trim() || null,
-        content: form.content?.trim() || null,
-        nearestCityIds: form.nearestCities,
-      } as CityUpdateRequest;
 
       await modifyCity(patchUrl, payload, token);
     },
@@ -96,6 +96,15 @@ export function ModifyCityDialog({
     onError: (err: any) => {
       toast.error(`Erreur lors de la modification de la ville`);
     },
+  });
+
+  const { data: allCitiesResponse, isLoading: citiesLoading } = useQuery({
+    queryKey: ["cities", "all"],
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCities(token, 0, 50);
+    },
+    enabled: open,
   });
 
   const allCities = allCitiesResponse?._embedded?.cityResponses || [];
@@ -147,35 +156,30 @@ export function ModifyCityDialog({
     );
   }, [form]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate();
-  };
 
-  const resetToInitialState = useCallback(() => {
-    if (city) {
-      setForm({
-        name: city.name || "",
-        location: {
-          latitude: city.location?.latitude ?? null,
-          longitude: city.location?.longitude ?? null,
-        },
-        region: city.region || "",
-        postalCode: city.postalCode || "",
-        country: city.country || "France",
-        bannerUrl: city.bannerUrl || "",
-        imageUrl: city.imageUrl || "",
-        content: city.content || "",
-        nearestCities: city.nearestCities || [],
-      });
-      imageUploads.resetAll(city.bannerUrl || "", city.imageUrl || "");
-    }
-  }, [city]);
+    const { bannerUrl, imageUrl } = await imageUploads.uploadAll();
+
+    const payload: CityUpdateRequest = {
+      name: form.name.trim(),
+      latitude: form.location.latitude,
+      longitude: form.location.longitude,
+      region: form.region.trim(),
+      postalCode: form.postalCode.trim(),
+      country: form.country.trim(),
+      bannerUrl: bannerUrl?.trim() || null,
+      imageUrl: imageUrl?.trim() || null,
+      content: form.content?.trim() || null,
+      nearestCityIds: form.nearestCities,
+    };
+    mutation.mutate(payload);
+  };
 
   const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
     if (!newOpen) {
-      resetToInitialState();
+      resetForm();
     }
   };
 
@@ -374,7 +378,7 @@ export function ModifyCityDialog({
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={!isFormValid || mutation.isPending}>
+            <Button type="submit" disabled={mutation.isPending || !isFormValid}>
               {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

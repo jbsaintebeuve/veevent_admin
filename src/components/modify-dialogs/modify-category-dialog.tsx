@@ -34,14 +34,45 @@ export function ModifyCategoryDialog({
   open,
   onOpenChange,
 }: ModifyCategoryDialogProps) {
-  const [form, setForm] = useState({
+  const initialForm = {
     name: "",
     description: "",
     key: "",
     trending: false,
-  });
-  const queryClient = useQueryClient();
+  };
+  const [form, setForm] = useState(initialForm);
   const { token } = useAuth();
+  const queryClient = useQueryClient();
+
+  const resetForm = () => {
+    if (category) {
+      setForm({
+        name: category.name || "",
+        description: category.description || "",
+        key: category.key || "",
+        trending: category.trending || false,
+      });
+    } else {
+      setForm(initialForm);
+    }
+  };
+
+  const mutation = useMutation({
+    mutationFn: async (payload: CategoryUpdateRequest) => {
+      if (!token) throw new Error("Token manquant");
+      const patchUrl = category?._links?.self?.href;
+      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+      await modifyCategory(patchUrl, payload, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Catégorie modifiée avec succès !");
+      onOpenChange(false);
+    },
+    onError: (err: any) => {
+      toast.error("Erreur lors de la modification de la catégorie");
+    },
+  });
 
   useEffect(() => {
     if (category) {
@@ -69,65 +100,21 @@ export function ModifyCategoryDialog({
     return (
       form.name.trim() !== "" &&
       form.description.trim() !== "" &&
-      form.key.trim() !== ""
+      form.key.trim() !== "" &&
+      /^[a-z0-9-_]+$/.test(form.key.trim())
     );
   }, [form]);
 
-  const resetForm = () => {
-    if (category) {
-      setForm({
-        name: category.name || "",
-        description: category.description || "",
-        key: category.key || "",
-        trending: category.trending || false,
-      });
-    }
-  };
-
-  const validateForm = () => {
-    if (!form.name.trim()) {
-      throw new Error("Le nom de la catégorie est requis");
-    }
-    if (!form.description.trim()) {
-      throw new Error("La description est requise");
-    }
-    if (!form.key.trim()) {
-      throw new Error("La clé unique est requise");
-    }
-    if (!/^[a-z0-9-_]+$/.test(form.key)) {
-      throw new Error(
-        "La clé ne peut contenir que des lettres minuscules, chiffres, tirets et underscores"
-      );
-    }
-  };
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (!token) throw new Error("Token manquant");
-      validateForm();
-      const payload: CategoryUpdateRequest = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        key: form.key.trim(),
-        trending: form.trending,
-      };
-      const patchUrl = category?._links?.self?.href;
-      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-      await modifyCategory(patchUrl, payload, token);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success("Catégorie modifiée avec succès !");
-      onOpenChange(false);
-    },
-    onError: (err: any) => {
-      toast.error("Erreur lors de la modification de la catégorie");
-    },
-  });
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate();
+
+    const payload: CategoryUpdateRequest = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      key: form.key.trim(),
+      trending: form.trending,
+    };
+    mutation.mutate(payload);
   };
 
   const handleOpenChange = (newOpen: boolean) => {

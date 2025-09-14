@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +38,7 @@ export function ModifyPlaceDialog({
   open,
   onOpenChange,
 }: ModifyPlaceDialogProps) {
-  const [form, setForm] = useState({
+  const initialForm = {
     name: "",
     address: "",
     type: "",
@@ -50,13 +50,53 @@ export function ModifyPlaceDialog({
     cityName: "",
     content: "",
     description: "",
-  });
-  const queryClient = useQueryClient();
+  };
+  const [form, setForm] = useState(initialForm);
   const { token } = useAuth();
-  const images = useMultipleImages(
+  const queryClient = useQueryClient();
+  const imageUploads = useMultipleImages(
     place?.bannerUrl || "",
     place?.imageUrl || ""
   );
+
+  const resetForm = () => {
+    if (place) {
+      setForm({
+        name: place.name || "",
+        address: place.address || "",
+        type: place.type || "",
+        location: {
+          latitude: place.location?.latitude ?? null,
+          longitude: place.location?.longitude ?? null,
+        },
+        cityId: findCityIdByName(place.cityName),
+        cityName: place.cityName || "",
+        content: place.content || "",
+        description: place.description || "",
+      });
+      imageUploads.resetAll(place.bannerUrl || "", place.imageUrl || "");
+    } else {
+      setForm(initialForm);
+      imageUploads.resetAll();
+    }
+  };
+
+  const mutation = useMutation({
+    mutationFn: async (payload: PlaceUpdateRequest) => {
+      if (!token) throw new Error("Token manquant");
+      const patchUrl = place?._links?.self?.href;
+      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+      await modifyPlace(patchUrl, payload, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["places"] });
+      toast.success("Lieu modifié avec succès !");
+      onOpenChange(false);
+    },
+    onError: (err: any) => {
+      toast.error(`Erreur lors de la modification du lieu`);
+    },
+  });
 
   const { data: citiesResponse, isLoading: citiesLoading } =
     useQuery<CitiesApiResponse>({
@@ -69,14 +109,6 @@ export function ModifyPlaceDialog({
     });
 
   const cities = citiesResponse?._embedded?.cityResponses || [];
-
-  const findCityIdByName = (cityName: string): string => {
-    if (!cities || !cityName) return "";
-    const city = cities.find(
-      (c: City) => c.name.toLowerCase() === cityName.toLowerCase()
-    );
-    return city ? city.id.toString() : "";
-  };
 
   useEffect(() => {
     if (place) {
@@ -93,7 +125,7 @@ export function ModifyPlaceDialog({
         content: place.content || "",
         description: place.description || "",
       });
-      images.resetAll(place.bannerUrl || "", place.imageUrl || "");
+      imageUploads.resetAll(place.bannerUrl || "", place.imageUrl || "");
     }
   }, [place]);
 
@@ -139,94 +171,57 @@ export function ModifyPlaceDialog({
   };
 
   const isFormValid = useMemo(() => {
+    const lat = form.location.latitude;
+    const lng = form.location.longitude;
+
     return (
       form.name.trim() !== "" &&
       form.address.trim() !== "" &&
       form.type.trim() !== "" &&
       form.cityId.trim() !== "" &&
-      form.location.latitude !== null &&
-      form.location.longitude !== null
+      lat !== null &&
+      lng !== null &&
+      !isNaN(lat) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      !isNaN(lng) &&
+      lng >= -180 &&
+      lng <= 180
     );
   }, [form]);
 
-  const handleBannerChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      images.banner.handleFileChange(e);
-    },
-    [images.banner]
-  );
-  const handleRemoveBanner = useCallback(() => {
-    images.banner.handleRemove();
-  }, [images.banner]);
-  const handleImageChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      images.image.handleFileChange(e);
-    },
-    [images.image]
-  );
-  const handleRemoveImage = useCallback(() => {
-    images.image.handleRemove();
-  }, [images.image]);
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (!token) throw new Error("Token manquant");
-      const patchUrl = place?._links?.self?.href;
-      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-      const { bannerUrl, imageUrl } = await images.uploadAll();
-      const payload: PlaceUpdateRequest = {
-        name: form.name.trim(),
-        address: form.address.trim(),
-        type: form.type,
-        latitude: form.location.latitude,
-        longitude: form.location.longitude,
-        cityId: form.cityId ? parseInt(form.cityId) : 0,
-        cityName: form.cityName,
-        bannerUrl: bannerUrl?.trim() || null,
-        imageUrl: imageUrl?.trim() || null,
-        content: form.content?.trim() || null,
-        description: form.description?.trim() || undefined,
-      };
-      await modifyPlace(patchUrl, payload, token);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["places"] });
-      toast.success("Lieu modifié avec succès !");
-      onOpenChange(false);
-    },
-    onError: (err: any) => {
-      toast.error(`Erreur lors de la modification du lieu`);
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    mutation.mutate();
+  const findCityIdByName = (cityName: string): string => {
+    if (!cities || !cityName) return "";
+    const city = cities.find(
+      (c: City) => c.name.toLowerCase() === cityName.toLowerCase()
+    );
+    return city ? city.id.toString() : "";
   };
 
-  const resetToInitialState = useCallback(() => {
-    if (place) {
-      setForm({
-        name: place.name || "",
-        address: place.address || "",
-        type: place.type || "",
-        location: {
-          latitude: place.location?.latitude ?? null,
-          longitude: place.location?.longitude ?? null,
-        },
-        cityId: findCityIdByName(place.cityName),
-        cityName: place.cityName || "",
-        content: place.content || "",
-        description: place.description || "",
-      });
-      images.resetAll(place.bannerUrl || "", place.imageUrl || "");
-    }
-  }, [place, images, cities]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const { bannerUrl, imageUrl } = await imageUploads.uploadAll();
+    const payload: PlaceUpdateRequest = {
+      name: form.name.trim(),
+      address: form.address.trim(),
+      type: form.type,
+      latitude: form.location.latitude,
+      longitude: form.location.longitude,
+      cityId: form.cityId ? parseInt(form.cityId) : 0,
+      cityName: form.cityName,
+      bannerUrl: bannerUrl?.trim() || null,
+      imageUrl: imageUrl?.trim() || null,
+      content: form.content?.trim() || null,
+      description: form.description?.trim() || undefined,
+    };
+    mutation.mutate(payload);
+  };
 
   const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
     if (!newOpen) {
-      resetToInitialState();
+      resetForm();
     }
   };
 
@@ -349,21 +344,21 @@ export function ModifyPlaceDialog({
               <ImageUpload
                 id="bannerFile"
                 label="Bannière"
-                file={images.banner.file}
-                previewUrl={images.banner.previewUrl}
-                currentImageUrl={images.banner.currentUrl}
-                onFileChange={handleBannerChange}
-                onRemove={handleRemoveBanner}
+                file={imageUploads.banner.file}
+                previewUrl={imageUploads.banner.previewUrl}
+                currentImageUrl={imageUploads.banner.currentUrl}
+                onFileChange={imageUploads.banner.handleFileChange}
+                onRemove={imageUploads.banner.handleRemove}
                 disabled={mutation.isPending}
               />
               <ImageUpload
                 id="imageFile"
                 label="Image principale"
-                file={images.image.file}
-                previewUrl={images.image.previewUrl}
-                currentImageUrl={images.image.currentUrl}
-                onFileChange={handleImageChange}
-                onRemove={handleRemoveImage}
+                file={imageUploads.image.file}
+                previewUrl={imageUploads.image.previewUrl}
+                currentImageUrl={imageUploads.image.currentUrl}
+                onFileChange={imageUploads.image.handleFileChange}
+                onRemove={imageUploads.image.handleRemove}
                 disabled={mutation.isPending}
               />
             </div>

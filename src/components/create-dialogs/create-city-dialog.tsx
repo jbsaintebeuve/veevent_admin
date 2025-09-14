@@ -25,31 +25,26 @@ import { useAuth } from "@/hooks/use-auth";
 import { CityCreateRequest } from "@/types/city";
 import { ImageUpload } from "@/components/ui/image-upload";
 
-const initialForm = {
-  name: "",
-  location: { latitude: null, longitude: null },
-  region: "",
-  postalCode: "",
-  country: "France",
-  content: "",
-  nearestCities: [] as number[],
-};
-
 export function CreateCityDialog() {
   const [open, setOpen] = useState(false);
+  const initialForm = {
+    name: "",
+    location: { latitude: null, longitude: null },
+    region: "",
+    postalCode: "",
+    country: "France",
+    content: "",
+    nearestCities: [] as number[],
+  };
   const [form, setForm] = useState(initialForm);
-  const queryClient = useQueryClient();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const imageUploads = useMultipleImages();
 
-  const { data: allCitiesResponse, isLoading: citiesLoading } = useQuery({
-    queryKey: ["cities", "all"],
-    queryFn: () => {
-      if (!token) throw new Error("Token manquant");
-      return fetchCities(token, 0, 50);
-    },
-    enabled: open,
-  });
+  const resetForm = () => {
+    setForm(initialForm);
+    imageUploads.resetAll();
+  };
 
   const mutation = useMutation({
     mutationFn: async (payload: CityCreateRequest) => {
@@ -65,6 +60,15 @@ export function CreateCityDialog() {
     onError: () => {
       toast.error("Erreur lors de la création de la ville");
     },
+  });
+
+  const { data: allCitiesResponse, isLoading: citiesLoading } = useQuery({
+    queryKey: ["cities", "all"],
+    queryFn: () => {
+      if (!token) throw new Error("Token manquant");
+      return fetchCities(token, 0, 50);
+    },
+    enabled: open,
   });
 
   const allCities = allCitiesResponse?._embedded?.cityResponses || [];
@@ -99,11 +103,6 @@ export function CreateCityDialog() {
       form.location.longitude !== null
     );
   }, [form]);
-
-  const resetForm = () => {
-    setForm(initialForm);
-    imageUploads.resetAll();
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,7 +321,7 @@ export function CreateCityDialog() {
                 Annuler
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={!isFormValid || mutation.isPending}>
+            <Button type="submit" disabled={mutation.isPending || !isFormValid}>
               {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

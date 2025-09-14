@@ -54,8 +54,6 @@ export function ModifyEventDialog({
   onOpenChange,
   isAdmin = true,
 }: ModifyEventDialogProps) {
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const imageUpload = useImageUpload(event?.imageUrl || "");
   const initialForm = {
     name: "",
     description: "",
@@ -72,8 +70,62 @@ export function ModifyEventDialog({
     isTrending: false,
   };
   const [form, setForm] = useState(initialForm);
-  const queryClient = useQueryClient();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const imageUpload = useImageUpload(event?.imageUrl || "");
+
+  const resetForm = () => {
+    if (event) {
+      imageUpload.reset(event.imageUrl || "");
+      const eventDate = event.date ? new Date(event.date) : undefined;
+      const eventTime = eventDate
+        ? eventDate.toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+        : "";
+      setForm({
+        name: event.name || "",
+        description: event.description || "",
+        date: eventDate,
+        time: eventTime,
+        address: event.address || "",
+        price: event.price?.toString() || "",
+        maxCustomers: event.maxCustomers?.toString() || "",
+        imageUrl: event.imageUrl || "",
+        categoryKeys: event.categories?.map((cat) => cat.key) || [],
+        status: event.status || "NOT_STARTED",
+        contentHtml: "",
+        isInvitationOnly: event.isInvitationOnly || false,
+        isTrending: event.isTrending || false,
+      });
+    } else {
+      setForm(initialForm);
+      imageUpload.reset();
+    }
+  };
+
+  const mutation = useMutation({
+    mutationFn: async (payload: EventUpdateRequest) => {
+      if (!token) throw new Error("Token manquant");
+      const patchUrl = event?._links?.self?.href;
+      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
+
+      await modifyEvent(patchUrl, payload, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["my-events"] });
+      toast.success("Événement modifié avec succès");
+      onOpenChange(false);
+    },
+    onError: (err: any) => {
+      toast.error(`Erreur lors de la modification de l'événement`);
+    },
+  });
+
   const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: () => {
@@ -134,114 +186,70 @@ export function ModifyEventDialog({
   };
 
   const isFormValid = useMemo(() => {
+    const price = parseFloat(form.price);
+    const maxCustomers = parseInt(form.maxCustomers);
+
     return (
       form.name.trim() !== "" &&
       form.description.trim() !== "" &&
       form.date !== undefined &&
       form.address.trim() !== "" &&
       form.price.trim() !== "" &&
-      parseFloat(form.price) >= 0 &&
+      !isNaN(price) &&
+      price >= 0 &&
       form.maxCustomers.trim() !== "" &&
-      parseInt(form.maxCustomers) > 0 &&
-      form.categoryKeys.length > 0
+      !isNaN(maxCustomers) &&
+      maxCustomers > 0 &&
+      form.categoryKeys.length > 0 &&
+      (!form.date || new Date(form.date) > new Date())
     );
   }, [form]);
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const getDateTimeISO = () => {
-        if (!form.date || !form.time) return "";
-        const [hours, minutes] = form.time.split(":");
-        const year = form.date.getFullYear();
-        const month = form.date.getMonth();
-        const day = form.date.getDate();
-        return new Date(
-          Date.UTC(year, month, day, Number(hours), Number(minutes))
-        ).toISOString();
-      };
-
-      const extractIdFromUrl = (url: string) => {
-        const parts = url.split("/");
-        return parseInt(parts[parts.length - 1]);
-      };
-
-      const cityId = eventDetails?._links?.city?.href
-        ? extractIdFromUrl(eventDetails._links.city.href)
-        : 0;
-      const placeId = eventDetails?._links?.places?.href
-        ? extractIdFromUrl(eventDetails._links.places.href)
-        : 0;
-
-      const cloudinaryImageUrl = await imageUpload.uploadIfNeeded();
-
-      const payload: EventUpdateRequest = {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        date: getDateTimeISO(),
-        address: form.address.trim(),
-        maxCustomers: parseInt(form.maxCustomers),
-        price: parseFloat(form.price),
-        cityId,
-        placeId,
-        categoryKeys: form.categoryKeys,
-        imageUrl: cloudinaryImageUrl?.trim() || undefined,
-        status: form.status,
-        contentHtml: form.contentHtml.trim() || undefined,
-        isInvitationOnly: form.isInvitationOnly,
-        isTrending: form.isTrending,
-      };
-
-      const patchUrl = event?._links?.self?.href;
-      if (!patchUrl) throw new Error("Lien de modification HAL manquant");
-      const token = document.cookie.includes("token=")
-        ? document.cookie.split("token=")[1]?.split(";")[0]
-        : undefined;
-
-      await modifyEvent(patchUrl, payload, token);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["my-events"] });
-      toast.success("Événement modifié avec succès");
-      onOpenChange(false);
-    },
-    onError: (err: any) => {
-      toast.error(`Erreur lors de la modification de l'événement`);
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    mutation.mutate();
+  const getDateTimeISO = () => {
+    if (!form.date || !form.time) return "";
+    const [hours, minutes] = form.time.split(":");
+    const year = form.date.getFullYear();
+    const month = form.date.getMonth();
+    const day = form.date.getDate();
+    return new Date(
+      Date.UTC(year, month, day, Number(hours), Number(minutes))
+    ).toISOString();
   };
 
-  const resetToInitialState = () => {
-    if (event) {
-      imageUpload.reset(event.imageUrl || "");
-      const eventDate = event.date ? new Date(event.date) : undefined;
-      const eventTime = eventDate
-        ? eventDate.toLocaleTimeString("fr-FR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })
-        : "";
-      setForm({
-        name: event.name || "",
-        description: event.description || "",
-        date: eventDate,
-        time: eventTime,
-        address: event.address || "",
-        price: event.price?.toString() || "",
-        maxCustomers: event.maxCustomers?.toString() || "",
-        imageUrl: event.imageUrl || "",
-        categoryKeys: event.categories?.map((cat) => cat.key) || [],
-        status: event.status || "NOT_STARTED",
-        contentHtml: "",
-        isInvitationOnly: event.isInvitationOnly || false,
-        isTrending: event.isTrending || false,
-      });
-    }
+  const extractIdFromUrl = (url: string) => {
+    const parts = url.split("/");
+    return parseInt(parts[parts.length - 1]);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const cityId = eventDetails?._links?.city?.href
+      ? extractIdFromUrl(eventDetails._links.city.href)
+      : 0;
+    const placeId = eventDetails?._links?.places?.href
+      ? extractIdFromUrl(eventDetails._links.places.href)
+      : 0;
+
+    const cloudinaryImageUrl = await imageUpload.uploadIfNeeded();
+
+    const payload: EventUpdateRequest = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      date: getDateTimeISO(),
+      address: form.address.trim(),
+      maxCustomers: parseInt(form.maxCustomers),
+      price: parseFloat(form.price),
+      cityId,
+      placeId,
+      categoryKeys: form.categoryKeys,
+      imageUrl: cloudinaryImageUrl?.trim() || undefined,
+      status: form.status,
+      contentHtml: form.contentHtml.trim() || undefined,
+      isInvitationOnly: form.isInvitationOnly,
+      isTrending: form.isTrending,
+    };
+    mutation.mutate(payload);
   };
 
   const handleCategoryChange = (categoryKey: string, checked: boolean) => {
@@ -256,7 +264,7 @@ export function ModifyEventDialog({
   const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
     if (!newOpen) {
-      resetToInitialState();
+      resetForm();
     }
   };
 

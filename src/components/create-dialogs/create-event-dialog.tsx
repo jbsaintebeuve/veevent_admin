@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { useState, useMemo, memo } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,24 +51,6 @@ const nowTime = now.toLocaleTimeString("fr-FR", {
   hour12: false,
 });
 
-const initialForm = {
-  name: "",
-  description: "",
-  date: undefined as Date | undefined,
-  time: nowTime,
-  address: "",
-  price: "",
-  maxCustomers: "",
-  imageUrl: "",
-  cityId: "",
-  placeId: "",
-  categoryIds: [] as string[],
-  status: "NOT_STARTED",
-  contentHtml: "",
-  isInvitationOnly: false,
-  isTrending: false,
-};
-
 export function CreateEventDialog({
   children,
   isAdmin = true,
@@ -78,8 +59,34 @@ export function CreateEventDialog({
   isAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
+  const initialForm = {
+    name: "",
+    description: "",
+    date: undefined as Date | undefined,
+    time: nowTime,
+    address: "",
+    price: "",
+    maxCustomers: "",
+    imageUrl: "",
+    cityId: "",
+    placeId: "",
+    categoryIds: [] as string[],
+    status: "NOT_STARTED",
+    contentHtml: "",
+    isInvitationOnly: false,
+    isTrending: false,
+  };
+  const [form, setForm] = useState(initialForm);
   const { token } = useAuth();
+  const queryClient = useQueryClient();
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const imageUpload = useImageUpload();
+
+  const resetForm = () => {
+    setForm(initialForm);
+    imageUpload.reset();
+  };
+
   const mutation = useMutation({
     mutationFn: async (payload: any) => {
       if (!token) throw new Error("Token manquant");
@@ -96,9 +103,6 @@ export function CreateEventDialog({
       toast.error("Erreur lors de la création de l'événement");
     },
   });
-  const [form, setForm] = useState(initialForm);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const imageUpload = useImageUpload();
 
   const {
     data: citiesResponse,
@@ -163,50 +167,26 @@ export function CreateEventDialog({
   };
 
   const isFormValid = useMemo(() => {
+    const price = parseFloat(form.price);
+    const maxCustomers = parseInt(form.maxCustomers);
+
     return (
       form.name.trim() !== "" &&
       form.description.trim() !== "" &&
       form.date !== undefined &&
       form.address.trim() !== "" &&
       form.price.trim() !== "" &&
-      parseFloat(form.price) >= 0 &&
+      !isNaN(price) &&
+      price >= 0 &&
       form.maxCustomers.trim() !== "" &&
-      parseInt(form.maxCustomers) > 0 &&
+      !isNaN(maxCustomers) &&
+      maxCustomers > 0 &&
       form.cityId !== "" &&
       form.placeId !== "" &&
-      form.categoryIds.length > 0
+      form.categoryIds.length > 0 &&
+      (!form.date || new Date(form.date) > new Date())
     );
   }, [form]);
-
-  const resetForm = () => {
-    setForm(initialForm);
-    imageUpload.reset();
-  };
-
-  const validateForm = () => {
-    const required = [
-      "name",
-      "description",
-      "date",
-      "address",
-      "price",
-      "maxCustomers",
-      "cityId",
-      "placeId",
-    ];
-    const missing = required.find((field) => !form[field as keyof typeof form]);
-    if (missing) throw new Error(`Le champ ${missing} est requis`);
-    if (!form.categoryIds.length)
-      throw new Error("Au moins une catégorie est requise");
-
-    const price = parseFloat(form.price);
-    const maxCustomers = parseInt(form.maxCustomers);
-    if (isNaN(price) || price < 0) throw new Error("Prix invalide");
-    if (isNaN(maxCustomers) || maxCustomers <= 0)
-      throw new Error("Capacité invalide");
-    if (form.date && new Date(form.date) <= new Date())
-      throw new Error("Date invalide");
-  };
 
   const getDateTimeISO = () => {
     if (!form.date || !form.time) return "";
@@ -221,7 +201,6 @@ export function CreateEventDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    validateForm();
 
     const cloudinaryImageUrl = await imageUpload.uploadIfNeeded();
     const payload = {

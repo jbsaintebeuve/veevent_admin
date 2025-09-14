@@ -25,14 +25,19 @@ import { useAuth } from "@/hooks/use-auth";
 
 export function CreateCategoryDialog() {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const initialForm = {
     name: "",
     description: "",
     key: "",
     trending: false,
-  });
+  };
+  const [form, setForm] = useState(initialForm);
   const { token } = useAuth();
   const queryClient = useQueryClient();
+
+  const resetForm = () => {
+    setForm(initialForm);
+  };
 
   const mutation = useMutation({
     mutationFn: async (payload: CategoryCreateRequest) => {
@@ -65,40 +70,14 @@ export function CreateCategoryDialog() {
     return (
       form.name.trim() !== "" &&
       form.description.trim() !== "" &&
-      form.key.trim() !== ""
+      form.key.trim() !== "" &&
+      /^[a-z0-9-_]+$/.test(form.key.trim())
     );
   }, [form]);
-
-  const resetForm = () => {
-    setForm({
-      name: "",
-      description: "",
-      key: "",
-      trending: false,
-    });
-  };
-
-  const validateForm = () => {
-    if (!form.name.trim()) {
-      throw new Error("Le nom de la catégorie est requis");
-    }
-    if (!form.description.trim()) {
-      throw new Error("La description est requise");
-    }
-    if (!form.key.trim()) {
-      throw new Error("La clé unique est requise");
-    }
-    if (!/^[a-z0-9-_]+$/.test(form.key)) {
-      throw new Error(
-        "La clé ne peut contenir que des lettres minuscules, chiffres, tirets et underscores"
-      );
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    validateForm();
     const payload: CategoryCreateRequest = {
       name: form.name.trim(),
       description: form.description.trim(),
